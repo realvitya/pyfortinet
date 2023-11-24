@@ -1,14 +1,15 @@
 """Fortinet Policy object"""
-from ipaddress import IPv4Network
-from typing import Literal, List, Union
+from typing import Literal, Union
 
-from pydantic import BaseModel, Field
+from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api.address import Address, AddressGroup
 
 Action = Literal["deny", "accept", "ipsec", "ssl-vpn", "redirect", "isolate"]
 
 
-class Policy(BaseModel):
+class Policy(FMGObject):
+    _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy"
     name: str
     action: Action = "deny"
-    comments: str = ""
-    dstaddr: List[Union[IPv4Network, AddressGroup]]
+    comments: str = None
+    dstaddr: list[Union[Address, AddressGroup]]

@@ -4,17 +4,14 @@ import logging
 import re
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union, List, Dict
+from typing import Any, Optional, Union
 
 import requests
 from more_itertools import first
 from pydantic import SecretStr
 
-from pyfortinet.fmg_api import FMGObject, FMGExecObject
-
-# from pyfortinet.fmg_api.exceptions import FMGException, FMGTokenException, FMGAuthenticationException, \
-#     FMGLockNeededException
 import pyfortinet.fmg_api.exceptions as fe
+from pyfortinet.fmg_api import FMGExecObject, FMGObject
 from pyfortinet.fmg_api.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
@@ -31,7 +28,7 @@ def auth_required(func):
     """
 
     @functools.wraps(func)
-    def auth_decorated(self, *args, **kwargs):
+    def auth_decorated(self: Union[dict, "FMG"] = None, *args, **kwargs):
         """method which needs authentication"""
         if not self._token:
             raise fe.FMGTokenException("No token was obtained. Open connection first!")
@@ -58,7 +55,7 @@ def lock(func):
     """
 
     @functools.wraps(func)
-    def lock_decorated(self, *args, **kwargs):
+    def lock_decorated(self: Union[dict, "FMG"] = None, *args, **kwargs):
         """method which needs locking"""
         try:
             return func(self, *args, **kwargs)
@@ -106,6 +103,7 @@ class FMGLockContext:
 
     @property
     def uses_workspace(self) -> bool:
+        """returns workspace usage"""
         return self._uses_workspace
 
     # @uses_workspace.setter
@@ -121,7 +119,8 @@ class FMGLockContext:
     #     self._uses_adoms = val
 
     @property
-    def locked_adoms(self):
+    def locked_adoms(self) -> set[str]:
+        """returns locked adom set"""
         return self._locked_adoms
 
     def __call__(self, *adoms: str):
@@ -152,10 +151,7 @@ class FMGLockContext:
         if not adoms:
             adoms = ["root"]
         for adom in adoms:
-            if adom.lower() == "global":
-                url = "/dvmdb/global/workspace/lock/"
-            else:
-                url = f"/dvmdb/adom/{adom}/workspace/lock/"
+            url = "/dvmdb/global/workspace/lock/" if adom.lower() == "global" else f"/dvmdb/adom/{adom}/workspace/lock/"
             result.data.update({adom: self._fmg.exec(request={"url": url})})
             if result.data[adom].data.get("error"):
                 raise fe.FMGLockException(result.data[adom].data)
@@ -172,7 +168,7 @@ class FMGLockContext:
                 url = "/dvmdb/global/workspace/unlock/"
             else:
                 url = f"/dvmdb/adom/{adom}/workspace/unlock/"
-            result.data.update({adom: self._fmg.exec({"url": url})})
+            result.data.update({adom: self._fmg.exec(request={"url": url})})
             if not result.data[adom].data.get("error"):
                 self._locked_adoms.remove(adom)
 
@@ -180,7 +176,7 @@ class FMGLockContext:
             raise fe.FMGException(f"Failed to unlock ADOMs: {self._locked_adoms}")
         return result
 
-    def commit_changes(self, adoms: Optional[list] = None, aux: bool = False) -> List[FMGResponse]:
+    def commit_changes(self, adoms: Optional[list] = None, aux: bool = False) -> list[FMGResponse]:
         """Apply workspace changes in the DB
 
         Args:
@@ -193,11 +189,10 @@ class FMGLockContext:
         for adom in adoms:
             if aux:
                 url = f"/pm/config/adom/{adom}/workspace/commit"
+            elif adom.lower() == "global":
+                url = "/dvmdb/global/workspace/commit/"
             else:
-                if adom.lower() == "global":
-                    url = "/dvmdb/global/workspace/commit/"
-                else:
-                    url = f"/dvmdb/adom/{adom}/workspace/commit"
+                url = f"/dvmdb/adom/{adom}/workspace/commit"
             results.append(self._fmg.exec({"url": url}))
         return results
 
@@ -324,7 +319,7 @@ class FMG:
         return req["data"]["Version"]
 
     @auth_required
-    def exec(self, request: Union[Dict[str, str], FMGObject]) -> FMGResponse:
+    def exec(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Execute on FMG"""
         if isinstance(request, dict):  # lowlevel operation
             logger.info("requesting exec with lowlevel op to %s", request.get("url"))
@@ -371,7 +366,7 @@ class FMG:
         return result
 
     @auth_required
-    def get(self, request: Union[Dict[str, Any], FMGObject]) -> Union[FMGResponse, FMGObject, List[FMGObject]]:
+    def get(self, request: Union[dict[str, Any], FMGObject]) -> Union[FMGResponse, FMGObject, list[FMGObject]]:
         """Get info from FMG
 
         Args:
@@ -447,7 +442,9 @@ class FMG:
             result.success = True
         else:
             # converting API names to object names (replace - -> _)
-            obj_model = [{key.replace("-", "_"): value for key, value in data.items()} for data in api_result.get("data")]
+            obj_model = [
+                {key.replace("-", "_"): value for key, value in data.items()} for data in api_result.get("data")
+            ]
             if len(obj_model) > 1:
                 result = []
                 for value in obj_model:
@@ -459,7 +456,7 @@ class FMG:
 
     @auth_required
     @lock
-    def add(self, request: Union[Dict[str, str], FMGObject]) -> FMGResponse:
+    def add(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Add operation
 
         Args:

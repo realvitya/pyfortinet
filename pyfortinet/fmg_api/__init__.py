@@ -1,8 +1,8 @@
 """FMG API library"""
+from abc import ABC
 from typing import Any
 
-from pydantic import BaseModel, field_validator, ValidationInfo, Field
-from abc import ABC
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class FMGObject(BaseModel, ABC):

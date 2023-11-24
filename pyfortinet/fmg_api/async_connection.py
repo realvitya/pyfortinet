@@ -69,7 +69,7 @@ class AsyncFMG:
                 status = (await req.json()).get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
-        except Exception as err:
+        except Exception:
             logger.warning("Logout failed!")
 
         await self._session.close()

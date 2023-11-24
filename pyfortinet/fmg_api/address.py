@@ -1,10 +1,10 @@
 """Address object types"""
 from ipaddress import IPv4Interface
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 from uuid import UUID
 
 from more_itertools import first
-from pydantic import Field, field_validator, ValidationInfo
+from pydantic import Field, ValidationInfo, field_validator
 
 from pyfortinet.fmg_api import FMGObject
 
@@ -15,8 +15,8 @@ AddressGroupCategory = Literal["default", "ztna-ems-tag", "ztna-geo-tag"]
 class Address(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/address"
     name: str
-    associated_interface: Union[str, List[str]] = Field(None, serialization_alias="associated-interface")
-    subnet: Union[str, List[str]] = None
+    associated_interface: Union[str, list[str]] = Field(None, serialization_alias="associated-interface")
+    subnet: Union[str, list[str]] = None
 
     @field_validator("subnet")
     def standardize_subnet(cls, v):
@@ -43,13 +43,13 @@ class AddressMapping(Address):
 class AddressGroup(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
     name: str
-    member: List[Address]
-    exclude_member: List[Address] = Field(..., serialization_alias="exclude-member")
+    member: list[Address]
+    exclude_member: list[Address] = Field(..., serialization_alias="exclude-member")
     comment: str = ""
     category: AddressGroupCategory = "default"
     type: AddressGroupType = "default"
     uuid: Optional[UUID]
-    dynamic_mapping: List["AddressGroupMapping"]
+    dynamic_mapping: list["AddressGroupMapping"]
 
 
 class AddressGroupMapping(AddressGroup):
