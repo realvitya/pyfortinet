@@ -1,0 +1,2 @@
+"""CLI template operations"""
+GETS = {}

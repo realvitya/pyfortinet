@@ -1,0 +1,88 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "pyfortinet"
+authors = [ {name = "Viktor Kertesz", email = "vkertesz2@gmail.com"},
+]
+
+readme = "README.rst"
+requires-python = ">=3.9,<4"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dynamic = ['version', 'description']
+
+dependencies = [
+    "pydantic>2,<3",
+    "pydantic_settings",
+    "typer",
+    "requests==2.31.0",
+    "ruamel.yaml==0.17.20",
+    "aiohttp",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest-cov",
+    "pytest",
+    #"pytest-dependency",
+    "flit",
+    "invoke",
+    "pre-commit",
+    "ruff",
+]
+
+rich = [
+    "rich"
+]
+
+[tool.flit.module]
+name = "pyfortinet"
+
+[project.scripts]
+fortiapi = "pyfortinet.main:main"
+
+[project.urls]
+Source = "https://github.com/viktorkertesz/pyfortinet"
+#Documentation = "https://"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+#addopts = "-ra -q --cov=fortimanager_template_sync --cov-report=term-missing"
+
+testpaths = [
+    "tests"
+]
+
+[tool.ruff]
+# docs: https://docs.astral.sh/ruff
+line-length = 120
+target-version = "py39"
+extend-exclude = ["private", ".idea"]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pylint
+    "PL",
+]
+
+[tool.ruff.pydocstyle]
+convention = "google"
