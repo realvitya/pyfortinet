@@ -201,10 +201,12 @@ class FMG:
     """Fortimanager connection class
 
     Attributes:
-        lock: Workspace lock handler
+        lock (FMGLockContext): Workspace lock handler
     """
 
-    def __init__(self, settings: FMGSettings):
+    def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
+        if not settings:
+            settings = FMGSettings(**kwargs)
         logger.debug("Initializing connection to %s", settings.base_url)
         self._settings = settings
         self._token: Optional[SecretStr] = None

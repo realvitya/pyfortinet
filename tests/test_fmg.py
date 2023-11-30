@@ -34,6 +34,15 @@ class TestFMGSettings:
         with pytest.raises(ValidationError, match="Input should be a valid URL"):
             FMGSettings(**config)
 
+    def test_fmg_object_creation_by_object(self):
+        config = deepcopy(self.config)
+        settings = FMGSettings(**config)
+        conn = FMG(settings)
+
+    def test_fmg_object_creation_by_kwargs(self):
+        config = deepcopy(self.config)
+        conn = FMG(**config)
+
     def test_fmg_need_to_open_first(self):
         config = deepcopy(self.config)
         with pytest.raises(FMGTokenException, match="Open connection first!"):
