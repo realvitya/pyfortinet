@@ -42,6 +42,12 @@ def mkdocs(cmd, push_to_github=False):
         cmd.run("mkdocs gh-deploy")
 
 
+@task()
+def mkdocs_serve(cmd):
+    """Run built-in webserver for docs"""
+    cmd.run("mkdocs serve")
+
+
 LinterType = Literal[
     "all",
     "trailing-whitespace",
@@ -51,7 +57,7 @@ LinterType = Literal[
     "ruff",
     "ruff-format",
     "detect-secrets",
-    "rstcheck",
+    "pymarkdown",
     "relint",
 ]
 

@@ -32,6 +32,7 @@ plugins:
         paths: [ pyfortinet ]
         options:
           show_signature_annotations: true
+          signature_crossrefs: true
 - section-index
 - literate-nav
 

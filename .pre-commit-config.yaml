@@ -28,10 +28,12 @@ repos:
     -   id: detect-secrets
         args: ['--exclude-secrets', 'verysecret']
 
--   repo: https://github.com/myint/rstcheck
-    rev: v6.1.1
+-   repo: https://github.com/jackdewinter/pymarkdown
+    rev: v0.9.15
     hooks:
-    -   id: rstcheck
+    -   id: pymarkdown
+        args:
+            - scan
 
 -   repo: https://github.com/codingjoe/relint.git
     rev: 1.2.1
