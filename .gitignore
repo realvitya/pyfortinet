@@ -6,3 +6,4 @@ __pycache__
 .coverage
 .relint.yml
 lab-config.yml
+site/

@@ -4,7 +4,7 @@ import logging
 import re
 from copy import copy
 from dataclasses import dataclass, field
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import requests
 from more_itertools import first
@@ -17,14 +17,14 @@ from pyfortinet.fmg_api.settings import FMGSettings
 logger = logging.getLogger(__name__)
 
 
-def auth_required(func):
+def auth_required(func: Callable) -> Callable:
     """Decorator to provide authentication for the method
 
     Args:
         func: function to handle authentication errors
 
     Returns:
-        function with authentication handling enabled
+        (Callable): function with authentication handling enabled
     """
 
     @functools.wraps(func)
@@ -44,14 +44,14 @@ def auth_required(func):
     return auth_decorated
 
 
-def lock(func):
+def lock(func: Callable) -> Callable:
     """Decorator to provide ADOM locking if needed
 
     Args:
         func: function to handle errors complaining about no locking
 
     Returns:
-        function with lock handling enabled
+        (Callable): function with lock handling enabled
     """
 
     @functools.wraps(func)
@@ -136,13 +136,13 @@ class FMGLockContext:
         self._uses_workspace = result.data["data"].get("workspace-mode") != 0
         # self.uses_adoms = result.data["data"].get("adom-status") == 1
 
-    def lock_adoms(self, *adoms) -> FMGResponse:
+    def lock_adoms(self, *adoms: str) -> FMGResponse:
         """Lock adom list
 
         If no adom specified, global workspace will be locked
 
         Args:
-            *adoms: list of adom names
+            *adoms (str): list of adom names
 
         Returns:
             Response object
@@ -182,6 +182,9 @@ class FMGLockContext:
         Args:
             adoms: list of ADOMs to commit. If empty, commit ALL ADOMs.
             aux:
+
+        Returns:
+            (list[FMGResponse]): List of response of operations
         """
         results = []
         if not adoms:
@@ -200,8 +203,31 @@ class FMGLockContext:
 class FMG:
     """Fortimanager connection class
 
+    This can be used as a connection handler for the FortiManager. It maintains state of operation and provides
+    functions to communicate with the FMG.
+
     Attributes:
         lock (FMGLockContext): Workspace lock handler
+
+    Examples:
+        ### Using as context manager
+
+        >>> settings = {...}
+        >>> with FMG(**settings) as conn:
+        ...     print(conn.get_version())
+
+        ### Using as function:
+
+        >>> from pyfortinet.fmg_api.exceptions import FMGException
+        >>> settings = {...}
+        >>> conn = FMG(**settings)
+        >>> try:
+        ...     conn.open()
+        ...     print(conn.get_version())
+        ... except FMGException as err:
+        ...     print(f"Error: {err}")
+        ... finally:
+        ...     conn.close()
     """
 
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
@@ -280,7 +306,7 @@ class FMG:
         """Get authentication token
 
         Raises:
-
+            (FMGTokenException): upon problem getting the token
         """
         logger.debug("Getting token..")
         request = {
@@ -367,33 +393,38 @@ class FMG:
 
         return result
 
+    # noqa: PLR0912 - Too many branches
     @auth_required
-    def get(self, request: Union[dict[str, Any], FMGObject]) -> Union[FMGResponse, FMGObject, list[FMGObject]]:
+    def get(self, request: Union[dict[str, Any], FMGObject]) -> Union[FMGResponse, FMGObject, list[FMGObject]]:  # noqa: PLR0912 - Too many branches
         """Get info from FMG
 
         Args:
             request: Get operation's data structure
 
         Examples:
-            .. code-block::
+            ## Low-level - dict
 
-                1. dict - lowlevel
-                address_request = {
-                    "url": "/pm/config/global/obj/firewall/address",
-                    "filter": [ ["name", "==", "test-address"] ],
-                    "fields": [ "name", "subnet" ]
-                }
-                with FMG(settings) as fmg:
-                    fmg.add(address_request)
+            >>> address_request = {
+            ...    "url": "/pm/config/global/obj/firewall/address",
+            ...    "filter": [ ["name", "==", "test-address"] ],
+            ...    "fields": [ "name", "subnet" ]
+            ...}
+            >>> settings = {...}
+            >>> with FMG(**settings) as fmg:
+            ...    fmg.add(address_request)
 
-                2. FMGObject - highlevel
-                address = Address(name="test-address")
-                with FMG(settings) as fmg:
-                    address = fmg.get(address)
+            ## High-level - obj
+
+            >>> from pyfortinet.fmg_api.address import Address
+            >>> settings = {...}
+            >>> address = Address(name="test-address")
+            >>> with FMG(**settings) as fmg:
+            ...    address = fmg.get(address)
 
         Returns:
             (FMGResponse): response object with data
             (FMGObject): if request was an object, it will return a filled object
+            (list[FMGObject]): if more object returns, it will return a list of objects
         """
         if isinstance(request, dict):  # low-level operation
             body = {
@@ -465,27 +496,33 @@ class FMG:
             request: Add operation's data structure
 
         Examples:
-            .. code-block::
+            ## Low-level - dict
 
-                1. dict - lowlevel
-                address_request = {
-                    "url": "/pm/config/global/obj/firewall/address",
-                    "data": {
-                        "name": "test-address",
-                        "associated-interface": "inside",
-                        "obj-type": "ip",
-                        "type": "ipmask",
-                        "start-ip": "10.0.0.1/24"
-                    }
-                }
-                with FMG(settings) as fmg:
-                    fmg.add(address_request)
+            >>> settings = {...}
+            >>> address_request = {
+            ...     "url": "/pm/config/global/obj/firewall/address",
+            ...     "data": {
+            ...         "name": "test-address",
+            ...         "associated-interface": "inside",
+            ...         "obj-type": "ip",
+            ...         "type": "ipmask",
+            ...         "start-ip": "10.0.0.1/24"
+            ...     }
+            ... }
+            >>> with FMG(**settings) as fmg:
+            >>>     fmg.add(address_request)
 
-                2. Address - highlevel
-                address = Address(name="test-address", associated-interface="inside", obj_type="ip",
-                                  type="ipmask", start_ip="10.0.0.1/24")
-                with FMG(settings) as fmg:
-                    fmg.add(address)
+            ## High-level - obj
+
+            >>> from pyfortinet.fmg_api.address import Address
+            >>> settings = {...}
+            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
+            ...                   type="ipmask", start_ip="10.0.0.1/24")
+            >>> with FMG(**settings) as fmg:
+            ...     fmg.add(address)
+
+        Returns:
+            (FMGResponse): Result of operation
         """
         response = FMGResponse()
         if isinstance(request, dict):  # JSON input, low-level operation

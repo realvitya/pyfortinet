@@ -7,7 +7,7 @@ name = "pyfortinet"
 authors = [ {name = "Viktor Kertesz", email = "vkertesz2@gmail.com"},
 ]
 
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.9,<4"
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -36,6 +36,14 @@ dev = [
     "invoke",
     "pre-commit",
     "ruff",
+    # mkdocs dependencies
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+    "mkdocstrings",
+    "mkdocstrings-python"
 ]
 
 rich = [

@@ -1,13 +1,9 @@
-Fortinet Python library
-=======================
+# Fortinet Python library
 This project implement easy way of handling Fortinet device management from Python.
 
-Quick example
--------------
-FMG
-~~~
-.. code-block:: Python
-
+## Quick example
+### FMG
+```python
         config = {
             "base_url": "https://myfmg.com",
             "username": "myuser",
@@ -18,12 +14,10 @@ FMG
         settings = FMGSettings(**config)
         with FMG(settings) as conn:
             ver = conn.get_version()
+```
 
-
-Installation
-------------
+## Installation
 TBD
 
-Setup
------
+## Setup
 TBD

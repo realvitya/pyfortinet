@@ -13,6 +13,14 @@ AddressGroupCategory = Literal["default", "ztna-ems-tag", "ztna-geo-tag"]
 
 
 class Address(FMGObject):
+    """Address class for high-level operations
+
+    Attributes:
+        name (str): object name
+        associated_interface (str|list[str]): object assigned to interface/zone name
+        subnet (str|list[str]): subnet in x.x.x.x/x or [x.x.x.x, y.y.y.y] format
+    """
+
     _url: str = "/pm/config/{scope}/obj/firewall/address"
     name: str
     associated_interface: Union[str, list[str]] = Field(None, serialization_alias="associated-interface")
@@ -20,7 +28,7 @@ class Address(FMGObject):
 
     @field_validator("subnet")
     def standardize_subnet(cls, v):
-        """x.x.x.x/y.y.y.y -> x.x.x.x/y"""
+        """validator: x.x.x.x/y.y.y.y -> x.x.x.x/y"""
         if isinstance(v, list):
             return IPv4Interface("/".join(v)).compressed
         else:
@@ -28,7 +36,7 @@ class Address(FMGObject):
 
     @field_validator("associated_interface")
     def standardize_assoc_iface(cls, v):
-        """FMG sends a list with a single element"""
+        """validator: FMG sends a list with a single element, replace with single element"""
         if isinstance(v, list):
             return first(v, None)
         else:

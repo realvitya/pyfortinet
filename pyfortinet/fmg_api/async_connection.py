@@ -1,7 +1,7 @@
 """Async FMG connection"""
 import functools
 import logging
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import aiohttp
 from pydantic import SecretStr
@@ -12,7 +12,7 @@ from pyfortinet.fmg_api.settings import FMGSettings
 logger = logging.getLogger(__name__)
 
 
-def auth_required(func):
+def auth_required(func: Callable) -> Callable:
     """Decorator to provide authentication for the method
 
     Args:
@@ -40,7 +40,11 @@ def auth_required(func):
 
 
 class AsyncFMG:
-    """Fortimanager connection class"""
+    """Fortimanager connection class
+
+    Warnings:
+            UserWarning: Not complete do not use!
+    """
 
     def __init__(self, settings: FMGSettings):
         logger.debug("Initializing connection to %s", settings.base_url)
@@ -75,11 +79,11 @@ class AsyncFMG:
         await self._session.close()
         logger.debug("Closed session")
 
-    async def __enter__(self):
-        self.open()
+    async def __aenter__(self):
+        await self.open()
         return self
 
-    async def __exit__(self, exc_type, exc_value, exc_tb):
+    async def __aexit__(self, exc_type, exc_value, exc_tb):
         await self.close()
 
     async def _post(self, request: dict) -> Any:
