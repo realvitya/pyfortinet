@@ -5,10 +5,10 @@ import pytest
 from pydantic import SecretStr, ValidationError
 from requests.exceptions import ConnectionError
 
-from pyfortinet.fmg_api.address import Address
-from pyfortinet.fmg_api.connection import FMG
-from pyfortinet.fmg_api.exceptions import FMGTokenException
-from pyfortinet.fmg_api.settings import FMGSettings
+from pyfortinet import FMG
+from pyfortinet import exceptions as fe
+from pyfortinet.fmg_api.firewall import Address
+from pyfortinet.settings import FMGSettings
 
 need_lab = pytest.mark.skipif(not pytest.lab_config, reason=f"Lab config {pytest.lab_config_file} does not exist!")
 
@@ -45,7 +45,7 @@ class TestFMGSettings:
 
     def test_fmg_need_to_open_first(self):
         config = deepcopy(self.config)
-        with pytest.raises(FMGTokenException, match="Open connection first!"):
+        with pytest.raises(fe.FMGTokenException, match="Open connection first!"):
             settings = FMGSettings(**config)
             conn = FMG(settings)
             conn.get_version()
@@ -69,7 +69,7 @@ class TestLab:
         config["password"] = "badpassword"  # pragma: allowlist secret
         settings = FMGSettings(**config)
         conn = FMG(settings)
-        with pytest.raises(FMGTokenException, match="Login failed, wrong credentials!"):
+        with pytest.raises(fe.FMGTokenException, match="Login failed, wrong credentials!"):
             conn.open()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
@@ -95,7 +95,7 @@ class TestLab:
         with FMG(settings) as conn:
             conn._token = SecretStr("bad_token")
             conn._settings.password = SecretStr("bad_password")
-            with pytest.raises(FMGTokenException, match="wrong credentials"):
+            with pytest.raises(fe.FMGTokenException, match="wrong credentials"):
                 conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
@@ -112,8 +112,7 @@ class TestLab:
         settings = FMGSettings(**self.config)
         with FMG(settings) as conn:
             conn._settings.base_url = "https://127.0.0.3/jsonrpc"
-            # conn._session.close()
-            # conn._session = requests.Session()
+
         assert "Logout failed" in caplog.text
 
 
@@ -125,7 +124,7 @@ class TestObjectsOnLab:
     )
 
     @fmg_connected
-    def test_add_address_dict(self):
+    def test_address_add_dict(self):
         address_request = {
             "url": "/pm/config/global/obj/firewall/address",
             "data": {
@@ -137,16 +136,22 @@ class TestObjectsOnLab:
         assert result.success
 
     @fmg_connected
-    def test_add_address_obj(self):
+    def test_address_add_obj(self):
         address = Address(name="test-address2", subnet="10.0.0.2/32")
         result = self.fmg.add(address)
         assert result.success
 
     @fmg_connected
-    def test_get_address_obj(self):
+    def test_address_get_obj(self):
         address = Address(name="test-address2")
         address = self.fmg.get(address)
         assert address.subnet == "10.0.0.2/32"
+
+    @fmg_connected
+    def test_address_get_obj_with_scope(self):
+        address = Address(scope="global", name="test-global-address", subnet="10.0.0.3/32")
+        result = self.fmg.add(address)
+        assert result.success
 
     @fmg_connected
     def test_close_fmg(self):

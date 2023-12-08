@@ -4,15 +4,25 @@ import logging
 import re
 from copy import copy
 from dataclasses import dataclass, field
+from random import randint
 from typing import Any, Callable, Optional, Union
 
 import requests
 from more_itertools import first
 from pydantic import SecretStr
 
-import pyfortinet.fmg_api.exceptions as fe
+from pyfortinet import FMGSettings
+from pyfortinet.exceptions import (
+    FMGAuthenticationException,
+    FMGEmptyResultException,
+    FMGException,
+    FMGLockException,
+    FMGLockNeededException,
+    FMGTokenException,
+    FMGUnhandledException,
+    FMGWrongRequestException,
+)
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
-from pyfortinet.fmg_api.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +41,14 @@ def auth_required(func: Callable) -> Callable:
     def auth_decorated(self: Union[dict, "FMG"] = None, *args, **kwargs):
         """method which needs authentication"""
         if not self._token:
-            raise fe.FMGTokenException("No token was obtained. Open connection first!")
+            raise FMGTokenException("No token was obtained. Open connection first!")
         try:
             return func(self, *args, **kwargs)
-        except fe.FMGAuthenticationException as err:
+        except FMGAuthenticationException as err:
             try:  # try again after refreshing token
                 self._token = self._get_token()  # pylint: disable=protected-access  # decorator of methods
                 return func(self, *args, **kwargs)
-            except fe.FMGException as err2:
+            except FMGException as err2:
                 raise err2 from err
 
     return auth_decorated
@@ -59,7 +69,7 @@ def lock(func: Callable) -> Callable:
         """method which needs locking"""
         try:
             return func(self, *args, **kwargs)
-        except fe.FMGLockNeededException as err:
+        except FMGLockNeededException as err:
             try:  # try again after locking
                 # args[0] is the request dict or obj
                 # url = args[0].get("url") if isinstance(args[0], dict) else args[0].url
@@ -69,7 +79,7 @@ def lock(func: Callable) -> Callable:
                     if adom_match:
                         adom = adom_match.group("adom")
                     else:
-                        raise fe.FMGException(f"No ADOM found to lock in url '{url}'") from err
+                        raise FMGException(f"No ADOM found to lock in url '{url}'") from err
                 else:
                     adom = args[0].scope
                 if adom not in self.lock.locked_adoms:
@@ -77,7 +87,7 @@ def lock(func: Callable) -> Callable:
                 else:  # ADOM already locked, do not try to lock it again
                     raise
                 return func(self, *args, **kwargs)
-            except fe.FMGException as err2:
+            except FMGException as err2:
                 raise err2 from err
 
     return lock_decorated
@@ -154,7 +164,7 @@ class FMGLockContext:
             url = "/dvmdb/global/workspace/lock/" if adom.lower() == "global" else f"/dvmdb/adom/{adom}/workspace/lock/"
             result.data.update({adom: self._fmg.exec(request={"url": url})})
             if result.data[adom].data.get("error"):
-                raise fe.FMGLockException(result.data[adom].data)
+                raise FMGLockException(result.data[adom].data)
             self._locked_adoms.add(adom)
         return result
 
@@ -173,7 +183,7 @@ class FMGLockContext:
                 self._locked_adoms.remove(adom)
 
         if self._locked_adoms:
-            raise fe.FMGException(f"Failed to unlock ADOMs: {self._locked_adoms}")
+            raise FMGException(f"Failed to unlock ADOMs: {self._locked_adoms}")
         return result
 
     def commit_changes(self, adoms: Optional[list] = None, aux: bool = False) -> list[FMGResponse]:
@@ -219,7 +229,7 @@ class FMG:
 
         ### Using as function:
 
-        >>> from pyfortinet.fmg_api.exceptions import FMGException
+        >>> from pyfortinet.exceptions import FMGException
         >>> settings = {...}
         >>> conn = FMG(**settings)
         >>> try:
@@ -241,6 +251,7 @@ class FMG:
         self.lock = FMGLockContext(self)
         self._raise_on_error: bool = settings.raise_on_error
         self._discard_on_close: bool = False
+        self._id: int = randint(1, 256)  # pick a random id for this session (check logs for a particular session)
 
     def open(self) -> "FMG":
         """open connection"""
@@ -252,7 +263,7 @@ class FMG:
         """close connection"""
         # Logout and expire token
         request = {
-            "id": 1,
+            "id": self._id,
             "method": "exec",
             "params": [{"url": "/sys/logout"}],
             "session": self._token.get_secret_value(),
@@ -264,7 +275,7 @@ class FMG:
                     if not self._discard_on_close:
                         self.lock.commit_changes()
                     self.lock.unlock_adoms()
-            except fe.FMGException:  # go ahead and ensure logout regardless we could unlock
+            except FMGException:  # go ahead and ensure logout regardless we could unlock
                 pass
             req = self._session.post(
                 self._settings.base_url, json=request, verify=self._settings.verify, timeout=self._settings.timeout
@@ -297,10 +308,12 @@ class FMG:
             if status["code"] == 0:
                 continue
             if status["message"] == "no write permission":
-                raise fe.FMGLockNeededException(status)
+                raise FMGLockNeededException(status)
             if status["message"] == "Workspace is locked by other user":
-                raise fe.FMGLockException(status)
-            raise fe.FMGUnhandledException(status)
+                raise FMGLockException(status)
+            if status["message"] == "No permission for the resource":
+                raise FMGAuthenticationException(status)
+            raise FMGUnhandledException(status)
         return results[0] if len(results) == 1 else results
 
     def _get_token(self) -> SecretStr:
@@ -311,7 +324,7 @@ class FMG:
         """
         logger.debug("Getting token..")
         request = {
-            "id": 1,
+            "id": self._id,
             "method": "exec",
             "params": [
                 {
@@ -324,9 +337,9 @@ class FMG:
             req = self._session.post(self._settings.base_url, json=request, verify=self._settings.verify)
             status = req.json().get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
-                raise fe.FMGTokenException("Login failed, wrong credentials!")
+                raise FMGTokenException("Login failed, wrong credentials!")
             logger.debug("Token obtained")
-        except fe.FMGTokenException as err:
+        except FMGTokenException as err:
             logger.error("Can't gather token: %s", err)
             raise err
         except requests.exceptions.ConnectionError as err:
@@ -341,7 +354,7 @@ class FMG:
         request = {
             "method": "get",
             "params": [{"url": "/sys/status"}],
-            "id": 1,
+            "id": self._id,
             "session": self._token.get_secret_value(),
         }
         req = self._post(request)
@@ -361,11 +374,11 @@ class FMG:
                     }
                 ],
                 "session": self._token.get_secret_value(),
-                "id": 1,
+                "id": self._id,
             }
             try:
                 api_result = self._post(request=body)
-            except fe.FMGException as err:
+            except FMGException as err:
                 api_result = {"error": str(err)}
                 logger.error("Error in get request: %s", api_result["error"])
             result = FMGResponse(data=api_result)
@@ -380,11 +393,11 @@ class FMG:
                     }
                 ],
                 "session": self._token.get_secret_value(),
-                "id": 1,
+                "id": self._id,
             }
             try:
                 api_result = self._post(request=body)
-            except fe.FMGException as err:
+            except FMGException as err:
                 api_result = {"error": str(err)}
                 logger.error("Error in get request: %s", api_result["error"])
             result = FMGResponse(data=api_result)
@@ -416,7 +429,7 @@ class FMG:
 
             ## High-level - obj
 
-            >>> from pyfortinet.fmg_api.address import Address
+            >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
             >>> address = Address(name="test-address")
             >>> with FMG(**settings) as fmg:
@@ -432,7 +445,7 @@ class FMG:
                 "method": "get",
                 "params": [request],
                 "session": self._token.get_secret_value(),
-                "id": 1,
+                "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
             api_request = {
@@ -443,23 +456,23 @@ class FMG:
                 ],
                 "fields": list(request.model_dump(by_alias=True).keys()),
             }
-            scope = "global" if request.scope == "global" else f"adom/{request.scope}"
-            url = request.url.replace("{scope}", scope)
+            # scope = "global" if request.scope == "global" else f"adom/{request.scope}"
+            # url = request.url.replace("{scope}", scope)
             body = {
                 "method": "get",
-                "params": [{"url": url, **api_request}],
+                "params": [{"url": request.url, **api_request}],
                 "session": self._token.get_secret_value(),
-                "id": 1,
+                "id": self._id,
             }
         else:
             result = FMGResponse(data={"error": f"Wrong type of request received: {request}"}, status=400)
             logger.error(result.data["error"])
             if self._raise_on_error:
-                raise fe.FMGWrongRequestException(result)
+                raise FMGWrongRequestException(result)
             return result
         try:
             api_result = self._post(request=body)
-        except fe.FMGException as err:
+        except FMGException as err:
             api_result = {"error": str(err)}
             logger.error("Error in get request: %s", api_result["error"])
             if self._raise_on_error:
@@ -468,7 +481,7 @@ class FMG:
         # handling empty result list
         if not api_result.get("data"):
             if self._raise_on_error:
-                raise fe.FMGEmptyResultException(request)
+                raise FMGEmptyResultException(request)
             return FMGResponse(data=request)
         # processing result list
         if isinstance(request, dict):
@@ -515,7 +528,7 @@ class FMG:
 
             ## High-level - obj
 
-            >>> from pyfortinet.fmg_api.address import Address
+            >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
@@ -536,7 +549,7 @@ class FMG:
                     }
                 ],
                 "session": self._token.get_secret_value(),
-                "id": 1,
+                "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
             api_data = {
@@ -544,26 +557,26 @@ class FMG:
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            scope = "global" if request.scope == "global" else f"adom/{request.scope}"
-            url = request.url.replace("{scope}", scope)
+            # scope = "global" if request.scope == "global" else f"adom/{request.scope}"
+            # url = request.url.replace("{scope}", scope)
             body = {
                 "method": "add",
-                "params": [{"url": url, "data": api_data}],
+                "params": [{"url": request.url, "data": api_data}],
                 "session": self._token.get_secret_value(),
-                "id": 1,
+                "id": self._id,
             }
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
             logger.error(response.data["error"])
             if self._raise_on_error:
-                raise fe.FMGWrongRequestException(request)
+                raise FMGWrongRequestException(request)
             return response
         try:
             api_result = self._post(request=body)
             response.success = True
             response.status = api_result.get("status")
-        except fe.FMGUnhandledException as err:
+        except FMGUnhandledException as err:
             api_result = {"error": str(err)}
             logger.error("Error in get request: %s", api_result["error"])
             if self._raise_on_error:

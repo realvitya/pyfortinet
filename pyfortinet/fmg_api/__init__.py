@@ -2,7 +2,7 @@
 from abc import ABC
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationInfo, field_validator
+from pydantic import BaseModel, Field
 
 
 class FMGObject(BaseModel, ABC):
@@ -10,21 +10,23 @@ class FMGObject(BaseModel, ABC):
 
     Attributes:
         scope (str): FMG selected scope (adom or global)
+        _version (str): Supported API version
+        _url (str): template for API URL
     """
 
+    _version = "7.2.4"
     _url: str
     scope: str = Field("root", exclude=True)
 
     @property
-    def url(self):
-        """API URL where {scope} is replaced on the fly based on the FMG selected scope (adom or global)"""
-        return self._url
+    def url(self) -> str:
+        """General API URL assembly
 
-    @classmethod
-    @field_validator("_url")
-    def construct_url(cls, v: str, info: ValidationInfo):
-        """rewrite URL with actual scope"""
-        return v.replace("{scope}", info.data["scope"])
+        To be overridden by more complex API URLs in different classes
+        """
+        scope = "global" if self.scope == "global" else f"adom/{self.scope}"
+        url = self._url.replace("{scope}", scope)
+        return url
 
 
 class FMGExecObject(FMGObject, ABC):

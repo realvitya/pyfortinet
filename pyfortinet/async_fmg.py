@@ -6,8 +6,8 @@ from typing import Any, Callable, Optional
 import aiohttp
 from pydantic import SecretStr
 
-from pyfortinet.fmg_api.exceptions import FMGException, FMGTokenException
-from pyfortinet.fmg_api.settings import FMGSettings
+from pyfortinet.exceptions import FMGException, FMGTokenException
+from pyfortinet.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
 

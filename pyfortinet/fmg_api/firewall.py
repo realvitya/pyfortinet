@@ -1,4 +1,4 @@
-"""Address object types"""
+"""Firewall object types"""
 from ipaddress import IPv4Interface
 from typing import Literal, Optional, Union
 from uuid import UUID
@@ -21,7 +21,7 @@ class Address(FMGObject):
         subnet (str|list[str]): subnet in x.x.x.x/x or [x.x.x.x, y.y.y.y] format
     """
 
-    _url: str = "/pm/config/{scope}/obj/firewall/address"
+    _url: str = "/pm/config/{scope}/obj/firewall/address"  # scope:
     name: str
     associated_interface: Union[str, list[str]] = Field(None, serialization_alias="associated-interface")
     subnet: Union[str, list[str]] = None
