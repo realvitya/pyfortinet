@@ -221,6 +221,7 @@ class FMG:
 
     Examples:
         Possible arguments to initialize: [FMGSettings](settings.md#settings.FMGSettings)
+
         ### Using as context manager
 
         >>> settings = {...}
@@ -244,7 +245,6 @@ class FMG:
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
         if not settings:
             settings = FMGSettings(**kwargs)
-        logger.debug("Initializing connection to %s", settings.base_url)
         self._settings = settings
         self._token: Optional[SecretStr] = None
         self._session: Optional[requests.Session] = None
@@ -255,6 +255,7 @@ class FMG:
 
     def open(self) -> "FMG":
         """open connection"""
+        logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
         self._token = self._get_token()
         return self
@@ -488,9 +489,10 @@ class FMG:
             result = FMGResponse(data=api_result)
             result.success = True
         else:
-            # converting API names to object names (replace - -> _)
+            # converting API names to object names (replace '-' and ' ' -> _)
             obj_model = [
-                {key.replace("-", "_"): value for key, value in data.items()} for data in api_result.get("data")
+                {key.replace("-", "_").replace(" ", "_"): value for key, value in data.items()}
+                for data in api_result.get("data")
             ]
             if len(obj_model) > 1:
                 result = []
