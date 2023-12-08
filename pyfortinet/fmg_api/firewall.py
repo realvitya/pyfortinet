@@ -21,7 +21,7 @@ class Address(FMGObject):
         subnet (str|list[str]): subnet in x.x.x.x/x or [x.x.x.x, y.y.y.y] format
     """
 
-    _url: str = "/pm/config/{scope}/obj/firewall/address"  # scope:
+    _url: str = "/pm/config/{scope}/obj/firewall/address"
     name: str
     associated_interface: Union[str, list[str]] = Field(None, serialization_alias="associated-interface")
     subnet: Union[str, list[str]] = None

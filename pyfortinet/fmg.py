@@ -46,7 +46,7 @@ def auth_required(func: Callable) -> Callable:
             return func(self, *args, **kwargs)
         except FMGAuthenticationException as err:
             try:  # try again after refreshing token
-                self._token = self._get_token()  # pylint: disable=protected-access  # decorator of methods
+                self._token = self._get_token()
                 return func(self, *args, **kwargs)
             except FMGException as err2:
                 raise err2 from err
@@ -72,7 +72,6 @@ def lock(func: Callable) -> Callable:
         except FMGLockNeededException as err:
             try:  # try again after locking
                 # args[0] is the request dict or obj
-                # url = args[0].get("url") if isinstance(args[0], dict) else args[0].url
                 if isinstance(args[0], dict):
                     url = args[0].get("url")
                     adom_match = re.search(r"/(?P<adom>global|(?<=adom/)\w+)/", url)
@@ -364,8 +363,8 @@ class FMG:
     @auth_required
     def exec(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Execute on FMG"""
-        if isinstance(request, dict):  # lowlevel operation
-            logger.info("requesting exec with lowlevel op to %s", request.get("url"))
+        if isinstance(request, dict):  # low-level operation
+            logger.info("requesting exec with low-level op to %s", request.get("url"))
             body = {
                 "method": "exec",
                 "params": [
@@ -457,8 +456,6 @@ class FMG:
                 ],
                 "fields": list(request.model_dump(by_alias=True).keys()),
             }
-            # scope = "global" if request.scope == "global" else f"adom/{request.scope}"
-            # url = request.url.replace("{scope}", scope)
             body = {
                 "method": "get",
                 "params": [{"url": request.url, **api_request}],
@@ -559,8 +556,6 @@ class FMG:
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            # scope = "global" if request.scope == "global" else f"adom/{request.scope}"
-            # url = request.url.replace("{scope}", scope)
             body = {
                 "method": "add",
                 "params": [{"url": request.url, "data": api_data}],
