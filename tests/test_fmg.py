@@ -7,6 +7,7 @@ from requests.exceptions import ConnectionError
 
 from pyfortinet import FMG
 from pyfortinet import exceptions as fe
+from pyfortinet.fmg_api.dvmcmd import AddDevice, Device
 from pyfortinet.fmg_api.firewall import Address
 from pyfortinet.settings import FMGSettings
 
@@ -151,6 +152,15 @@ class TestObjectsOnLab:
     def test_address_get_obj_with_scope(self):
         address = Address(scope="global", name="test-global-address", subnet="10.0.0.3/32")
         result = self.fmg.add(address)
+        assert result.success
+
+    @fmg_connected
+    def test_add_device(self):
+        device = Device(
+            name="TEST-DEVICE",
+        )
+        job = AddDevice(adom="root", device=device)
+        result = self.fmg.exec(job)
         assert result.success
 
     @fmg_connected

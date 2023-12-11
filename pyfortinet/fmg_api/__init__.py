@@ -1,6 +1,5 @@
 """FMG API library"""
 from abc import ABC
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -30,8 +29,8 @@ class FMGObject(BaseModel, ABC):
 
 
 class FMGExecObject(FMGObject, ABC):
-    _data: Any
+    """FMG execute job type"""
 
     @property
     def data(self):
-        return self._data
+        return self.model_dump(by_alias=True)

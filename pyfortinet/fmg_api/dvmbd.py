@@ -4,6 +4,7 @@ from typing import Literal, Optional
 from pydantic import Field
 
 from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api.common import BaseDevice
 
 CONF_STATUS = Literal["unknown", "insync", "outofsync"]
 CONN_MODE = Literal["active", "passive"]
@@ -27,37 +28,6 @@ DEV_STATUS = Literal[
     "rev_revert",
     "auto_updated",
 ]
-MGMT_MODE = Literal["unreg", "fmg", "faz", "fmgfaz"]
-OS_TYPE = Literal[
-    "unknown",
-    "fos",
-    "fsw",
-    "foc",
-    "fml",
-    "faz",
-    "fwb",
-    "fch",
-    "fct",
-    "log",
-    "fmg",
-    "fsa",
-    "fdd",
-    "fac",
-    "fpx",
-    "fna",
-    "ffw",
-    "fsr",
-    "fad",
-    "fdc",
-    "fap",
-    "fxt",
-    "fts",
-    "fai",
-    "fwc",
-    "fis",
-    "fed",
-]
-OS_VER = Literal["unknown", "0.0", "1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0"]
 OP_MODE = Literal["nat", "transparent"]
 VDOM_TYPE = Literal["traffic", "admin"]
 
@@ -85,7 +55,7 @@ class VDOM(FMGObject):
         return url
 
 
-class Device(FMGObject):
+class Device(FMGObject, BaseDevice):
     """Device
 
     Attributes:
@@ -99,29 +69,27 @@ class Device(FMGObject):
     """
 
     # internal attributes
-    _url = ""
+    _url = "/dvmdb{adom}/device"
     # api attributes
-    name: Optional[str]
-    adm_usr: Optional[str]
-    adm_pass: Optional[list[str]]
     app_ver: Optional[str]
     av_ver: Optional[str]
     checksum: Optional[str]
     conf_status: Optional[CONF_STATUS]
     conn_mode: Optional[CONN_MODE]
+    conn_status: Optional[CONN_STATUS]
     ha_group_id: Optional[int]
     ha_group_name: Optional[str]
     hostname: Optional[str]
-    ip: Optional[str]
-    meta_fields: Optional[dict[str, str]] = Field(None, serialization_alias="meta fields")
     mgmt_if: Optional[str]
-    mgmt_mode: Optional[MGMT_MODE]
     mgmt_uuid: Optional[str]
     mgt_vdom: Optional[str]
-    os_type: Optional[OS_TYPE]
-    os_ver: Optional[OS_VER]
-    patch: Optional[int]
     psk: Optional[str]
-    sn: Optional[str] = Field(None, description="Serial number")
     vdom: Optional[list[VDOM]]
     version: Optional[int]
+
+    @property
+    def url(self) -> str:
+        """Device API URL assembly"""
+        scope = "" if self.scope == "global" else f"/adom/{self.scope}"
+        url = self._url.replace("{adom}", scope)
+        return url

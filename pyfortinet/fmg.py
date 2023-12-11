@@ -11,7 +11,6 @@ import requests
 from more_itertools import first
 from pydantic import SecretStr
 
-from pyfortinet import FMGSettings
 from pyfortinet.exceptions import (
     FMGAuthenticationException,
     FMGEmptyResultException,
@@ -23,6 +22,7 @@ from pyfortinet.exceptions import (
     FMGWrongRequestException,
 )
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
+from pyfortinet.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
 
