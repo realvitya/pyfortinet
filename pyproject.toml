@@ -25,6 +25,7 @@ dependencies = [
     "requests==2.31.0",
     "ruamel.yaml==0.17.20",
     "aiohttp",
+    "more_itertools",
 ]
 
 [project.optional-dependencies]
