@@ -26,6 +26,7 @@ class Address(FMGObject):
     associated_interface: Union[str, list[str]] = Field(None, serialization_alias="associated-interface")
     subnet: Union[str, list[str]] = None
 
+    @classmethod
     @field_validator("subnet")
     def standardize_subnet(cls, v):
         """validator: x.x.x.x/y.y.y.y -> x.x.x.x/y"""
@@ -34,6 +35,7 @@ class Address(FMGObject):
         else:
             return v
 
+    @classmethod
     @field_validator("associated_interface")
     def standardize_assoc_iface(cls, v):
         """validator: FMG sends a list with a single element, replace with single element"""
