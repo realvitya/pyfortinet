@@ -2,6 +2,7 @@
 __version__ = "0.0.1"
 from pyfortinet.async_fmg import AsyncFMG
 from pyfortinet.fmg import FMG
+from pyfortinet.fmg_human import FMGHL
 from pyfortinet.settings import FMGSettings
 
-__all__ = ("FMG", "AsyncFMG", "FMGSettings")
+__all__ = ("FMG", "FMGHL", "AsyncFMG", "FMGSettings")
