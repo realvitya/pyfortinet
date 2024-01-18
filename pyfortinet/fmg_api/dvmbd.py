@@ -56,7 +56,7 @@ class VDOM(FMGObject):
 
 
 class Device(FMGObject, BaseDevice):
-    """Device
+    """ADOM level read-only Device object
 
     Attributes:
         name (str): object name

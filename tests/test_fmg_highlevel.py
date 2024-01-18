@@ -1,6 +1,6 @@
 """Test of human API"""
 import pytest
-from pyfortinet import FMGHL, FMGSettings
+from pyfortinet import FMG, FMGSettings
 from pyfortinet.fmg_api.common import F
 
 need_lab = pytest.mark.skipif(not pytest.lab_config, reason=f"Lab config {pytest.lab_config_file} does not exist!")
@@ -8,7 +8,7 @@ need_lab = pytest.mark.skipif(not pytest.lab_config, reason=f"Lab config {pytest
 
 @need_lab
 class TestObjectsOnLab:
-    fmg = FMGHL(FMGSettings(**pytest.lab_config.get("fmg"))).open()
+    fmg = FMG(FMGSettings(**pytest.lab_config.get("fmg"))).open()
     fmg_connected = pytest.mark.skipif(
         not fmg._token, reason=f"FMG {pytest.lab_config.get('fmg', {}).get('base_url')} is not connected!"
     )

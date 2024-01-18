@@ -21,4 +21,4 @@ fmg:
   adom: root
 ```
 
-## FMG setup
+## FMGBase setup

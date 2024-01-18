@@ -1,4 +1,4 @@
-"""Async FMG connection"""
+"""Async FMGBase connection"""
 import functools
 import logging
 from typing import Any, Callable, Optional
@@ -39,7 +39,7 @@ def auth_required(func: Callable) -> Callable:
     return decorated
 
 
-class AsyncFMG:
+class AsyncFMGBase:
     """Fortimanager connection class
 
     Warnings:

@@ -55,7 +55,7 @@ class Result:
 
 class BaseDevice(BaseModel):
     # api attributes
-    name: Optional[str] = None
+    name: Optional[str] = Field(None, pattern=r"[\w-]{1,48}")
     adm_usr: Optional[str] = None
     adm_pass: Optional[list[str]] = None
     desc: Optional[str] = None
@@ -63,8 +63,9 @@ class BaseDevice(BaseModel):
     meta_fields: Optional[dict[str, str]] = Field(None, serialization_alias="meta fields")
     mgmt_mode: Optional[MGMT_MODE] = None
     os_type: Optional[OS_TYPE] = None
-    os_ver: Optional[OS_VER] = None
-    patch: Optional[int] = None
+    os_ver: Optional[OS_VER] = Field(None, description="Major release no")
+    mr: Optional[int] = Field(None, description="Minor release no")
+    patch: Optional[int] = Field(None, description="Patch release no")
     sn: Optional[str] = Field(None, description="Serial number")
 
 

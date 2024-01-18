@@ -1,13 +1,13 @@
-"""FMG tests"""
+"""FMGBase tests"""
 from copy import deepcopy
 
 import pytest
 from pydantic import SecretStr, ValidationError
 from requests.exceptions import ConnectionError
 
-from pyfortinet import FMG
+from pyfortinet import FMGBase
 from pyfortinet import exceptions as fe
-from pyfortinet.fmg_api.dvmcmd import AddDevice, Device
+from pyfortinet.fmg_api.dvmcmd import AddDevice, Device, ModelDevice
 from pyfortinet.fmg_api.firewall import Address
 from pyfortinet.settings import FMGSettings
 
@@ -38,17 +38,17 @@ class TestFMGSettings:
     def test_fmg_object_creation_by_object(self):
         config = deepcopy(self.config)
         settings = FMGSettings(**config)
-        FMG(settings)
+        FMGBase(settings)
 
     def test_fmg_object_creation_by_kwargs(self):
         config = deepcopy(self.config)
-        FMG(**config)
+        FMGBase(**config)
 
     def test_fmg_need_to_open_first(self):
         config = deepcopy(self.config)
         with pytest.raises(fe.FMGTokenException, match="Open connection first!"):
             settings = FMGSettings(**config)
-            conn = FMG(settings)
+            conn = FMGBase(settings)
             conn.get_version()
 
 
@@ -61,7 +61,7 @@ class TestLab:
     @pytest.mark.dependency()
     def test_fmg_lab_connect(self, prepare_lab):
         settings = FMGSettings(**self.config)
-        with FMG(settings) as conn:
+        with FMGBase(settings) as conn:
             ver = conn.get_version()
         assert "-build" in ver
 
@@ -69,23 +69,23 @@ class TestLab:
         config = deepcopy(self.config)
         config["password"] = "badpassword"  # pragma: allowlist secret
         settings = FMGSettings(**config)
-        conn = FMG(settings)
+        conn = FMGBase(settings)
         with pytest.raises(fe.FMGTokenException, match="Login failed, wrong credentials!"):
             conn.open()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
     def test_fmg_lab_connection_error(self):
         config = deepcopy(self.config)
-        config["base_url"] = "https://127.0.0.3"
+        config["base_url"] = "https://127.0.0.1"
         settings = FMGSettings(**config)
-        conn = FMG(settings)
+        conn = FMGBase(settings)
         with pytest.raises(ConnectionError):
             conn.open()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
     def test_fmg_lab_expired_session(self, prepare_lab):
         settings = FMGSettings(**self.config)
-        with FMG(settings) as conn:
+        with FMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
             conn.get_version()
 
@@ -93,7 +93,7 @@ class TestLab:
     def test_fmg_lab_expired_session_and_wrong_creds(self, prepare_lab):
         """Simulate expired token and changed credentials"""
         settings = FMGSettings(**self.config)
-        with FMG(settings) as conn:
+        with FMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
             conn._settings.password = SecretStr("bad_password")
             with pytest.raises(fe.FMGTokenException, match="wrong credentials"):
@@ -103,7 +103,7 @@ class TestLab:
     def test_fmg_lab_fail_logout_with_expired_token(self, prepare_lab, caplog):
         """Simulate expired token by logout"""
         settings = FMGSettings(**self.config)
-        with FMG(settings) as conn:
+        with FMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
         assert "Logout failed" in caplog.text
 
@@ -111,15 +111,15 @@ class TestLab:
     def test_fmg_lab_fail_logout_with_disconnect(self, prepare_lab, caplog):
         """Simulate disconnection by logout"""
         settings = FMGSettings(**self.config)
-        with FMG(settings) as conn:
-            conn._settings.base_url = "https://127.0.0.3/jsonrpc"
+        with FMGBase(settings) as conn:
+            conn._settings.base_url = "https://127.0.0.1/jsonrpc"
 
         assert "Logout failed" in caplog.text
 
 
 @need_lab
 class TestObjectsOnLab:
-    fmg = FMG(FMGSettings(**pytest.lab_config.get("fmg"))).open()
+    fmg = FMGBase(FMGSettings(**pytest.lab_config.get("fmg"))).open()
     fmg_connected = pytest.mark.skipif(
         not fmg._token, reason=f"FMG {pytest.lab_config.get('fmg', {}).get('base_url')} is not connected!"
     )
@@ -155,9 +155,12 @@ class TestObjectsOnLab:
         assert result.success
 
     @fmg_connected
-    def test_add_device(self):
-        device = Device(
+    def test_add_model_device(self):
+        device = ModelDevice(
             name="TEST-DEVICE",
+            sn="FG100FTK22345678",
+            os_ver="7.0",
+            mr=2
         )
         job = AddDevice(adom="root", device=device)
         result = self.fmg.exec(job)

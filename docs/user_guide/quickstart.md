@@ -12,7 +12,7 @@ pip install pyfortinet
 ## A Simple Example (get object)
 
 ```python
-from pyfortinet import FMG
+from pyfortinet import FMGBase
 from pyfortinet.fmg_api.firewall import Address
 
 settings = {
@@ -22,7 +22,7 @@ settings = {
     "password": "verysecret",
     "adom": "root"
 }
-with FMG(**settings) as conn:
+with FMGBase(**settings) as conn:
     search = Address(name="test-obj")
     result = conn.get(search)
 ```

@@ -4,11 +4,14 @@ This project implement easy way of handling Fortinet device management from Pyth
 
 ## Quick example
 
-### FMG
+### FMGBase
+``FMGBase`` is a lower level API class which implements base functions. Purpose is to serve the inherited higher level
+classes like ``FMG``.
 
 ```python
 """Simple example"""
-from pyfortinet import FMG
+from pyfortinet import FMGBase
+
 config = {
     "base_url": "https://myfmg.com",
     "username": "myuser",
@@ -16,7 +19,7 @@ config = {
     "adom": "root",
     "verify": False
 }
-with FMG(**config) as fmg:
+with FMGBase(**config) as fmg:
     ver = fmg.get_version()
 ```
 
