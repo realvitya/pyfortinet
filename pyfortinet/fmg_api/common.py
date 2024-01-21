@@ -218,3 +218,6 @@ class ComplexFilter:
 
     def __or__(self, other):
         return ComplexFilter(self, "||", other)
+
+
+FILTER_TYPE = Union[F, FilterList, ComplexFilter]

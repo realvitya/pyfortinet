@@ -1,8 +1,6 @@
 """FMG API for humans"""
-from typing import Union
-
 from pyfortinet.fmgbase import FMGBase, FMGSettings, FMGResponse
-from pyfortinet.fmg_api.common import F, ComplexFilter
+from pyfortinet.fmg_api.common import FILTER_TYPE
 
 
 class FMG(FMGBase):
@@ -12,7 +10,7 @@ class FMG(FMGBase):
     methods.
     """
     @staticmethod
-    def _get_filter_list(filters: Union[F, ComplexFilter] = None):
+    def _get_filter_list(filters: FILTER_TYPE = None):
         """Derive filter list for API call
 
         This method is used by other methods to easily generate the filter data structure
@@ -24,7 +22,7 @@ class FMG(FMGBase):
             return filters.generate()
         return None
 
-    def get_adom_list(self, filters: Union[F, ComplexFilter] = None):
+    def get_adom_list(self, filters: FILTER_TYPE = None):
         """Gather adoms from FMG
 
         Args:
