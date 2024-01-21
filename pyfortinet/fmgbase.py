@@ -230,6 +230,20 @@ class FMGBase:
     """
 
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
+        """Initializes FMGBase
+
+        Args:
+            settings (Settings): FortiManager settings
+
+        Keyword Args:
+            base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
+            username (str): User to authenticate
+            password (str): Password for authentication
+            adom (str): ADOM to use for this connection
+            verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
+            timeout (float): Connection timeout for requests in seconds
+            raise_on_error (bool): Raise exception on error
+        """
         if not settings:
             settings = FMGSettings(**kwargs)
         self._settings = settings

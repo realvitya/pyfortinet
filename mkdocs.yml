@@ -19,6 +19,8 @@ nav:
       - Quick Start Guide: user_guide/quickstart.md
       - Installation: user_guide/installation.md
       - Basic Usage: user_guide/basic_usage.md
+  - Developer Guide:
+      - Lab setup: developer_guide/lab_setup.md
   - Code Reference: reference/
 
 plugins:
@@ -33,6 +35,10 @@ plugins:
         options:
           show_signature_annotations: true
           signature_crossrefs: true
+          # add __init__ args to class and ignore __init__ summary text
+          merge_init_into_class: true
+          docstring_options:
+            ignore_init_summary: true
 - section-index
 - literate-nav
 
