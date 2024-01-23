@@ -27,7 +27,6 @@ class Address(FMGObject):
     subnet: Union[str, list[str]] = None
 
     @field_validator("subnet")
-    @classmethod
     def standardize_subnet(cls, v):
         """validator: x.x.x.x/y.y.y.y -> x.x.x.x/y"""
         if isinstance(v, list):
@@ -36,7 +35,6 @@ class Address(FMGObject):
             return v
 
     @field_validator("associated_interface")
-    @classmethod
     def standardize_assoc_iface(cls, v):
         """validator: FMG sends a list with a single element, replace with single element"""
         if isinstance(v, list):
@@ -67,7 +65,6 @@ class AddressGroupMapping(AddressGroup):
     global_object: int = Field(..., serialization_alias="global-object")
 
     @field_validator("_url", check_fields=False)
-    @classmethod
     def construct_url(cls, v: str, info: ValidationInfo):
         """rewrite URL with actual address group name"""
         url = v.replace("{addrgrp}", info.data["name"])

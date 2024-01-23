@@ -30,7 +30,6 @@ class FMGSettings(BaseSettings):
     raise_on_error: Annotated[bool, Field(description="Raise exception on error")] = True
 
     @field_validator("base_url", mode="before")
-    @classmethod
     def check_base_url(cls, v: str):
         """check and fix base_url"""
         v = v.rstrip("/ ")
