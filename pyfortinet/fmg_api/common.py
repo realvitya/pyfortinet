@@ -1,7 +1,7 @@
 """Commmon objects"""
 from typing import Literal, Optional, List, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic.dataclasses import dataclass
 
 MGMT_MODE = Literal["unreg", "fmg", "faz", "fmgfaz"]
@@ -68,6 +68,17 @@ class BaseDevice(BaseModel):
     patch: Optional[int] = Field(None, description="Patch release no")
     sn: Optional[str] = Field(None, description="Serial number")
 
+    @field_validator("mgmt_mode", mode="before")
+    def validate_mgmt_mode(cls, v: int):
+        return MGMT_MODE.__dict__.get("__args__")[v]
+
+    @field_validator("os_type", mode="before")
+    def validate_os_type(cls, v: int):
+        return OS_TYPE.__dict__.get("__args__")[v]
+
+    @field_validator("os_ver", mode="before")
+    def validate_os_ver(cls, v: int):
+        return OS_VER.__dict__.get("__args__")[v]
 
 """
 Operator	# of target(s)	Descriptions
@@ -221,3 +232,24 @@ class ComplexFilter:
 
 
 FILTER_TYPE = Union[F, FilterList, ComplexFilter]
+
+
+def text2filter(text: str) -> FILTER_TYPE:
+    """Parse string and return a filter object
+
+    Format of the text follows the ``OP`` definition!
+
+    Examples:
+        text2filter("name eq somehost || name like switch")
+        text2filter("name like switch, status eq auto_updated")
+
+    Args:
+        text (str): text to parse
+
+    Returns:
+        Parsed filter object
+
+    Raises:
+        ValueError: text cannot be parsed
+    """
+    # TODO: implement

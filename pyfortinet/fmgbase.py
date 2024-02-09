@@ -100,6 +100,9 @@ class FMGResponse:
     status: int = 0  # status code of the request
     success: bool = False  # True on successful request
 
+    def __bool__(self) -> bool:
+        return self.success
+
 
 class FMGLockContext:
     """Lock FMG workspace"""
@@ -577,7 +580,7 @@ class FMGBase:
             response.status = api_result.get("status")
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
+            logger.error("Error in add request: %s", api_result["error"])
             if self._raise_on_error:
                 raise
         response.data = api_result
@@ -658,7 +661,88 @@ class FMGBase:
             response.status = api_result.get("status")
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
+            logger.error("Error in update request: %s", api_result["error"])
+            if self._raise_on_error:
+                raise
+        response.data = api_result
+        return response
+
+    @auth_required
+    @lock
+    def set(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+        """Set operation
+
+        Args:
+            request: Update operation's data structure
+
+        Examples:
+            ## Low-level - dict
+
+            >>> settings = {...}
+            >>> address_request = {
+            ...     "url": "/pm/config/global/obj/firewall/address",
+            ...     "data": {
+            ...         "name": "test-address",
+            ...         "associated-interface": "inside",
+            ...         "obj-type": "ip",
+            ...         "type": "ipmask",
+            ...         "start-ip": "10.0.0.1/24"
+            ...     }
+            ... }
+            >>> with FMGBase(**settings) as fmg:
+            >>>     fmg.set(address_request)
+
+            ## High-level - obj
+
+            >>> from pyfortinet.fmg_api.firewall import Address
+            >>> settings = {...}
+            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
+            ...                   type="ipmask", start_ip="10.0.0.1/24")
+            >>> with FMGBase(**settings) as fmg:
+            ...     fmg.set(address)
+
+        Returns:
+            (FMGResponse): Result of operation
+        """
+        response = FMGResponse()
+        if isinstance(request, dict):  # JSON input, low-level operation
+            body = {
+                "method": "set",
+                "params": [
+                    {
+                        "data": request.get("data"),
+                        "url": request.get("url"),
+                    }
+                ],
+                "session": self._token.get_secret_value(),
+                "id": self._id,
+            }
+        elif isinstance(request, FMGObject):  # high-level operation
+            api_data = {
+                key: value
+                for key, value in request.model_dump(by_alias=True).items()
+                if not key.startswith("_") and value is not None
+            }
+            body = {
+                "method": "set",
+                "params": [{"url": request.url, "data": api_data}],
+                "session": self._token.get_secret_value(),
+                "id": self._id,
+            }
+        else:
+            response.data = {"error": f"Wrong type of request received: {request}"}
+            response.status = 400
+            logger.error(response.data["error"])
+            if self._raise_on_error:
+                raise FMGWrongRequestException(request)
+            return response
+        try:
+            api_result = self._post(request=body)
+            response.success = True
+            response.status = api_result.get("status")
+        except FMGUnhandledException as err:
+            api_result = {"error": str(err)}
+            logger.error("Error in set request: %s", api_result["error"])
             if self._raise_on_error:
                 raise
         response.data = api_result

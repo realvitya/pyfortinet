@@ -40,5 +40,10 @@ class TestObjectsOnLab:
         assert result == ["others", "root", "rootp"]
 
     @fmg_connected
+    def test_get_devices(self):
+        result = self.fmg.get_devices()
+        assert result
+
+    @fmg_connected
     def test_close_fmg(self):
         self.fmg.close(discard_changes=True)
