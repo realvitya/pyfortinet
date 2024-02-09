@@ -22,7 +22,7 @@ class FMGSettings(BaseSettings):
     base_url: Annotated[HttpUrl, Field(description="Base URL to access FMG (e.g.: https://myfmg/jsonrpc)")]
     username: Annotated[str, Field(description="User to authenticate")]
     password: Annotated[SecretStr, Field(description="Password for authentication")]
-    adom: Annotated[str, Field(description="ADOM to use for this connection")] = "Global"
+    adom: Annotated[str, Field(description="ADOM to use for this connection")] = "global"
     verify: Annotated[
         bool, Field(description="Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)")
     ] = True

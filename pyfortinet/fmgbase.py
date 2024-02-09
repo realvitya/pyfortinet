@@ -2,6 +2,7 @@
 import functools
 import logging
 import re
+import time
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
@@ -19,8 +20,12 @@ from pyfortinet.exceptions import (
     FMGTokenException,
     FMGUnhandledException,
     FMGWrongRequestException,
+    FMGInvalidDataException,
+    FMGObjectAlreadyExistsException,
 )
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
+from pyfortinet.fmg_api.common import FILTER_TYPE, F
+from pyfortinet.fmg_api.task import Task
 from pyfortinet.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
@@ -333,6 +338,10 @@ class FMGBase:
                 raise FMGLockException(status)
             if status["message"] == "No permission for the resource":
                 raise FMGAuthenticationException(status)
+            if status["message"] == "The data is invalid for selected url":
+                raise FMGInvalidDataException(status)
+            if status["message"] == "Object already exists":
+                raise FMGObjectAlreadyExistsException(f"{status}: {request.get('params')}")
             raise FMGUnhandledException(status)
         return results[0] if len(results) == 1 else results
 
@@ -400,10 +409,11 @@ class FMGBase:
                 api_result = self._post(request=body)
             except FMGException as err:
                 api_result = {"error": str(err)}
-                logger.error("Error in get request: %s", api_result["error"])
+                logger.error("Error in exec request: %s", api_result["error"])
             result = FMGResponse(data=api_result, success=api_result.get("status", {}).get("code") == 0)
         elif isinstance(request, FMGExecObject):
             logger.info("requesting exec with high-level op to %s", request.url)
+            request.scope = request.scope or self._settings.adom
             body = {
                 "method": "exec",
                 "params": [
@@ -419,7 +429,7 @@ class FMGBase:
                 api_result = self._post(request=body)
             except FMGException as err:
                 api_result = {"error": str(err)}
-                logger.error("Error in get request: %s", api_result["error"])
+                logger.error("Error in exec request: %s", api_result["error"])
             result = FMGResponse(data=api_result, success=api_result.get("status", {}).get("code") == 0)
         else:
             result = FMGResponse(data={"error": f"Wrong type of request received: {request}"}, status=400)
@@ -468,6 +478,7 @@ class FMGBase:
                 "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
+            request.scope = request.scope or self._settings.adom
             api_request = {
                 "filter": [
                     [key, "==", value]
@@ -570,6 +581,7 @@ class FMGBase:
                 "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
+            request.scope = request.scope or self._settings.adom
             api_data = {
                 key: value
                 for key, value in request.model_dump(by_alias=True).items()
@@ -651,6 +663,7 @@ class FMGBase:
                 "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
+            request.scope = request.scope or self._settings.adom
             api_data = {
                 key: value
                 for key, value in request.model_dump(by_alias=True).items()
@@ -732,6 +745,7 @@ class FMGBase:
                 "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
+            request.scope = request.scope or self._settings.adom
             api_data = {
                 key: value
                 for key, value in request.model_dump(by_alias=True).items()
@@ -804,6 +818,7 @@ class FMGBase:
                 "id": self._id,
             }
         elif isinstance(request, FMGObject):  # high-level operation
+            request.scope = request.scope or self._settings.adom
             api_data = {
                 key: value
                 for key, value in request.model_dump(by_alias=True).items()
@@ -833,3 +848,32 @@ class FMGBase:
                 raise
         response.data = api_result
         return response
+
+    def wait_for_task(
+        self, job: Union[int, FMGResponse], timeout: int = 60, callback: Callable[[int, int], None] = None
+    ):
+        """Wait for task to finish
+
+        Example:
+            >>> from pyfortinet.fmg_api.dvmcmd import Device
+            >>> settings = {...}
+            >>> device = Device(name="test", ip="1.1.1.1")
+            >>> with FMGBase(**settings) as fmg:
+            ...     task = fmg.add(device)
+            ...     with ProgressBar() as progress:  # TODO: complete with actual working solution
+            ...         fmg.wait_for_task(task, callback=progress.update)
+        """
+        task_id = job if isinstance(job, int) else job.data.get("task_id")
+        if task_id is None:
+            return
+        start_time = time.time()
+        while True:
+            task: Task = self.get(Task, F(id=task_id))
+            if not task.success or task.data.get("status"):
+                return
+            if time.time() - start_time > timeout:
+                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+            callback(0, task.percent)
+            if task.state == "done":
+                return
+            time.sleep(5)

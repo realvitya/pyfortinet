@@ -81,6 +81,7 @@ class HASlave(FMGObject):
         sn (str): serial number
         status (CONN_STATUS): status of HA member
     """
+
     conf_status: CONF_STATUS
     idx: int
     name: str
@@ -164,5 +165,5 @@ class Device(FMGObject, BaseDevice):
         return CONN_MODE.__dict__.get("__args__")[v]
 
     @field_validator("conn_status", mode="before")
-    def validate_conn_type(cls, v:int) -> CONN_STATUS:
+    def validate_conn_type(cls, v: int) -> CONN_STATUS:
         return CONN_STATUS.__dict__.get("__args__")[v]

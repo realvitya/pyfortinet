@@ -7,7 +7,7 @@ from requests.exceptions import ConnectionError
 
 from pyfortinet import FMGBase
 from pyfortinet import exceptions as fe
-from pyfortinet.fmg_api.dvmcmd import AddDevice, Device, ModelDevice
+from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceJob
 from pyfortinet.fmg_api.firewall import Address
 from pyfortinet.settings import FMGSettings
 
@@ -156,15 +156,13 @@ class TestObjectsOnLab:
 
     @fmg_connected
     def test_add_model_device(self):
-        device = ModelDevice(
-            name="TEST-DEVICE",
-            sn="FG100FTK22345678",
-            os_ver="7.0",
-            mr=2
-        )
-        job = AddDevice(adom="root", device=device)
+        device = ModelDevice(name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
+        job = DeviceJob(adom="root", device=device)
         result = self.fmg.exec(job)
         assert result.success
+        job = DeviceJob(adom="root", device=device, action="del")
+        result = self.fmg.exec(job)
+        assert result
 
     @fmg_connected
     def test_close_fmg(self):

@@ -31,3 +31,15 @@ class FMGUnhandledException(FMGException):
 
 class FMGEmptyResultException(FMGException):
     """No result for a request"""
+
+
+class FMGInvalidDataException(FMGException):
+    """The data is invalid for selected url"""
+
+
+class FMGObjectAlreadyExistsException(FMGException):
+    """The object is already in the database"""
+
+
+class FMGMissingScopeException(FMGException):
+    """Scope must be set before referencing URL"""

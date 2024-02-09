@@ -2,6 +2,8 @@
 import pytest
 from pyfortinet import FMG, FMGSettings
 from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.dvmbd import Device
+from pyfortinet.fmg_api.firewall import Address
 
 need_lab = pytest.mark.skipif(not pytest.lab_config, reason=f"Lab config {pytest.lab_config_file} does not exist!")
 
@@ -35,13 +37,19 @@ class TestObjectsOnLab:
 
     @fmg_connected
     def test_get_adom_list_with_complex_filter(self):
-        result = self.fmg.get_adom_list((F(name__like="root") + (F(name__like="rootp") + F(name="others")) &
-                                         F(state=1)))
+        result = self.fmg.get_adom_list(
+            (F(name__like="root") + (F(name__like="rootp") + F(name="others")) & F(state=1))
+        )
         assert result == ["others", "root", "rootp"]
 
     @fmg_connected
     def test_get_devices(self):
-        result = self.fmg.get_devices()
+        result = self.fmg.get(Device, F(name__like="TEST%"))
+        assert result
+
+    @fmg_connected
+    def test_get_advanced_filter(self):
+        result = self.fmg.get(Address, F(name__like="metadata%"))
         assert result
 
     @fmg_connected

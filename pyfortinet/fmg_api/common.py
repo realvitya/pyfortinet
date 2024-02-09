@@ -77,8 +77,13 @@ class BaseDevice(BaseModel):
         return OS_TYPE.__dict__.get("__args__")[v]
 
     @field_validator("os_ver", mode="before")
-    def validate_os_ver(cls, v: int):
-        return OS_VER.__dict__.get("__args__")[v]
+    def validate_os_ver(cls, v):
+        if isinstance(v, str):  # sometimes API provides string sometimes int...
+            return v
+        elif isinstance(v, int):
+            return OS_VER.__dict__.get("__args__")[v]
+        raise ValueError(f"Wrong OS version type: {type(v)}")
+
 
 """
 Operator	# of target(s)	Descriptions
@@ -116,7 +121,7 @@ OP = {
     "like": "like",
     "not_like": "!like",
     "glob": "glob",
-    "not_glob": "!glob"
+    "not_glob": "!glob",
 }
 
 
@@ -208,20 +213,18 @@ class FilterList:
 
 
 class ComplexFilter:
-    def __init__(self,
-                 a: Union["ComplexFilter", FilterList, F],
-                 op: Literal["||", "&&"],
-                 b: Union["ComplexFilter", FilterList, F]):
+    def __init__(
+        self,
+        a: Union["ComplexFilter", FilterList, F],
+        op: Literal["||", "&&"],
+        b: Union["ComplexFilter", FilterList, F],
+    ):
         self.a = a
         self.op = op
         self.b = b
 
     def generate(self):
-        out = [
-            self.a.generate(),
-            self.op,
-            self.b.generate()
-        ]
+        out = [self.a.generate(), self.op, self.b.generate()]
         return out
 
     def __and__(self, other) -> "ComplexFilter":
