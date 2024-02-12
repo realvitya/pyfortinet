@@ -21,7 +21,7 @@ from pyfortinet.exceptions import (
     FMGUnhandledException,
     FMGWrongRequestException,
     FMGInvalidDataException,
-    FMGObjectAlreadyExistsException,
+    FMGObjectAlreadyExistsException, FMGInvalidURL,
 )
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
 from pyfortinet.fmg_api.common import FILTER_TYPE, F
@@ -69,12 +69,15 @@ def lock(func: Callable) -> Callable:
     """
 
     @functools.wraps(func)
-    def lock_decorated(self: Union[dict, "FMGBase"] = None, *args, **kwargs):
+    def lock_decorated(self: "FMGBase" = None, *args, **kwargs):
         """method which needs locking"""
         try:
             return func(self, *args, **kwargs)
         except FMGLockNeededException as err:
             try:  # try again after locking
+                if not args:  # in case we got kwargs request
+                    args = [kwargs.get("request")]
+                    del kwargs["request"]
                 # args[0] is the request dict or obj
                 if isinstance(args[0], dict):
                     url = args[0].get("url")
@@ -98,7 +101,13 @@ def lock(func: Callable) -> Callable:
 
 @dataclass
 class FMGResponse:
-    """Response to a request"""
+    """Response to a request
+
+    Attributes:
+        data (dict|List[FMGObject]): response data
+        status (int): status code
+        success (bool): True on success
+    """
 
     data: Union[dict, List[FMGObject]] = field(default_factory=dict)  # data got from FMG
     status: int = 0  # status code of the request
@@ -342,6 +351,8 @@ class FMGBase:
                 raise FMGInvalidDataException(status)
             if status["message"] == "Object already exists":
                 raise FMGObjectAlreadyExistsException(f"{status}: {request.get('params')}")
+            if status["message"] == "Invalid url":
+                raise FMGInvalidURL(f"URL: {request['params'][0]['url']}")
             raise FMGUnhandledException(status)
         return results[0] if len(results) == 1 else results
 
@@ -390,60 +401,35 @@ class FMGBase:
         return req["data"]["Version"]
 
     @auth_required
-    def exec(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def exec(self, request: dict[str, str]) -> FMGResponse:
         """Execute on FMG"""
-        if isinstance(request, dict):  # low-level operation
-            logger.info("requesting exec with low-level op to %s", request.get("url"))
-            body = {
-                "method": "exec",
-                "params": [
-                    {
-                        "data": request.get("data"),
-                        "url": request.get("url"),
-                    }
-                ],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-            try:
-                api_result = self._post(request=body)
-            except FMGException as err:
-                api_result = {"error": str(err)}
-                logger.error("Error in exec request: %s", api_result["error"])
-            result = FMGResponse(data=api_result, success=api_result.get("status", {}).get("code") == 0)
-        elif isinstance(request, FMGExecObject):
-            logger.info("requesting exec with high-level op to %s", request.url)
-            request.scope = request.scope or self._settings.adom
-            body = {
-                "method": "exec",
-                "params": [
-                    {
-                        "data": request.data,
-                        "url": request.url,
-                    }
-                ],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-            try:
-                api_result = self._post(request=body)
-            except FMGException as err:
-                api_result = {"error": str(err)}
-                logger.error("Error in exec request: %s", api_result["error"])
-            result = FMGResponse(data=api_result, success=api_result.get("status", {}).get("code") == 0)
-        else:
-            result = FMGResponse(data={"error": f"Wrong type of request received: {request}"}, status=400)
-            logger.error(result.data["error"])
-
+        logger.info("requesting exec with low-level op to %s", request.get("url"))
+        body = {
+            "method": "exec",
+            "params": [
+                {
+                    "data": request.get("data"),
+                    "url": request.get("url"),
+                }
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
+        try:
+            api_result = self._post(request=body)
+        except FMGException as err:
+            api_result = {"error": str(err)}
+            logger.error("Error in exec request: %s", api_result["error"])
+        result = FMGResponse(data=api_result, success=api_result.get("status", {}).get("code") == 0)
         return result
 
     # noqa: PLR0912 - Too many branches
     @auth_required
-    def get(self, request: Union[dict[str, Any], FMGObject]) -> Union[FMGResponse, FMGObject, list[FMGObject]]:  # noqa: PLR0912 - Too many branches
+    def get(self, request: dict[str, Any]) -> FMGResponse:  # noqa: PLR0912 - Too many branches
         """Get info from FMG
 
         Args:
-            request: Get operation's data structure
+            request: Get operation's param structure
 
         Examples:
             ## Low-level - dict
@@ -455,50 +441,17 @@ class FMGBase:
             ...}
             >>> settings = {...}
             >>> with FMGBase(**settings) as fmg:
-            ...    fmg.add(address_request)
-
-            ## High-level - obj
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address")
-            >>> with FMGBase(**settings) as fmg:
-            ...    address = fmg.get(address)
+            ...    fmg.get(address_request)
 
         Returns:
             (FMGResponse): response object with data
-            (FMGObject): if request was an object, it will return a filled object
-            (list[FMGObject]): if more object returns, it will return a list of objects
         """
-        if isinstance(request, dict):  # low-level operation
-            body = {
-                "method": "get",
-                "params": [request],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
-            api_request = {
-                "filter": [
-                    [key, "==", value]
-                    for key, value in request.model_dump(by_alias=True).items()
-                    if not key.startswith("_") and value is not None
-                ],
-                "fields": list(request.model_dump(by_alias=True).keys()),
-            }
-            body = {
-                "method": "get",
-                "params": [{"url": request.url, **api_request}],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        else:
-            result = FMGResponse(data={"error": f"Wrong type of request received: {request}"}, status=400)
-            logger.error(result.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(result)
-            return result
+        body = {
+            "method": "get",
+            "params": [request],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
         try:
             api_result = self._post(request=body)
         except FMGException as err:
@@ -511,36 +464,21 @@ class FMGBase:
         if not api_result.get("data"):
             return FMGResponse(data={"data": []})
         # processing result list
-        if isinstance(request, dict):
-            result = FMGResponse(data=api_result)
-            result.success = True
-            result.status = api_result.get("status", {}).get("code", 400)
-        else:
-            # converting API names to object names (replace '-' and ' ' -> _)
-            obj_model = [
-                {key.replace("-", "_").replace(" ", "_"): value for key, value in data.items()}
-                for data in api_result.get("data")
-            ]
-            if len(obj_model) > 1:
-                result = []
-                for value in obj_model:
-                    result.append(type(request)(**value))
-            else:
-                result = type(request)(**first(obj_model))
+        result = FMGResponse(data=api_result)
+        result.success = True
+        result.status = api_result.get("status", {}).get("code", 400)
 
         return result
 
     @auth_required
     @lock
-    def add(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def add(self, request: dict[str, str]) -> FMGResponse:
         """Add operation
 
         Args:
             request: Add operation's data structure
 
         Examples:
-            ## Low-level - dict
-
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -555,51 +493,21 @@ class FMGBase:
             >>> with FMGBase(**settings) as fmg:
             >>>     fmg.add(address_request)
 
-            ## High-level - obj
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
-            ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> with FMGBase(**settings) as fmg:
-            ...     fmg.add(address)
-
         Returns:
             (FMGResponse): Result of operation
         """
         response = FMGResponse()
-        if isinstance(request, dict):  # JSON input, low-level operation
-            body = {
-                "method": "add",
-                "params": [
-                    {
-                        "data": request.get("data"),
-                        "url": request.get("url"),
-                    }
-                ],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
-            body = {
-                "method": "add",
-                "params": [{"url": request.url, "data": api_data}],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
-            return response
+        body = {
+            "method": "add",
+            "params": [
+                {
+                    "data": request.get("data"),
+                    "url": request.get("url"),
+                }
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
         try:
             api_result = self._post(request=body)
             response.success = True
@@ -614,15 +522,13 @@ class FMGBase:
 
     @auth_required
     @lock
-    def update(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def update(self, request: dict[str, str]) -> FMGResponse:
         """Update operation
 
         Args:
             request: Update operation's data structure
 
         Examples:
-            ## Low-level - dict
-
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -637,51 +543,21 @@ class FMGBase:
             >>> with FMGBase(**settings) as fmg:
             >>>     fmg.update(address_request)
 
-            ## High-level - obj
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
-            ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> with FMGBase(**settings) as fmg:
-            ...     fmg.update(address)
-
         Returns:
             (FMGResponse): Result of operation
         """
         response = FMGResponse()
-        if isinstance(request, dict):  # JSON input, low-level operation
-            body = {
-                "method": "update",
-                "params": [
-                    {
-                        "data": request.get("data"),
-                        "url": request.get("url"),
-                    }
-                ],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
-            body = {
-                "method": "update",
-                "params": [{"url": request.url, "data": api_data}],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
-            return response
+        body = {
+            "method": "update",
+            "params": [
+                {
+                    "data": request.get("data"),
+                    "url": request.get("url"),
+                }
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
         try:
             api_result = self._post(request=body)
             response.success = True
@@ -696,15 +572,13 @@ class FMGBase:
 
     @auth_required
     @lock
-    def set(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def set(self, request: dict[str, str]) -> FMGResponse:
         """Set operation
 
         Args:
-            request: Update operation's data structure
+            request: Set operation's data structure
 
         Examples:
-            ## Low-level - dict
-
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -719,58 +593,28 @@ class FMGBase:
             >>> with FMGBase(**settings) as fmg:
             >>>     fmg.set(address_request)
 
-            ## High-level - obj
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
-            ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> with FMGBase(**settings) as fmg:
-            ...     fmg.set(address)
-
         Returns:
             (FMGResponse): Result of operation
         """
         response = FMGResponse()
-        if isinstance(request, dict):  # JSON input, low-level operation
-            body = {
-                "method": "set",
-                "params": [
-                    {
-                        "data": request.get("data"),
-                        "url": request.get("url"),
-                    }
-                ],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
-            body = {
-                "method": "set",
-                "params": [{"url": request.url, "data": api_data}],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
-            return response
+        body = {
+            "method": "set",
+            "params": [
+                {
+                    "data": request.get("data"),
+                    "url": request.get("url"),
+                }
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
         try:
             api_result = self._post(request=body)
             response.success = True
             response.status = api_result.get("status")
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in set request: %s", api_result["error"])
+            logger.error("Error in update request: %s", api_result["error"])
             if self._raise_on_error:
                 raise
         response.data = api_result
@@ -778,7 +622,7 @@ class FMGBase:
 
     @auth_required
     @lock
-    def delete(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def delete(self, request: dict[str, str]) -> FMGResponse:
         """Delete operation
 
         Args:
@@ -794,49 +638,20 @@ class FMGBase:
             >>> with FMGBase(**settings) as fmg:
             >>>     fmg.delete(address_request)
 
-            ## High-level - obj
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address")
-            >>> with FMGBase(**settings) as fmg:
-            ...     fmg.delete(address)
-
         Returns:
             (FMGResponse): Result of operation
         """
         response = FMGResponse()
-        if isinstance(request, dict):  # JSON input, low-level operation
-            body = {
-                "method": "delete",
-                "params": [
-                    {
-                        "url": request.get("url"),
-                    }
-                ],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
-            body = {
-                "method": "delete",
-                "params": [{"url": request.url}],
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
-            return response
+        body = {
+            "method": "delete",
+            "params": [
+                {
+                    "url": request.get("url"),
+                }
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
         try:
             api_result = self._post(request=body)
             response.success = True

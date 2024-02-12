@@ -48,9 +48,16 @@ class TestObjectsOnLab:
         assert result
 
     @fmg_connected
-    def test_get_advanced_filter(self):
-        result = self.fmg.get(Address, F(name__like="metadata%"))
+    def test_firewall_address(self):
+        to_add = Address(name="test-firewall-address", subnet="10.0.0.0/24")
+        result = self.fmg.add(to_add)
         assert result
+        address = self.fmg.get(Address, F(name__like="test-firewall-addr%")).first()
+        assert address.name == "test-firewall-address"
+        result = self.fmg.delete(address)
+        assert result.success is True
+        result = self.fmg.get(Address, F(name="test-firewall-address"))
+        assert not result.data  # empty result
 
     @fmg_connected
     def test_close_fmg(self):

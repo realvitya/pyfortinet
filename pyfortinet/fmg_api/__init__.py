@@ -1,5 +1,6 @@
 """FMG API library"""
 from abc import ABC
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +21,11 @@ class FMGObject(BaseModel, ABC):
 
     _version = "7.2.4"
     _url: str
-    scope: str = Field(None, exclude=True)
+    _scope: str = None
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.scope = kwargs.get("scope")
 
     @property
     def url(self) -> str:
@@ -28,11 +33,22 @@ class FMGObject(BaseModel, ABC):
 
         To be overridden by more complex API URLs in different classes
         """
-        if not self.scope and "scope" in self._url:
+        if not self.scope and "{scope}" in self._url:
             raise FMGMissingScopeException(f"Missing scope for {self}")
-        scope = "global" if self.scope == "global" else f"adom/{self.scope}"
-        url = self._url.replace("{scope}", scope)
+        # scope = "global" if self.scope == "global" else f"adom/{self.scope}"
+        url = self._url.replace("{scope}", self.scope)
         return url
+
+    @property
+    def scope(self) -> str:
+        """Object scope (adom)"""
+        return self._scope
+
+    @scope.setter
+    def scope(self, value: Optional[str] = None):
+        if value:
+            # if input already in /adom/... then fix it
+            self._scope = "global" if value == "global" else f"adom/{value}".replace("adom/adom", "adom")
 
 
 class FMGExecObject(FMGObject, ABC):

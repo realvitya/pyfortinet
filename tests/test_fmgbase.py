@@ -138,20 +138,24 @@ class TestObjectsOnLab:
 
     @fmg_connected
     def test_address_add_obj(self):
-        address = Address(name="test-address2", subnet="10.0.0.2/32")
+        address = Address(scope="global", name="test-address2", subnet="10.0.0.2/32")
         result = self.fmg.add(address)
         assert result.success
 
     @fmg_connected
-    def test_address_get_obj(self):
+    def test_get_address(self):
         address = Address(name="test-address2")
-        address = self.fmg.get(address)
-        assert address.subnet == "10.0.0.2/32"
+        address = {
+            "url": "/pm/config/global/obj/firewall/address",
+            "filter": [["name", "==", "test-address2"], ["subnet", "==", "10.0.0.2/32"]],
+        }
+        response = self.fmg.get(address)
+        assert response.success and response.data["data"][0]["name"] == "test-address2"
 
     @fmg_connected
     def test_address_get_obj_with_scope(self):
         address = Address(scope="global", name="test-global-address", subnet="10.0.0.3/32")
-        result = self.fmg.add(address)
+        result = self.fmg.get(address)
         assert result.success
 
     @fmg_connected

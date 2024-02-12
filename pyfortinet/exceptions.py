@@ -43,3 +43,7 @@ class FMGObjectAlreadyExistsException(FMGException):
 
 class FMGMissingScopeException(FMGException):
     """Scope must be set before referencing URL"""
+
+
+class FMGInvalidURL(FMGException):
+    """Invalid URL"""
