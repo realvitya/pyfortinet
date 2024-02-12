@@ -498,9 +498,7 @@ class FMGBase:
             return FMGResponse(data=api_result)
         # handling empty result list
         if not api_result.get("data"):
-            if self._raise_on_error:
-                raise FMGEmptyResultException(request)
-            return FMGResponse(data=request)
+            return FMGResponse(data={"data": []})
         # processing result list
         if isinstance(request, dict):
             result = FMGResponse(data=api_result)
