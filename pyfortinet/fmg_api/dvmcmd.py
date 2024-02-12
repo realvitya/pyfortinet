@@ -32,7 +32,15 @@ class ModelDevice(FMGObject, BaseDevice):
 
 
 class DeviceJob(FMGExecObject):
-    """Add/Del device request"""
+    """Add/Del device request
+
+    Attributes:
+        action (Literal["add","del"]): Add or Del device
+        adom: ADOM to use
+        device: Device to add/del
+        flags (List[FLAGS]): Job flags
+        groups (List[Scope]): device groups
+    """
 
     # internal attributes
     _url = "/dvm/cmd/{action}/device"

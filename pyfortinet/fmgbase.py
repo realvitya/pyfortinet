@@ -278,6 +278,14 @@ class FMGBase:
         self._discard_on_close: bool = False
         self._id: int = randint(1, 256)  # pick a random id for this session (check logs for a particular session)
 
+    @property
+    def adom(self) -> str:
+        return self._settings.adom
+
+    @adom.setter
+    def adom(self, adom: str) -> None:
+        self._settings.adom = adom
+
     def open(self) -> "FMGBase":
         """open connection"""
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)

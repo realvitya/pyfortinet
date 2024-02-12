@@ -33,8 +33,10 @@ class FMGObject(BaseModel, ABC):
 
         To be overridden by more complex API URLs in different classes
         """
-        if not self.scope and "{scope}" in self._url:
-            raise FMGMissingScopeException(f"Missing scope for {self}")
+        if not self.scope:
+            if "{scope}" in self._url:
+                raise FMGMissingScopeException(f"Missing scope for {self}")
+            return self._url
         # scope = "global" if self.scope == "global" else f"adom/{self.scope}"
         url = self._url.replace("{scope}", self.scope)
         return url

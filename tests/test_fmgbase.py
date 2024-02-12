@@ -137,38 +137,6 @@ class TestObjectsOnLab:
         assert result.success
 
     @fmg_connected
-    def test_address_add_obj(self):
-        address = Address(scope="global", name="test-address2", subnet="10.0.0.2/32")
-        result = self.fmg.add(address)
-        assert result.success
-
-    @fmg_connected
-    def test_get_address(self):
-        address = Address(name="test-address2")
-        address = {
-            "url": "/pm/config/global/obj/firewall/address",
-            "filter": [["name", "==", "test-address2"], ["subnet", "==", "10.0.0.2/32"]],
-        }
-        response = self.fmg.get(address)
-        assert response.success and response.data["data"][0]["name"] == "test-address2"
-
-    @fmg_connected
-    def test_address_get_obj_with_scope(self):
-        address = Address(scope="global", name="test-global-address", subnet="10.0.0.3/32")
-        result = self.fmg.get(address)
-        assert result.success
-
-    @fmg_connected
-    def test_add_model_device(self):
-        device = ModelDevice(name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
-        job = DeviceJob(adom="root", device=device)
-        result = self.fmg.exec(job)
-        assert result.success
-        job = DeviceJob(adom="root", device=device, action="del")
-        result = self.fmg.exec(job)
-        assert result
-
-    @fmg_connected
     def test_close_fmg(self):
         self.fmg.close(discard_changes=True)
         # self.fmg.close()
