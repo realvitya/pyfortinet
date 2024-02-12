@@ -1,5 +1,7 @@
 """Test offline classes and functions"""
 import pytest
+
+from pyfortinet import FMGResponse
 from pyfortinet.fmg_api.common import F
 
 
@@ -62,3 +64,11 @@ class TestFilters:
             [["name", "==", "root"], ["name", "==", "rootp"]], "&&",
             [["status", "==", 1], ["status", "==", 2]]
         ]
+
+    def test_first_good(self):
+        response = FMGResponse(data={"data": ["response1", "response2"]})
+        assert response.first() == "response1"
+
+    def test_first_empty(self):
+        response = FMGResponse()
+        assert response.first() is None

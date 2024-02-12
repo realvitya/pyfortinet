@@ -5,7 +5,7 @@ import re
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, List
 
 import requests
 from more_itertools import first
@@ -13,7 +13,6 @@ from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
     FMGAuthenticationException,
-    FMGEmptyResultException,
     FMGException,
     FMGLockException,
     FMGLockNeededException,
@@ -96,12 +95,20 @@ def lock(func: Callable) -> Callable:
 class FMGResponse:
     """Response to a request"""
 
-    data: dict = field(default_factory=dict)  # data got from FMG
+    data: Union[dict, List[FMGObject]] = field(default_factory=dict)  # data got from FMG
     status: int = 0  # status code of the request
     success: bool = False  # True on successful request
 
     def __bool__(self) -> bool:
         return self.success
+
+    def first(self) -> Optional[Union[FMGObject, dict]]:
+        """Return first data or None if result is empty"""
+        if isinstance(self.data, dict):
+            return self.data.get("data")[0] if self.data.get("data") else None
+        elif isinstance(self.data, list):
+            return self.data[0] if self.data[0] else None
+        return None
 
 
 class FMGLockContext:
@@ -302,6 +309,14 @@ class FMGBase:
     def __exit__(self, exc_type, exc_value, exc_tb):
         self.close()
 
+    @property
+    def raise_on_error(self):
+        return self._raise_on_error
+
+    @raise_on_error.setter
+    def raise_on_error(self, value: bool):
+        self._raise_on_error = bool(value)
+
     def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
         req = self._session.post(
@@ -490,6 +505,7 @@ class FMGBase:
         if isinstance(request, dict):
             result = FMGResponse(data=api_result)
             result.success = True
+            result.status = api_result.get("status", {}).get("code", 400)
         else:
             # converting API names to object names (replace '-' and ' ' -> _)
             obj_model = [
