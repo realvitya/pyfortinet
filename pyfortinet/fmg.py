@@ -33,6 +33,8 @@ class FMG(FMGBase):
             verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
             timeout (float): Connection timeout for requests in seconds
             raise_on_error (bool): Raise exception on error
+            discard_on_close (bool): Discard changes after connection close (workspace mode)
+            discard_on_error (bool): Discard changes when exception occurs (workspace mode)
         """
         super().__init__(settings, **kwargs)
 

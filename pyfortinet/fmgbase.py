@@ -9,7 +9,6 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List
 
 import requests
-from more_itertools import first
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
@@ -19,12 +18,11 @@ from pyfortinet.exceptions import (
     FMGLockNeededException,
     FMGTokenException,
     FMGUnhandledException,
-    FMGWrongRequestException,
     FMGInvalidDataException,
     FMGObjectAlreadyExistsException, FMGInvalidURL,
 )
-from pyfortinet.fmg_api import FMGExecObject, FMGObject
-from pyfortinet.fmg_api.common import FILTER_TYPE, F
+from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.settings import FMGSettings
 
@@ -267,6 +265,8 @@ class FMGBase:
             verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
             timeout (float): Connection timeout for requests in seconds
             raise_on_error (bool): Raise exception on error
+            discard_on_close (bool): Discard changes after connection close (workspace mode)
+            discard_on_error (bool): Discard changes when exception occurs (workspace mode)
         """
         if not settings:
             settings = FMGSettings(**kwargs)
@@ -275,16 +275,34 @@ class FMGBase:
         self._session: Optional[requests.Session] = None
         self.lock = FMGLockContext(self)
         self._raise_on_error: bool = settings.raise_on_error
-        self._discard_on_close: bool = False
         self._id: int = randint(1, 256)  # pick a random id for this session (check logs for a particular session)
 
     @property
     def adom(self) -> str:
+        """Returns current selected adom"""
         return self._settings.adom
 
     @adom.setter
     def adom(self, adom: str) -> None:
         self._settings.adom = adom
+
+    @property
+    def discard_on_close(self) -> bool:
+        """Returns discard_on_close value"""
+        return self._settings.discard_on_close
+
+    @discard_on_close.setter
+    def discard_on_close(self, setting: bool) -> None:
+        self._settings.discard_on_close = bool(setting)
+
+    @property
+    def raise_on_error(self):
+        """Returns raise_on_error value"""
+        return self._raise_on_error
+
+    @raise_on_error.setter
+    def raise_on_error(self, value: bool):
+        self._raise_on_error = bool(value)
 
     def open(self) -> "FMGBase":
         """open connection"""
@@ -302,7 +320,7 @@ class FMGBase:
             "params": [{"url": "/sys/logout"}],
             "session": self._token.get_secret_value(),
         }
-        self._discard_on_close = self._discard_on_close or discard_changes
+        self._settings.discard_on_close = self._settings.discard_on_close or discard_changes
         try:
             try:
                 if self.lock.uses_workspace:
@@ -329,15 +347,10 @@ class FMGBase:
         return self
 
     def __exit__(self, exc_type, exc_value, exc_tb):
-        self.close()
-
-    @property
-    def raise_on_error(self):
-        return self._raise_on_error
-
-    @raise_on_error.setter
-    def raise_on_error(self, value: bool):
-        self._raise_on_error = bool(value)
+        if exc_type is not None:
+            self.close(discard_changes=self._settings.discard_on_error)
+            return
+        self.close(discard_changes=self.discard_on_close)
 
     def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
