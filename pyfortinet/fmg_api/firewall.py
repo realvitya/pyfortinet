@@ -8,8 +8,24 @@ from pydantic import Field, ValidationInfo, field_validator
 
 from pyfortinet.fmg_api import FMGObject
 
-AddressGroupType = Literal["default", "array", "folder"]
-AddressGroupCategory = Literal["default", "ztna-ems-tag", "ztna-geo-tag"]
+ADDRESS_GROUP_TYPE = Literal["default", "array", "folder"]
+ADDRESS_GROUP_CATEGORY = Literal["default", "ztna-ems-tag", "ztna-geo-tag"]
+ALLOW_ROUTING = Literal["disable", "enable"]
+ADDRESS_TYPE = Literal[
+    "ipmask",
+    "iprange",
+    "fqdn",
+    "wildcard",
+    "geography",
+    "url",
+    "wildcard-fqdn",
+    "nsx",
+    "aws",
+    "dynamic",
+    "interface-subnet",
+    "mac",
+    "fqdn-group"
+]
 
 
 class Address(FMGObject):
@@ -22,9 +38,13 @@ class Address(FMGObject):
     """
 
     _url: str = "/pm/config/{scope}/obj/firewall/address"
-    name: str
-    associated_interface: Union[str, list[str]] = Field(None, serialization_alias="associated-interface")
-    subnet: Union[str, list[str]] = None
+    name: str = Field(..., max_length=128)
+    allow_routing: Optional[ALLOW_ROUTING] = Field(None, serialization_alias="allow-routing")
+    associated_interface: Optional[Union[str, list[str]]] = Field(None, serialization_alias="associated-interface")
+    subnet: Optional[Union[str, list[str]]] = None
+    type: Optional[ADDRESS_TYPE] = None
+    url: Optional[str] = None
+    uuid: Optional[str] = None
 
     @field_validator("subnet")
     def standardize_subnet(cls, v):
@@ -42,6 +62,13 @@ class Address(FMGObject):
         else:
             return v
 
+    @field_validator("allow_routing", mode="before")
+    def validate_allow_routing(cls, v: int) -> ALLOW_ROUTING:
+        return ALLOW_ROUTING.__dict__.get("__args__")[v]
+
+    @field_validator("type", mode="before")
+    def validate_type(cls, v: int) -> ADDRESS_TYPE:
+        return ADDRESS_TYPE.__dict__.get("__args__")[v]
 
 class AddressMapping(Address):
     _url: str = "/pm/config/{scope}/obj/firewall/address/{address}/dynamic_mapping"
@@ -54,8 +81,8 @@ class AddressGroup(FMGObject):
     member: list[Address]
     exclude_member: list[Address] = Field(..., serialization_alias="exclude-member")
     comment: str = ""
-    category: AddressGroupCategory = "default"
-    type: AddressGroupType = "default"
+    category: ADDRESS_GROUP_CATEGORY = "default"
+    type: ADDRESS_GROUP_TYPE = "default"
     uuid: Optional[UUID]
     dynamic_mapping: list["AddressGroupMapping"]
 

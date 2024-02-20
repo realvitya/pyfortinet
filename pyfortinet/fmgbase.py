@@ -110,6 +110,7 @@ class FMGResponse:
     data: Union[dict, List[FMGObject]] = field(default_factory=dict)  # data got from FMG
     status: int = 0  # status code of the request
     success: bool = False  # True on successful request
+    fmg: "FMGBase" = None
 
     def __bool__(self) -> bool:
         return self.success
@@ -117,10 +118,18 @@ class FMGResponse:
     def first(self) -> Optional[Union[FMGObject, dict]]:
         """Return first data or None if result is empty"""
         if isinstance(self.data, dict):
-            return self.data.get("data")[0] if self.data.get("data") else None
+            if isinstance(self.data.get("data"), list):
+                return self.data.get("data")[0] if self.data.get("data") else None
+            else:
+                return self.data.get("data")
         elif isinstance(self.data, list):
             return self.data[0] if self.data[0] else None
         return None
+
+    def wait_for_task(self, timeout: int = 60, callback: Callable[[int, int], None] = None):
+        if not self.success or not self.fmg:
+            return
+        self.fmg.wait_for_task(self, timeout, callback)
 
 
 class FMGLockContext:
@@ -166,7 +175,7 @@ class FMGLockContext:
         Returns:
             Response object
         """
-        result = FMGResponse()
+        result = FMGResponse(fmg=self._fmg)
         if not adoms:
             adoms = ["root"]
         for adom in adoms:
@@ -179,7 +188,7 @@ class FMGLockContext:
 
     def unlock_adoms(self, *adoms) -> FMGResponse:
         """unlock ADOMs"""
-        result = FMGResponse()
+        result = FMGResponse(fmg=self._fmg)
         if not adoms:
             adoms = copy(self._locked_adoms)
         for adom in adoms:
@@ -324,7 +333,7 @@ class FMGBase:
         try:
             try:
                 if self.lock.uses_workspace:
-                    if not self._discard_on_close:
+                    if not self.discard_on_close:
                         self.lock.commit_changes()
                     self.lock.unlock_adoms()
             except FMGException:  # go ahead and ensure logout regardless we could unlock
@@ -441,7 +450,7 @@ class FMGBase:
         except FMGException as err:
             api_result = {"error": str(err)}
             logger.error("Error in exec request: %s", api_result["error"])
-        result = FMGResponse(data=api_result, success=api_result.get("status", {}).get("code") == 0)
+        result = FMGResponse(fmg=self, data=api_result, success=api_result.get("status", {}).get("code") == 0)
         return result
 
     # noqa: PLR0912 - Too many branches
@@ -473,6 +482,7 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
+        result = FMGResponse(fmg=self)
         try:
             api_result = self._post(request=body)
         except FMGException as err:
@@ -480,12 +490,14 @@ class FMGBase:
             logger.error("Error in get request: %s", api_result["error"])
             if self._raise_on_error:
                 raise
-            return FMGResponse(data=api_result)
+            result.data = api_result
+            return result
         # handling empty result list
         if not api_result.get("data"):
-            return FMGResponse(data={"data": []})
+            result.data = {"data": []}
+            return result
         # processing result list
-        result = FMGResponse(data=api_result)
+        result.data = api_result
         result.success = True
         result.status = api_result.get("status", {}).get("code", 400)
 
@@ -517,7 +529,7 @@ class FMGBase:
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         body = {
             "method": "add",
             "params": [
@@ -567,7 +579,7 @@ class FMGBase:
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         body = {
             "method": "update",
             "params": [
@@ -617,7 +629,7 @@ class FMGBase:
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         body = {
             "method": "set",
             "params": [
@@ -662,7 +674,7 @@ class FMGBase:
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         body = {
             "method": "delete",
             "params": [
@@ -686,30 +698,42 @@ class FMGBase:
         return response
 
     def wait_for_task(
-        self, job: Union[int, FMGResponse], timeout: int = 60, callback: Callable[[int, int], None] = None
-    ):
+        self, task_res: Union[int, FMGResponse], timeout: int = 60, callback: Callable[[int], None] = None
+    ) -> Union[str, None]:
         """Wait for task to finish
 
+        Args: task_res: (int, FMGResponse): Task or task ID to check
+        timeout: (int): timeout for waiting
+        callback: (Callable[[int], None]): function to call in each iteration.
+                                           It must accept 1 arg which is the current percentage
+
         Example:
-            >>> from pyfortinet.fmg_api.dvmcmd import Device
+            >>> from pyfortinet.fmg_api.dvmcmd import Device, DeviceTask
+            >>> from rich.progress import Progress
             >>> settings = {...}
-            >>> device = Device(name="test", ip="1.1.1.1")
+            >>> device = Device(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
             >>> with FMGBase(**settings) as fmg:
-            ...     task = fmg.add(device)
-            ...     with ProgressBar() as progress:  # TODO: complete with actual working solution
-            ...         fmg.wait_for_task(task, callback=progress.update)
+            ...     task = DeviceTask(adom=fmg.adom, device=device)
+            ...     result = fmg.exec(task)
+            ...     with Progress() as progress:
+            ...         prog_task = progress.add_task(f"Adding device {device.name}", total=100)
+            ...         update_progress = lambda percent: progress.update(prog_task, percent)
+            ...         task.wait_for_task(task, callback=update_progress)
         """
-        task_id = job if isinstance(job, int) else job.data.get("task_id")
+        task_id = task_res if isinstance(task_res, int) else task_res.data.get("data", {}).get("taskid")
         if task_id is None:
             return
         start_time = time.time()
         while True:
-            task: Task = self.get(Task, F(id=task_id))
-            if not task.success or task.data.get("status"):
+            task = self.get(Task, F(id=task_id))
+            task_data: Task = task.first()
+            if not task.success:
                 return
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
-            callback(0, task.percent)
-            if task.state == "done":
-                return
+            if callback:
+                callback(task_data.percent)
+            # exit on the following states
+            if task_data.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
+                return task_data.state
             time.sleep(5)

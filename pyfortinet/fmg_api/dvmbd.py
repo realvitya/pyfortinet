@@ -47,12 +47,12 @@ class VDOM(FMGObject):
     status: Optional[str]
     vdom_type: Optional[VDOM_TYPE]
 
-    @property
-    def url(self) -> str:
-        """API URL where {scope} is replaced on the fly based on the FMG selected scope (adom or global)"""
-        scope = f"adom/{self.adom}" if self.adom else ""
-        url = self._url.replace("{adom}", scope).replace("{device}", self.device)
-        return url
+    # @property
+    # def get_url(self) -> str:
+    #     """API URL where {scope} is replaced on the fly based on the FMG selected scope (adom or global)"""
+    #     scope = f"adom/{self.adom}" if self.adom else ""
+    #     url = self._url.replace("{adom}", scope).replace("{device}", self.device)
+    #     return url
 
     @field_validator("opmode", mode="before")
     def validate_opmode(cls, v: int) -> OP_MODE:
@@ -149,12 +149,12 @@ class Device(FMGObject, BaseDevice):
     vdom: Optional[list[VDOM]]
     ha_slave: Optional[List[HASlave]]
 
-    @property
-    def url(self) -> str:
-        """Device API URL assembly"""
-        scope = "" if self.scope == "global" else f"/adom/{self.scope}"
-        url = self._url.replace("{adom}", scope)
-        return url
+    # @property
+    # def get_url(self) -> str:
+    #     """Device API URL assembly"""
+    #     scope = "" if self.scope == "global" else f"/adom/{self.scope}"
+    #     url = self._url.replace("{adom}", scope)
+    #     return url
 
     @field_validator("conf_status", mode="before")
     def validate_conf_status(cls, v: int) -> CONF_STATUS:

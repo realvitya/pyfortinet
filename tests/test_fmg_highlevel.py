@@ -3,7 +3,7 @@ import pytest
 from pyfortinet import FMG, FMGSettings
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmbd import Device
-from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceJob
+from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceTask
 from pyfortinet.fmg_api.firewall import Address
 
 need_lab = pytest.mark.skipif(not pytest.lab_config, reason=f"Lab config {pytest.lab_config_file} does not exist!")
@@ -46,10 +46,11 @@ class TestObjectsOnLab:
     @fmg_connected
     def test_dvmdb_device(self):
         device = ModelDevice(name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
-        job = DeviceJob(adom=self.fmg.adom, device=device)
+        job = DeviceTask(adom=self.fmg.adom, device=device)
         result = self.fmg.exec(job)
+        result.wait_for_task()
         assert result.success
-        job = DeviceJob(adom=self.fmg.adom, device=device, action="del")
+        job = DeviceTask(adom=self.fmg.adom, device=device, action="del")
         result = self.fmg.exec(job)
         assert result
         result = self.fmg.get(Device, F(name__like="TEST%"))
@@ -57,28 +58,28 @@ class TestObjectsOnLab:
 
     @fmg_connected
     def test_firewall_address(self):
-        to_add = Address(name="test-firewall-address", subnet="10.0.0.0/24")
+        to_add = self.fmg.get_obj(Address, name="test-firewall-address", subnet="10.0.0.0/24")
         # test ADD
-        result = self.fmg.add(to_add)
+        result = to_add.add()
         assert result
         # test GET
         address = self.fmg.get(Address, F(name__like="test-firewall-addr%")).first()
         assert address.name == "test-firewall-address"
         address.subnet = "10.0.1.0/24"
         # test UPDATE
-        result = self.fmg.update(address)
+        result = address.update()
         assert result
         address = self.fmg.get(Address, F(name=address.name)).first()
         assert address.subnet == "10.0.1.0/24"
         # test DELETE
-        result = self.fmg.delete(address)
+        result = address.delete()
         assert result
         result = self.fmg.get(Address, F(name="test-firewall-address"))
         assert result and not result.data  # ensure empty result
         # test SET
-        result = self.fmg.set(to_add)
+        result = to_add.set()
         assert result
-        result = self.fmg.delete(to_add)
+        result = to_add.delete()
         assert result
         result = self.fmg.get(Address, F(name="test-firewall-address"))
         assert result and not result.data  # ensure empty result

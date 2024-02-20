@@ -47,3 +47,7 @@ class FMGMissingScopeException(FMGException):
 
 class FMGInvalidURL(FMGException):
     """Invalid URL"""
+
+
+class FMGNotAssignedException(FMGException):
+    """FMG not assigned to object"""

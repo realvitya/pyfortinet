@@ -13,7 +13,7 @@ class TaskLineHistory(FMGObject):
     detail: str
     name: str
     percent: int
-    vdom: str
+    vdom: Optional[str] = None
 
 
 TASK_SRC = Literal[
@@ -64,17 +64,22 @@ class TaskLine(FMGObject):
     end_tm: Optional[int] = 0
     err: Optional[int] = 0
     history: Optional[List[TaskLineHistory]]
-    ip: str
+    ip: Optional[str] = None
     name: str
     oid: Optional[int] = 0
     percent: Optional[int] = 0
     start_tm: Optional[int] = 0
     state: TASK_STATE
-    vdom: str
+    vdom: Optional[str] = None
+
+    @field_validator("state", mode="before")
+    def validate_src(cls, v: int) -> TASK_STATE:
+        return TASK_STATE.__dict__.get("__args__")[v]
 
 
 class Task(FMGObject):
     """Task class"""
+    _url = "/task/task"
 
     adom: Optional[int]
     end_tm: Optional[int]
@@ -93,3 +98,11 @@ class Task(FMGObject):
     title: str = ""
     tot_percent: Optional[int] = 0
     user: str = ""
+
+    @field_validator("src", mode="before")
+    def validate_src(cls, v: int) -> TASK_SRC:
+        return TASK_SRC.__dict__.get("__args__")[v]
+
+    @field_validator("state", mode="before")
+    def validate_state(cls, v: int) -> TASK_STATE:
+        return TASK_STATE.__dict__.get("__args__")[v]

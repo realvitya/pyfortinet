@@ -96,6 +96,7 @@ class FMG(FMGBase):
         if isinstance(request, dict):
             return super().get(request)
         # High level arguments
+        result = FMGResponse(fmg=self)
         if issubclass(request, FMGObject):
             # derive url from current scope and adom
             if not scope:  # get adom from FMG settings
@@ -122,7 +123,8 @@ class FMG(FMGBase):
                 "id": self._id,
             }
         else:
-            result = FMGResponse(data={"error": f"Wrong type of request received: {request}"}, status=400)
+            result.data = {"error": f"Wrong type of request received: {request}"}
+            result.status = 400
             logger.error(result.data["error"])
             if self._raise_on_error:
                 raise FMGWrongRequestException(result)
@@ -134,17 +136,20 @@ class FMG(FMGBase):
             logger.error("Error in get request: %s", api_result["error"])
             if self._raise_on_error:
                 raise
-            return FMGResponse(data=api_result)
+            result.data = api_result
+            return result
         # converting API names to object names (replace '-' and ' ' -> _)
         obj_model = [
             {key.replace("-", "_").replace(" ", "_"): value for key, value in data.items()}
             for data in api_result.get("data")
         ]
         # construct object list
-        result = []
+        objects = []
         for value in obj_model:
-            result.append(request(**value, scope=scope))
-        return FMGResponse(data=result, success=True)
+            objects.append(request(**value, scope=scope, fmg=self))
+        result.data = objects
+        result.success = True
+        return result
 
     def add(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Add operation
@@ -181,7 +186,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # dict input, low-level operation
             return super().add(request)
 
@@ -192,7 +197,7 @@ class FMG(FMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return super().add(request={"url": request.url, "data": api_data})
+            return super().add(request={"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -228,13 +233,13 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
             return super().delete(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
-            return super().delete({"url": f"{request.url}/{request.name}"})  # assume URL with name for del operation
+            return super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -278,7 +283,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
             return super().update(request)
         elif isinstance(request, FMGObject):  # high-level operation
@@ -288,7 +293,7 @@ class FMG(FMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return super().update({"url": request.url, "data": api_data})
+            return super().update({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -332,7 +337,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse()
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
             return super().set(request)
         elif isinstance(request, FMGObject):  # high-level operation
@@ -342,7 +347,7 @@ class FMG(FMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return super().set({"url": request.url, "data": api_data})
+            return super().set({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -356,13 +361,19 @@ class FMG(FMGBase):
         if isinstance(request, dict):  # low-level operation
             return super().exec(request)
         elif isinstance(request, FMGExecObject):
-            logger.info("requesting exec with high-level op to %s", request.url)
+            logger.info("requesting exec with high-level op to %s", request.get_url)
             request.scope = request.scope or self._settings.adom
-            return super().exec({"url": request.url, "data": request.data})
+            return super().exec({"url": request.get_url, "data": request.data})
         else:
-            result = FMGResponse(data={"error": f"Wrong type of request received: {request}"}, status=400)
+            result = FMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)
             logger.error(result.data["error"])
             return result
+
+    def get_obj(self, obj: type(FMGObject), **kwargs) -> FMGObject:
+        """Get an object and tie it to this FMG"""
+        if not issubclass(obj, FMGObject):
+            raise TypeError(f"Argument {obj} is not an FMGObject")
+        return obj(fmg=self, **kwargs)
 
     def get_adom_list(self, filters: FILTER_TYPE = None):
         """Gather adoms from FMG

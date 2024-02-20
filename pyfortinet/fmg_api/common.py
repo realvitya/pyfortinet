@@ -1,7 +1,7 @@
-"""Commmon objects"""
+"""Common objects"""
 from typing import Literal, Optional, List, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, IPvAnyAddress
 from pydantic.dataclasses import dataclass
 
 MGMT_MODE = Literal["unreg", "fmg", "faz", "fmgfaz"]
@@ -35,6 +35,7 @@ OS_TYPE = Literal[
     "fed",
 ]
 OS_VER = Literal["unknown", "0.0", "1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0"]
+DEVICE_ACTION = Literal["add_model", "promote_unreg"]
 
 
 @dataclass
@@ -55,9 +56,9 @@ class Result:
 
 class BaseDevice(BaseModel):
     # api attributes
-    name: Optional[str] = Field(None, pattern=r"[\w-]{1,48}")
-    adm_usr: Optional[str] = None
-    adm_pass: Optional[list[str]] = None
+    name: Optional[str] = Field(None, pattern=r"[\w-]{1,36}")
+    adm_usr: Optional[str] = Field(None, max_length=36)
+    adm_pass: Union[None, str, list[str]] = Field(None, max_length=128)
     desc: Optional[str] = None
     ip: Optional[str] = None
     meta_fields: Optional[dict[str, str]] = Field(None, serialization_alias="meta fields")
@@ -67,18 +68,33 @@ class BaseDevice(BaseModel):
     mr: Optional[int] = Field(None, description="Minor release no")
     patch: Optional[int] = Field(None, description="Patch release no")
     sn: Optional[str] = Field(None, description="Serial number")
+    device_action: Optional[DEVICE_ACTION] = Field(None, serialization_alias="device action")
+    device_blueprint: Optional[str] = Field(None, serialization_alias="device blueprint")
+
+    @field_validator("ip")
+    def validate_ip(cls, v):
+        """validate input but still represent the string"""
+        IPvAnyAddress(v)
+        return v
 
     @field_validator("mgmt_mode", mode="before")
-    def validate_mgmt_mode(cls, v: int):
+    def validate_mgmt_mode(cls, v):
+        """ensure using text variant"""
+        if isinstance(v, str):
+            return v
         return MGMT_MODE.__dict__.get("__args__")[v]
 
     @field_validator("os_type", mode="before")
-    def validate_os_type(cls, v: int):
+    def validate_os_type(cls, v):
+        """ensure using text variant"""
+        if isinstance(v, str):
+            return v
         return OS_TYPE.__dict__.get("__args__")[v]
 
     @field_validator("os_ver", mode="before")
     def validate_os_ver(cls, v):
-        if isinstance(v, str):  # sometimes API provides string sometimes int...
+        """ensure using text variant"""
+        if isinstance(v, str):
             return v
         elif isinstance(v, int):
             return OS_VER.__dict__.get("__args__")[v]
@@ -126,17 +142,21 @@ OP = {
 
 
 class F:
+    """Filter class that allows us to define a single filter for an object
+
+    Argument format is {field}={value} or {field}__{operator}={value}
+    Only one argument can be passed!
+
+    Returns:
+        Filter object can be used at ``FMG.get`` method
+    """
     negate: bool = False
     source: str = ""
     op: str = ""
     targets: Union[List[Union[int, str]], Union[int, str]]
 
     def __init__(self, **kwargs):
-        """Filter initialization
-
-        We expect calls from
-
-        """
+        """Filter initialization"""
         if len(kwargs) > 1:
             raise ValueError(f"F only accepts one filter condition at a time!")
         for key, value in kwargs.items():
@@ -150,7 +170,7 @@ class F:
                 self.op = "=="
             self.targets = value
 
-    def generate(self):
+    def generate(self) -> List[str]:
         """Generate API filter list"""
         out = []
         if self.negate:
@@ -186,6 +206,7 @@ class F:
 
 
 class FilterList:
+    """List of F objects"""
     members: list[F]
 
     def __init__(self, *members: Union[F, "FilterList"]):
@@ -208,11 +229,13 @@ class FilterList:
     def __or__(self, other) -> "ComplexFilter":
         return ComplexFilter(self, "||", other)
 
-    def generate(self):
+    def generate(self) -> List[List[str]]:
+        """Generate API filter output"""
         return [member.generate() for member in self.members]
 
 
 class ComplexFilter:
+    """Complex handling of filters and their operator"""
     def __init__(
         self,
         a: Union["ComplexFilter", FilterList, F],
@@ -223,7 +246,8 @@ class ComplexFilter:
         self.op = op
         self.b = b
 
-    def generate(self):
+    def generate(self) -> list:
+        """Generate API filter output"""
         out = [self.a.generate(), self.op, self.b.generate()]
         return out
 
@@ -243,7 +267,7 @@ def text2filter(text: str) -> FILTER_TYPE:
     Format of the text follows the ``OP`` definition!
 
     Examples:
-        text2filter("name eq somehost || name like switch")
+        text2filter("name eq some_host || name like switch")
         text2filter("name like switch, status eq auto_updated")
 
     Args:
