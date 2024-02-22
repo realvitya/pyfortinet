@@ -37,7 +37,7 @@ class VDOM(FMGObject):
 
     # internal attributes
     _url = "/dvmdb{adom}/device/{device}/vdom"
-    scope: str = Field("", exclude=True, description="ADOM to use (optional)")
+    # scope: str = Field("", exclude=True, description="ADOM to use (optional)")
     device: str = Field("", exclude=True, description="Assigned device (optional)")
     # API attributes
     name: Optional[str]

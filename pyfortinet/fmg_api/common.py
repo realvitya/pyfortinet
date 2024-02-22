@@ -185,20 +185,12 @@ class F:
 
     def __and__(self, other) -> "ComplexFilter":
         return ComplexFilter(self, "&&", other)
-        # if isinstance(other, type(self)):
-        #     return [self.generate(), "&&", other.generate()]
-        # elif isinstance(other, list):
-        #     return [self.generate(), "&&", other]
 
     def __or__(self, other) -> "ComplexFilter":
         return ComplexFilter(self, "||", other)
-        # if isinstance(other, type(self)):
-        #     return [self.generate(), "||", other.generate()]
-        # elif isinstance(other, list):
-        #     return [self.generate(), "||", other]
 
     def __invert__(self):
-        self.negate = True
+        self.negate = not self.negate
         return self
 
     def __add__(self, other: Union["F", "FilterList"]):
@@ -228,6 +220,9 @@ class FilterList:
 
     def __or__(self, other) -> "ComplexFilter":
         return ComplexFilter(self, "||", other)
+
+    def __len__(self):
+        return len(self.members)
 
     def generate(self) -> List[List[str]]:
         """Generate API filter output"""
