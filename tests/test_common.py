@@ -2,7 +2,7 @@
 import pytest
 
 from pyfortinet import FMGResponse
-from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.common import F, text_to_filter
 
 
 class TestFilters:
@@ -69,3 +69,9 @@ class TestFilters:
     def test_first_empty(self):
         response = FMGResponse()
         assert response.first() is None
+
+    def test_text_to_filter(self):
+        assert text_to_filter("name like test%").generate() == ["name", "like", "test%"]
+        assert text_to_filter("~name like host_%").generate() == ["!", "name", "like", "host_%"]
+        assert (text_to_filter('name eq host_1 and conf_status eq insync').generate() ==
+                [['name', '==', 'host_1'], '&&', ['conf_status', '==', 'insync']])

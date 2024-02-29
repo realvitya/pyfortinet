@@ -1,4 +1,5 @@
 """Common objects"""
+import re
 from typing import Literal, Optional, List, Union
 
 from pydantic import BaseModel, Field, field_validator, IPvAnyAddress
@@ -150,6 +151,7 @@ class F:
     Returns:
         Filter object can be used at ``FMG.get`` method
     """
+
     negate: bool = False
     source: str = ""
     op: str = ""
@@ -199,6 +201,7 @@ class F:
 
 class FilterList:
     """List of F objects"""
+
     members: list[F]
 
     def __init__(self, *members: Union[F, "FilterList"]):
@@ -231,6 +234,7 @@ class FilterList:
 
 class ComplexFilter:
     """Complex handling of filters and their operator"""
+
     def __init__(
         self,
         a: Union["ComplexFilter", FilterList, F],
@@ -256,22 +260,77 @@ class ComplexFilter:
 FILTER_TYPE = Union[F, FilterList, ComplexFilter]
 
 
-def text2filter(text: str) -> FILTER_TYPE:
-    """Parse string and return a filter object
+def text_to_filter(text: str) -> FILTER_TYPE:
+    """Text to filter object
 
     Format of the text follows the ``OP`` definition!
+    This is a simple text to filter object converter. It does not support more complex logic.
+    Simple field comparisons with `and/or and ,` operators are supported. `,` means a simple `or` between same
+    type fields.
+
+    structure::
+
+        fname fop fvalue OP fname fop fvalue OP ...
+        ----------------    ----------------
+            F token              F token
 
     Examples:
-        text2filter("name eq some_host || name like switch")
-        text2filter("name like switch, status eq auto_updated")
+        simple F filter
+
+        >>> text_to_filter('name like host_%').generate()
+        ['name', 'like', 'host_%']
+
+        inversing
+
+        >>> text_to_filter('~name like host_%').generate()
+        ['!', 'name', 'like', 'host_%']
+
+        simple or function
+
+        >>> text_to_filter('name eq host_1, name eq host_2').generate()
+        [['name', '==', 'host_1'], ['name', '==', 'host_2']]
+
+        more complex filter
+
+        >>> text_to_filter('name eq host_1 and conf_status eq insync').generate()
+        [['name', '==', 'host_1'], '&&', ['conf_status', '==', 'insync']]
 
     Args:
-        text (str): text to parse
+        text (str): Text to parse
 
     Returns:
-        Parsed filter object
+        FILTER_TYPE: Filter object which can be used in FMG.get calls
 
-    Raises:
-        ValueError: text cannot be parsed
-    """
-    # TODO: implement
+     Raises:
+         ValueError: text cannot be parsed
+     """
+    text = text.strip()
+    while text:
+        # search F tokens
+        f_match = re.match(
+            rf'(?P<negate>~)?\s*(?P<fname>\w+)\s+(?P<fop>{"|".join(OP.keys())})\s+(?P<fvalue>\S+)(?<![,|&])', text
+        )
+        if f_match:
+            kwargs = {f"{f_match.group('fname')}__{f_match.group('fop')}": f_match.group("fvalue")}
+            if f_match.group("negate"):
+                f_token = ~F(**kwargs)
+            else:
+                f_token = F(**kwargs)
+        else:
+            raise ValueError(f"Couldn't parse '{text}'!")
+        text = text[f_match.end():].strip()
+        if not text:
+            return f_token
+        # search list or complex filter ops
+        op_match = re.match(rf"(?P<op>and|or|,)\s+", text)
+        if op_match:
+            op = {"and": "&&", "or": "||", ",": ","}.get(op_match.group("op"))
+        else:
+            raise ValueError(f"Couldn't parse '{text}'!")
+        text = text[op_match.end():].strip()
+        f_token2 = text_to_filter(text)
+        if op == ",":
+            return FilterList(f_token, f_token2)
+        else:
+            # noinspection PyTypeChecker, PydanticTypeChecker
+            return ComplexFilter(f_token, op, f_token2)
