@@ -407,6 +407,8 @@ class FMGBase:
             req = self._session.post(self._settings.base_url, json=request, verify=self._settings.verify)
             status = req.json().get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
+                if "No permission for resource" in status.get("message"):
+                    raise FMGUnhandledException("No permission for resource, probably user does not have API access!")
                 raise FMGTokenException("Login failed, wrong credentials!")
             logger.debug("Token obtained")
         except FMGTokenException as err:
