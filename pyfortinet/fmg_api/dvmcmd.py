@@ -1,12 +1,91 @@
 """Device Manager Command"""
 from typing import Literal, Optional, Union
 
-from pydantic import Field, model_validator, IPvAnyAddress, field_validator
+from pydantic import Field, model_validator, IPvAnyAddress, field_validator, BaseModel
 
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
-from pyfortinet.fmg_api.common import BaseDevice, Scope, OS_VER, OS_TYPE, MGMT_MODE, DEVICE_ACTION
+from pyfortinet.fmg_api.common import Scope
 
 FLAGS = Literal["none", "create_task", "nonblocking", "log_dev"]
+MGMT_MODE = Literal["unreg", "fmg", "faz", "fmgfaz"]
+OS_TYPE = Literal[
+    "unknown",
+    "fos",
+    "fsw",
+    "foc",
+    "fml",
+    "faz",
+    "fwb",
+    "fch",
+    "fct",
+    "log",
+    "fmg",
+    "fsa",
+    "fdd",
+    "fac",
+    "fpx",
+    "fna",
+    "ffw",
+    "fsr",
+    "fad",
+    "fdc",
+    "fap",
+    "fxt",
+    "fts",
+    "fai",
+    "fwc",
+    "fis",
+    "fed",
+]
+OS_VER = Literal["unknown", "0.0", "1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0"]
+DEVICE_ACTION = Literal["add_model", "promote_unreg"]
+
+
+class BaseDevice(BaseModel):
+    # api attributes
+    name: Optional[str] = Field(None, pattern=r"[\w-]{1,36}")
+    adm_usr: Optional[str] = Field(None, max_length=36)
+    adm_pass: Union[None, str, list[str]] = Field(None, max_length=128)
+    desc: Optional[str] = None
+    ip: Optional[str] = None
+    meta_fields: Optional[dict[str, str]] = Field(None, serialization_alias="meta fields")
+    mgmt_mode: Optional[MGMT_MODE] = None
+    os_type: Optional[OS_TYPE] = None
+    os_ver: Optional[OS_VER] = Field(None, description="Major release no")
+    mr: Optional[int] = Field(None, description="Minor release no")
+    patch: Optional[int] = Field(None, description="Patch release no")
+    sn: Optional[str] = Field(None, description="Serial number")
+    device_action: Optional[DEVICE_ACTION] = Field(None, serialization_alias="device action")
+    device_blueprint: Optional[str] = Field(None, serialization_alias="device blueprint")
+
+    @field_validator("ip")
+    def validate_ip(cls, v):
+        """validate input but still represent the string"""
+        IPvAnyAddress(v)
+        return v
+
+    @field_validator("mgmt_mode", mode="before")
+    def validate_mgmt_mode(cls, v):
+        """ensure using text variant"""
+        if isinstance(v, str):
+            return v
+        return MGMT_MODE.__dict__.get("__args__")[v]
+
+    @field_validator("os_type", mode="before")
+    def validate_os_type(cls, v):
+        """ensure using text variant"""
+        if isinstance(v, str):
+            return v
+        return OS_TYPE.__dict__.get("__args__")[v]
+
+    @field_validator("os_ver", mode="before")
+    def validate_os_ver(cls, v):
+        """ensure using text variant"""
+        if isinstance(v, str):
+            return v
+        elif isinstance(v, int):
+            return OS_VER.__dict__.get("__args__")[v]
+        raise ValueError(f"Wrong OS version type: {type(v)}")
 
 
 class Device(FMGObject, BaseDevice):
