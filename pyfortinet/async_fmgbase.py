@@ -55,7 +55,7 @@ class AsyncFMGBase:
     async def open(self):
         """open connection"""
         self._session = aiohttp.ClientSession()
-        self._token = self._get_token()
+        self._token = await self._get_token()
 
     async def close(self):
         """close connection"""
@@ -126,7 +126,7 @@ class AsyncFMGBase:
         return SecretStr(token)
 
     @auth_required
-    def get_version(self) -> str:
+    async def get_version(self) -> str:
         """Gather FMG version"""
         request = {
             "method": "get",
@@ -134,5 +134,5 @@ class AsyncFMGBase:
             "id": 1,
             "session": self._token.get_secret_value(),
         }
-        req = self._post(request)
+        req = await self._post(request)
         return req["data"]["Version"]
