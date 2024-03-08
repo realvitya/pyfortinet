@@ -1,19 +1,21 @@
 """FMGBase tests"""
+import asyncio
 from copy import deepcopy
 
 import pytest
+import pytest_asyncio
+from aiohttp import ClientConnectorError
 from pydantic import SecretStr, ValidationError
-from requests.exceptions import ConnectionError
 
-from pyfortinet import FMGBase
+from pyfortinet import AsyncFMGBase, FMG, fmg
 from pyfortinet import exceptions as fe
 from pyfortinet.settings import FMGSettings
 
 need_lab = pytest.mark.skipif(not pytest.lab_config, reason=f"Lab config {pytest.lab_config_file} does not exist!")
 
 
-class TestFMGSettings:
-    """FMGSettings test module"""
+class TestAsyncFMGSettings:
+    """AsyncFMGSettings test module"""
 
     config = {
         "base_url": "https://somehost",
@@ -36,18 +38,18 @@ class TestFMGSettings:
     def test_fmg_object_creation_by_object(self):
         config = deepcopy(self.config)
         settings = FMGSettings(**config)
-        FMGBase(settings)
+        AsyncFMGBase(settings)
 
     def test_fmg_object_creation_by_kwargs(self):
         config = deepcopy(self.config)
-        FMGBase(**config)
+        AsyncFMGBase(**config)
 
-    def test_fmg_need_to_open_first(self):
+    async def test_fmg_need_to_open_first(self):
         config = deepcopy(self.config)
         with pytest.raises(fe.FMGTokenException, match="Open connection first!"):
             settings = FMGSettings(**config)
-            conn = FMGBase(settings)
-            conn.get_version()
+            conn = AsyncFMGBase(settings)
+            await conn.get_version()
 
 
 @need_lab
@@ -57,59 +59,66 @@ class TestLab:
     config = pytest.lab_config.get("fmg")  # configured in conftest.py
 
     @pytest.mark.dependency()
-    def test_fmg_lab_connect(self, prepare_lab):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_connect(self, prepare_lab):
         settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
-            ver = conn.get_version()
+        async with AsyncFMGBase(settings) as conn:
+            ver = await conn.get_version()
         assert "-build" in ver
 
-    def test_fmg_lab_connect_wrong_creds(self, prepare_lab):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_connect_wrong_creds(self, prepare_lab):
         config = deepcopy(self.config)
         config["password"] = "badpassword"  # pragma: allowlist secret
         settings = FMGSettings(**config)
-        conn = FMGBase(settings)
+        conn = AsyncFMGBase(settings)
         with pytest.raises(fe.FMGTokenException, match="Login failed, wrong credentials!"):
-            conn.open()
+            await conn.open()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_connection_error(self):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_connection_error(self):
         config = deepcopy(self.config)
         config["base_url"] = "https://127.0.0.1"
         settings = FMGSettings(**config)
-        conn = FMGBase(settings)
-        with pytest.raises(ConnectionError):
-            conn.open()
+        conn = AsyncFMGBase(settings)
+        with pytest.raises(ClientConnectorError):
+            await conn.open()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_expired_session(self, prepare_lab):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_expired_session(self, prepare_lab):
         settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
+        async with AsyncFMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
-            conn.get_version()
+            await conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_expired_session_and_wrong_creds(self, prepare_lab):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_expired_session_and_wrong_creds(self, prepare_lab):
         """Simulate expired token and changed credentials"""
         settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
+        async with AsyncFMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
             conn._settings.password = SecretStr("bad_password")
             with pytest.raises(fe.FMGTokenException, match="wrong credentials"):
-                conn.get_version()
+                await conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_fail_logout_with_expired_token(self, prepare_lab, caplog):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_fail_logout_with_expired_token(self, prepare_lab, caplog):
         """Simulate expired token by logout"""
         settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
+        async with AsyncFMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
         assert "Logout failed" in caplog.text
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_fail_logout_with_disconnect(self, prepare_lab, caplog):
+    @pytest.mark.asyncio
+    async def test_fmg_lab_fail_logout_with_disconnect(self, prepare_lab, caplog):
         """Simulate disconnection by logout"""
         settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
+        async with AsyncFMGBase(settings) as conn:
             conn._settings.base_url = "https://127.0.0.1/jsonrpc"
 
         assert "Logout failed" in caplog.text
@@ -117,24 +126,43 @@ class TestLab:
 
 @need_lab
 class TestObjectsOnLab:
-    fmg = FMGBase(FMGSettings(**pytest.lab_config.get("fmg"))).open()
-    fmg_connected = pytest.mark.skipif(
-        not fmg._token, reason=f"FMG {pytest.lab_config.get('fmg', {}).get('base_url')} is not connected!"
-    )
+    async_fmg_base = None
 
-    @fmg_connected
-    def test_address_add_dict(self):
+    @pytest.fixture(scope="session")
+    def event_loop(self):
+        loop = asyncio.get_event_loop()
+        yield loop
+        loop.close()
+
+    @pytest.fixture(autouse=True, scope='class')
+    async def _async_fmg_base_fixture(self):
+        # assuming AsyncFMGBase is defined somewhere and we create an instance of it
+        TestObjectsOnLab.async_fmg_base = AsyncFMGBase(FMGSettings(**pytest.lab_config.get("fmg")))
+
+        # Call the async setup method
+        await TestObjectsOnLab.async_fmg_base.open()
+
+        yield TestObjectsOnLab.async_fmg_base
+
+        # Call the async teardown method after the test case
+        await TestObjectsOnLab.async_fmg_base.close(discard_changes=True)
+
+    async def test_address_add_dict(self):
+        scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
         address_request = {
-            "url": "/pm/config/global/obj/firewall/address",
+            "url": f"/pm/config/{scope}/obj/firewall/address",
             "data": {
                 "name": "test-address",
                 "subnet": "10.0.0.1/32",
             },
         }
-        result = self.fmg.add(address_request)
+        result = await self.async_fmg_base.add(address_request)
         assert result.success
 
-    @fmg_connected
-    def test_close_fmg(self):
-        self.fmg.close(discard_changes=True)
-        # self.fmg.close()
+    async def test_address_del_dict(self):
+        scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+        }
+        result = await self.async_fmg_base.delete(address_request)
+        assert result.success

@@ -357,7 +357,7 @@ class FMGBase:
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         if exc_type is not None:
-            self.close(discard_changes=self._settings.discard_on_error)
+            self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
             return
         self.close(discard_changes=self.discard_on_close)
 

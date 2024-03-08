@@ -4,7 +4,6 @@ from typing import Literal, Optional, Union, List
 from pydantic import Field, field_validator, model_validator
 
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
-from pyfortinet.fmg_api.common import BaseDevice, Scope, OS_VER, OS_TYPE, MGMT_MODE
 
 
 class TaskLineHistory(FMGObject):

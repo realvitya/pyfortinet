@@ -32,6 +32,7 @@ dependencies = [
 dev = [
     "pytest-cov",
     "pytest",
+    "pytest-async",
     #"pytest-dependency",
     "flit",
     "invoke",
@@ -64,6 +65,7 @@ Source = "https://github.com/viktorkertesz/pyfortinet"
 [tool.pytest.ini_options]
 minversion = "6.0"
 #addopts = "-ra -q --cov=fortimanager_template_sync --cov-report=term-missing"
+asyncio_mode = "auto"
 
 testpaths = [
     "tests"
