@@ -2,16 +2,18 @@
 import logging
 from typing import Optional, Union, Any, Type, List
 
-from pyfortinet.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
+from more_itertools import first
+
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject
+from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncFMG(AsyncFMGBase):
+class FMG(FMGBase):
     """FMG API for humans
 
     Goal of this class to provide easy access to FMG features. This extends the base class capabilities with easy to use
@@ -51,14 +53,14 @@ class AsyncFMG(AsyncFMGBase):
         return None
 
     @auth_required
-    async def get(
+    def get(
         self,
         request: Union[dict[str, Any], Type[FMGObject]],
         filters: FILTER_TYPE = None,
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
-    ) -> AsyncFMGResponse:
+    ) -> FMGResponse:
         """Get info from FMG
 
         Args:
@@ -71,37 +73,31 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
-            >>> import asyncio
             >>> address_request = {
             ...    "url": "/pm/config/global/obj/firewall/address",
             ...    "filter": [ ["name", "==", "test-address"] ],
             ...    "fields": [ "name", "subnet" ]
             ...}
             >>> settings = {...}
-            >>> async def get_address(request: dict[str, Any]):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.get(address_request)
-            >>> asyncio.run(get_address())
+            >>> with FMG(**settings) as fmg:
+            ...    fmg.get(address_request)
 
             ## High-level - obj
 
-            >>> import asyncio
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> from pyfortinet.fmg_api.common import F
             >>> settings = {...}
-            >>> async def get_address():
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
-            >>> asyncio.run(get_address())
+            >>> with FMG(**settings) as fmg:
+            ...    addresses = fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
 
         Returns:
-            (AsyncFMGResponse): response object with data
+            (FMGResponse): response object with data
         """
         # Call base function for base arguments
         if isinstance(request, dict):
-            return await super().get(request)
+            return super().get(request)
         # High level arguments
-        result = AsyncFMGResponse(fmg=self)
+        result = FMGResponse(fmg=self)
         if issubclass(request, FMGObject):
             # derive url from current scope and adom
             if not scope:  # get adom from FMG settings
@@ -135,7 +131,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(result)
             return result
         try:
-            api_result = await self._post(request=body)
+            api_result = self._post(request=body)
         except FMGException as err:
             api_result = {"error": str(err)}
             logger.error("Error in get request: %s", api_result["error"])
@@ -156,7 +152,7 @@ class AsyncFMG(AsyncFMGBase):
         result.success = True
         return result
 
-    async def add(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    def add(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Add operation
 
         Args:
@@ -165,7 +161,6 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
-            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -177,10 +172,8 @@ class AsyncFMG(AsyncFMGBase):
             ...         "start-ip": "10.0.0.1/24"
             ...     }
             ... }
-            >>> async def add_request(request: dict[str,Any]):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.add(address_request)
-            >>> asyncio.run(add_request(address_request))
+            >>> with FMG(**settings) as fmg:
+            >>>     fmg.add(address_request)
 
             ## High-level - obj
 
@@ -188,17 +181,15 @@ class AsyncFMG(AsyncFMGBase):
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> async def add_request(addr):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.add(addr)
-            >>> asyncio.run(add_request(address))
+            >>> with FMG(**settings) as fmg:
+            ...     fmg.add(address)
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            (FMGResponse): Result of operation
         """
-        response = AsyncFMGResponse(fmg=self)
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # dict input, low-level operation
-            return await super().add(request)
+            return super().add(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
@@ -207,7 +198,7 @@ class AsyncFMG(AsyncFMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return await super().add(request={"url": request.get_url, "data": api_data})
+            return super().add(request={"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -216,7 +207,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def delete(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    def delete(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Delete operation
 
         Args:
@@ -225,36 +216,31 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
-            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address/test-address",
             ... }
-            >>> async def delete_address(address_request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         await fmg.delete(address_request)
-            >>> asyncio.run(delete_address(address_request))
+            >>> with FMG(**settings) as fmg:
+            >>>     fmg.delete(address_request)
 
             ## High-level - obj
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
             >>> address = Address(name="test-address")
-            >>> async def delete_address(addr):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.delete(addr)
-            >>> asyncio.run(delete_address(address))
+            >>> with FMG(**settings) as fmg:
+            ...     fmg.delete(address)
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            (FMGResponse): Result of operation
         """
-        response = AsyncFMGResponse(fmg=self)
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
-            return await super().delete(request)
+            return super().delete(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
-            return await super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
+            return super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -263,7 +249,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def update(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    def update(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Update operation
 
         Args:
@@ -272,7 +258,6 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
-            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -284,10 +269,8 @@ class AsyncFMG(AsyncFMGBase):
             ...         "start-ip": "10.0.0.1/24"
             ...     }
             ... }
-            >>> async def update_address(request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.update(request)
-            >>> asyncio.run(update_address(address_request))
+            >>> with FMGBase(**settings) as fmg:
+            >>>     fmg.update(address_request)
 
             ## High-level - obj
 
@@ -295,17 +278,15 @@ class AsyncFMG(AsyncFMGBase):
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> async def update_address(addr):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.update(addr)
-            >>> asyncio.run(update_address(address))
+            >>> with FMGBase(**settings) as fmg:
+            ...     fmg.update(address)
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            (FMGResponse): Result of operation
         """
-        response = AsyncFMGResponse(fmg=self)
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
-            return await super().update(request)
+            return super().update(request)
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
             api_data = {
@@ -313,7 +294,7 @@ class AsyncFMG(AsyncFMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return await super().update({"url": request.get_url, "data": api_data})
+            return super().update({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -322,7 +303,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def set(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    def set(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
         """Set operation
 
         Args:
@@ -331,7 +312,6 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
-            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -343,10 +323,8 @@ class AsyncFMG(AsyncFMGBase):
             ...         "start-ip": "10.0.0.1/24"
             ...     }
             ... }
-            >>> async def set_address(request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.set(request)
-            >>> asyncio.run(set_address(address_request))
+            >>> with FMGBase(**settings) as fmg:
+            >>>     fmg.set(address_request)
 
             ## High-level - obj
 
@@ -354,17 +332,15 @@ class AsyncFMG(AsyncFMGBase):
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> async def set_address(request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.set(request)
-            >>> asyncio.run(set_address(address))
+            >>> with FMGBase(**settings) as fmg:
+            ...     fmg.set(address)
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            (FMGResponse): Result of operation
         """
-        response = AsyncFMGResponse(fmg=self)
+        response = FMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
-            return await super().set(request)
+            return super().set(request)
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
             api_data = {
@@ -372,7 +348,7 @@ class AsyncFMG(AsyncFMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return await super().set({"url": request.get_url, "data": api_data})
+            return super().set({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -381,16 +357,16 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def exec(self, request: Union[dict[str, str], FMGExecObject]) -> AsyncFMGResponse:
+    def exec(self, request: Union[dict[str, str], FMGExecObject]) -> FMGResponse:
         """Execute on FMG"""
         if isinstance(request, dict):  # low-level operation
-            return await super().exec(request)
+            return super().exec(request)
         elif isinstance(request, FMGExecObject):
             logger.info("requesting exec with high-level op to %s", request.get_url)
             request.scope = request.scope or self._settings.adom
-            return await super().exec({"url": request.get_url, "data": request.data})
+            return super().exec({"url": request.get_url, "data": request.data})
         else:
-            result = AsyncFMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)
+            result = FMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)
             logger.error(result.data["error"])
             return result
 
@@ -400,7 +376,7 @@ class AsyncFMG(AsyncFMGBase):
             raise TypeError(f"Argument {obj} is not an FMGObject")
         return obj(fmg=self, **kwargs)
 
-    async def get_adom_list(self, filters: FILTER_TYPE = None):
+    def get_adom_list(self, filters: FILTER_TYPE = None):
         """Gather adoms from FMG
 
         Args:
@@ -413,7 +389,7 @@ class AsyncFMG(AsyncFMGBase):
         if filters:
             request["filter"] = self._get_filter_list(filters)
 
-        response: AsyncFMGResponse = await self.get(request)
+        response: FMGResponse = self.get(request)
         if response.success:
             return [adom.get("name") for adom in response.data.get("data")]
         return None
