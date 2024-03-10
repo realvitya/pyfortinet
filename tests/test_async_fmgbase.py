@@ -3,11 +3,10 @@ import asyncio
 from copy import deepcopy
 
 import pytest
-import pytest_asyncio
 from aiohttp import ClientConnectorError
 from pydantic import SecretStr, ValidationError
 
-from pyfortinet import AsyncFMGBase, FMG, fmg
+from pyfortinet import AsyncFMGBase
 from pyfortinet import exceptions as fe
 from pyfortinet.settings import FMGSettings
 
@@ -159,7 +158,46 @@ class TestObjectsOnLab:
         result = await self.async_fmg_base.add(address_request)
         assert result.success
 
+    async def test_address_update_dict(self):
+        scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            "data": {
+                "subnet": "10.0.0.2/32",
+            },
+        }
+        result = await self.async_fmg_base.update(address_request)
+        assert result.success
+
+    async def test_address_get_dict(self):
+        scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address",
+            "filter": [["name", "==", "test-address"]],
+        }
+        result = await self.async_fmg_base.get(address_request)
+        assert result.success and result.data["data"][0].get("name") == "test-address"
+
     async def test_address_del_dict(self):
+        scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+        }
+        result = await self.async_fmg_base.delete(address_request)
+        assert result.success
+
+    async def test_address_set_dict(self):
+        scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            "data": {
+                "subnet": "10.0.0.2/32",
+            },
+        }
+        result = await self.async_fmg_base.set(address_request)
+        assert result.success
+
+    async def test_address_cleanup(self):
         scope = "global" if self.async_fmg_base.adom == "global" else f"adom/{self.async_fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
