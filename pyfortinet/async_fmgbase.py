@@ -473,8 +473,6 @@ class AsyncFMGBase:
             request: Get operation's param structure
 
         Examples:
-            ## Low-level - dict
-
             >>> import asyncio
             >>> address_request = {
             ...    "url": "/pm/config/global/obj/firewall/address",

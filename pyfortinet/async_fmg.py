@@ -71,22 +71,28 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
+            >>> import asyncio
             >>> address_request = {
             ...    "url": "/pm/config/global/obj/firewall/address",
             ...    "filter": [ ["name", "==", "test-address"] ],
             ...    "fields": [ "name", "subnet" ]
             ...}
             >>> settings = {...}
-            >>> with FMG(**settings) as fmg:
-            ...    fmg.get(address_request)
+            >>> async def get_address(request: dict[str, Any]):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.get(address_request)
+            >>> asyncio.run(get_address())
 
             ## High-level - obj
 
+            >>> import asyncio
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> from pyfortinet.fmg_api.common import F
             >>> settings = {...}
-            >>> with FMG(**settings) as fmg:
-            ...    addresses = fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
+            >>> async def get_address():
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
+            >>> asyncio.run(get_address())
 
         Returns:
             (AsyncFMGResponse): response object with data
@@ -159,6 +165,7 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
+            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -170,8 +177,10 @@ class AsyncFMG(AsyncFMGBase):
             ...         "start-ip": "10.0.0.1/24"
             ...     }
             ... }
-            >>> with FMG(**settings) as fmg:
-            >>>     fmg.add(address_request)
+            >>> async def add_request(request: dict[str,Any]):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.add(address_request)
+            >>> asyncio.run(add_request(address_request))
 
             ## High-level - obj
 
@@ -179,8 +188,10 @@ class AsyncFMG(AsyncFMGBase):
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> with FMG(**settings) as fmg:
-            ...     fmg.add(address)
+            >>> async def add_request(addr):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.add(addr)
+            >>> asyncio.run(add_request(address))
 
         Returns:
             (AsyncFMGResponse): Result of operation
@@ -214,20 +225,25 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
+            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address/test-address",
             ... }
-            >>> with FMG(**settings) as fmg:
-            >>>     fmg.delete(address_request)
+            >>> async def delete_address(address_request):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         await fmg.delete(address_request)
+            >>> asyncio.run(delete_address(address_request))
 
             ## High-level - obj
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
             >>> address = Address(name="test-address")
-            >>> with FMG(**settings) as fmg:
-            ...     fmg.delete(address)
+            >>> async def delete_address(addr):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.delete(addr)
+            >>> asyncio.run(delete_address(address))
 
         Returns:
             (AsyncFMGResponse): Result of operation
@@ -256,6 +272,7 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
+            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -267,8 +284,10 @@ class AsyncFMG(AsyncFMGBase):
             ...         "start-ip": "10.0.0.1/24"
             ...     }
             ... }
-            >>> with FMGBase(**settings) as fmg:
-            >>>     fmg.update(address_request)
+            >>> async def update_address(request):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.update(request)
+            >>> asyncio.run(update_address(address_request))
 
             ## High-level - obj
 
@@ -276,8 +295,10 @@ class AsyncFMG(AsyncFMGBase):
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> with FMGBase(**settings) as fmg:
-            ...     fmg.update(address)
+            >>> async def update_address(addr):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.update(addr)
+            >>> asyncio.run(update_address(address))
 
         Returns:
             (AsyncFMGResponse): Result of operation
@@ -310,6 +331,7 @@ class AsyncFMG(AsyncFMGBase):
         Examples:
             ## Low-level - dict
 
+            >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -321,8 +343,10 @@ class AsyncFMG(AsyncFMGBase):
             ...         "start-ip": "10.0.0.1/24"
             ...     }
             ... }
-            >>> with FMGBase(**settings) as fmg:
-            >>>     fmg.set(address_request)
+            >>> async def set_address(request):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.set(request)
+            >>> asyncio.run(set_address(address_request))
 
             ## High-level - obj
 
@@ -330,8 +354,10 @@ class AsyncFMG(AsyncFMGBase):
             >>> settings = {...}
             >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
             ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> with FMGBase(**settings) as fmg:
-            ...     fmg.set(address)
+            >>> async def set_address(request):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         return await fmg.set(request)
+            >>> asyncio.run(set_address(address))
 
         Returns:
             (AsyncFMGResponse): Result of operation
