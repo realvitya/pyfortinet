@@ -1,6 +1,6 @@
 """FMG API library"""
 from abc import ABC
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel
 
@@ -85,6 +85,9 @@ class FMGObject(BaseModel, ABC):
         if self._fmg:
             return self._fmg.delete(self)
         raise FMGNotAssignedException
+
+
+SomeFMGObject = TypeVar("SomeFMGObject", bound=FMGObject)
 
 
 class FMGExecObject(FMGObject, ABC):

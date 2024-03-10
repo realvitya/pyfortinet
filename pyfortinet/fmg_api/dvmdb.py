@@ -4,7 +4,7 @@ from typing import Literal, Optional, List
 from pydantic import Field, field_validator
 
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.common import BaseDevice
+from pyfortinet.fmg_api.dvmcmd import BaseDevice
 
 CONF_STATUS = Literal["unknown", "insync", "outofsync"]
 CONN_MODE = Literal["active", "passive"]

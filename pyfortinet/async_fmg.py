@@ -2,18 +2,16 @@
 import logging
 from typing import Optional, Union, Any, Type, List
 
-from more_itertools import first
-
+from pyfortinet.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject
-from pyfortinet.fmgbase import FMGBase, FMGResponse, auth_required
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE
 
 logger = logging.getLogger(__name__)
 
 
-class FMG(FMGBase):
+class AsyncFMG(AsyncFMGBase):
     """FMG API for humans
 
     Goal of this class to provide easy access to FMG features. This extends the base class capabilities with easy to use
@@ -53,14 +51,14 @@ class FMG(FMGBase):
         return None
 
     @auth_required
-    def get(
+    async def get(
         self,
         request: Union[dict[str, Any], Type[FMGObject]],
         filters: FILTER_TYPE = None,
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
-    ) -> FMGResponse:
+    ) -> AsyncFMGResponse:
         """Get info from FMG
 
         Args:
@@ -91,13 +89,13 @@ class FMG(FMGBase):
             ...    addresses = fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
 
         Returns:
-            (FMGResponse): response object with data
+            (AsyncFMGResponse): response object with data
         """
         # Call base function for base arguments
         if isinstance(request, dict):
-            return super().get(request)
+            return await super().get(request)
         # High level arguments
-        result = FMGResponse(fmg=self)
+        result = AsyncFMGResponse(fmg=self)
         if issubclass(request, FMGObject):
             # derive url from current scope and adom
             if not scope:  # get adom from FMG settings
@@ -131,7 +129,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(result)
             return result
         try:
-            api_result = self._post(request=body)
+            api_result = await self._post(request=body)
         except FMGException as err:
             api_result = {"error": str(err)}
             logger.error("Error in get request: %s", api_result["error"])
@@ -152,7 +150,7 @@ class FMG(FMGBase):
         result.success = True
         return result
 
-    def add(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    async def add(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
         """Add operation
 
         Args:
@@ -185,11 +183,11 @@ class FMG(FMGBase):
             ...     fmg.add(address)
 
         Returns:
-            (FMGResponse): Result of operation
+            (AsyncFMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
+        response = AsyncFMGResponse(fmg=self)
         if isinstance(request, dict):  # dict input, low-level operation
-            return super().add(request)
+            return await super().add(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
@@ -198,7 +196,7 @@ class FMG(FMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return super().add(request={"url": request.get_url, "data": api_data})
+            return await super().add(request={"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -207,7 +205,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def delete(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    async def delete(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
         """Delete operation
 
         Args:
@@ -232,15 +230,15 @@ class FMG(FMGBase):
             ...     fmg.delete(address)
 
         Returns:
-            (FMGResponse): Result of operation
+            (AsyncFMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
+        response = AsyncFMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
-            return super().delete(request)
+            return await super().delete(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
-            return super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
+            return await super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -249,7 +247,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def update(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    async def update(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
         """Update operation
 
         Args:
@@ -282,11 +280,11 @@ class FMG(FMGBase):
             ...     fmg.update(address)
 
         Returns:
-            (FMGResponse): Result of operation
+            (AsyncFMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
+        response = AsyncFMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
-            return super().update(request)
+            return await super().update(request)
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
             api_data = {
@@ -294,7 +292,7 @@ class FMG(FMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return super().update({"url": request.get_url, "data": api_data})
+            return await super().update({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -303,7 +301,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def set(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    async def set(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
         """Set operation
 
         Args:
@@ -336,11 +334,11 @@ class FMG(FMGBase):
             ...     fmg.set(address)
 
         Returns:
-            (FMGResponse): Result of operation
+            (AsyncFMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
+        response = AsyncFMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation
-            return super().set(request)
+            return await super().set(request)
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
             api_data = {
@@ -348,7 +346,7 @@ class FMG(FMGBase):
                 for key, value in request.model_dump(by_alias=True).items()
                 if not key.startswith("_") and value is not None
             }
-            return super().set({"url": request.get_url, "data": api_data})
+            return await super().set({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -357,16 +355,16 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def exec(self, request: Union[dict[str, str], FMGExecObject]) -> FMGResponse:
+    async def exec(self, request: Union[dict[str, str], FMGExecObject]) -> AsyncFMGResponse:
         """Execute on FMG"""
         if isinstance(request, dict):  # low-level operation
-            return super().exec(request)
+            return await super().exec(request)
         elif isinstance(request, FMGExecObject):
             logger.info("requesting exec with high-level op to %s", request.get_url)
             request.scope = request.scope or self._settings.adom
-            return super().exec({"url": request.get_url, "data": request.data})
+            return await super().exec({"url": request.get_url, "data": request.data})
         else:
-            result = FMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)
+            result = AsyncFMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)
             logger.error(result.data["error"])
             return result
 
@@ -376,7 +374,7 @@ class FMG(FMGBase):
             raise TypeError(f"Argument {obj} is not an FMGObject")
         return obj(fmg=self, **kwargs)
 
-    def get_adom_list(self, filters: FILTER_TYPE = None):
+    async def get_adom_list(self, filters: FILTER_TYPE = None):
         """Gather adoms from FMG
 
         Args:
@@ -389,7 +387,7 @@ class FMG(FMGBase):
         if filters:
             request["filter"] = self._get_filter_list(filters)
 
-        response: FMGResponse = self.get(request)
+        response: AsyncFMGResponse = await self.get(request)
         if response.success:
             return [adom.get("name") for adom in response.data.get("data")]
         return None

@@ -5,6 +5,10 @@ class FMGException(Exception):
     """General FMG error"""
 
 
+class FMGConfigurationException(FMGException):
+    """FMG configuration problem"""
+
+
 class FMGTokenException(FMGException):
     """No Token error"""
 
