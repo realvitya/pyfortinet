@@ -115,26 +115,63 @@ class TestLab:
         assert "Logout failed" in caplog.text
 
 
-@need_lab
+@pytest.mark.usefixtures("fmg_base")
 class TestObjectsOnLab:
-    fmg = FMGBase(FMGSettings(**pytest.lab_config.get("fmg"))).open()
-    fmg_connected = pytest.mark.skipif(
-        not fmg._token, reason=f"FMG {pytest.lab_config.get('fmg', {}).get('base_url')} is not connected!"
-    )
-
-    @fmg_connected
-    def test_address_add_dict(self):
+    def test_address_add_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
-            "url": "/pm/config/global/obj/firewall/address",
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
             "data": {
                 "name": "test-address",
                 "subnet": "10.0.0.1/32",
             },
         }
-        result = self.fmg.add(address_request)
+        result = fmg_base.add(address_request)
         assert result.success
 
-    @fmg_connected
-    def test_close_fmg(self):
-        self.fmg.close(discard_changes=True)
-        # self.fmg.close()
+    def test_address_update_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            "data": {
+                "subnet": "10.0.0.2/32",
+            },
+        }
+        result = fmg_base.update(address_request)
+        assert result.success
+
+    def test_address_get_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address",
+            "filter": [["name", "==", "test-address"]],
+        }
+        result = fmg_base.get(address_request)
+        assert result.success and result.data["data"][0].get("name") == "test-address"
+
+    def test_address_del_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+        }
+        result = fmg_base.delete(address_request)
+        assert result.success
+
+    def test_address_set_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            "data": {
+                "subnet": "10.0.0.2/32",
+            },
+        }
+        result = fmg_base.set(address_request)
+        assert result.success
+
+    def test_address_cleanup(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+        }
+        result = fmg_base.delete(address_request)
+        assert result.success

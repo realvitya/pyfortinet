@@ -1,7 +1,7 @@
 """Test offline classes and functions"""
 import pytest
 
-from pyfortinet import FMGResponse
+from pyfortinet import FMGResponse, AsyncFMGResponse
 from pyfortinet.fmg_api.common import F, text_to_filter
 
 
@@ -68,6 +68,14 @@ class TestFilters:
 
     def test_first_empty(self):
         response = FMGResponse()
+        assert response.first() is None
+
+    def test_first_good_async(self):
+        response = AsyncFMGResponse(data={"data": ["response1", "response2"]})
+        assert response.first() == "response1"
+
+    def test_first_empty_async(self):
+        response = AsyncFMGResponse()
         assert response.first() is None
 
     def test_text_to_filter(self):
