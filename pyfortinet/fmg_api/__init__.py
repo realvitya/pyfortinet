@@ -1,11 +1,12 @@
 """FMG API library"""
 from abc import ABC
-from typing import Optional, TYPE_CHECKING, TypeVar, Literal
+from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
-    from pyfortinet import FMG
+    from pyfortinet import FMG, AsyncFMG
+    AnyFMG = Union[FMG, AsyncFMG]
 from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException
 
 GetOption = Literal["extra info", "assignment info"]
@@ -17,6 +18,8 @@ class FMGObject(BaseModel, ABC):
     Scope must be set before referencing the url! It's done by FMGBase requests as it defaults all objects to its
     selected ADOM.
 
+    In case of AsyncFMG, caller must ensure await-ing the request.
+
     Attributes:
         scope (str): FMG selected scope (adom or global)
         _version (str): Supported API version
@@ -27,18 +30,18 @@ class FMGObject(BaseModel, ABC):
     _version = "7.2.4"
     _url: str
     _scope: str = None
-    _fmg: "FMG" = None
+    _fmg: "AnyFMG" = None
 
     def __init__(self, *args, **kwargs) -> None:
         """Initialize FMGObject
 
         Keyword Args:
-            scope: FMG selected scope (adom)
-            fmg (FMG): FMG instance
+            scope (str): FMG selected scope (adom or global)
+            fmg (AnyFMG): FMG instance
         """
         super().__init__(*args, **kwargs)
         self.scope = kwargs.get("scope")
-        self._fmg: "FMG" = kwargs.get("fmg")
+        self._fmg: "AnyFMG" = kwargs.get("fmg")
 
     @property
     def get_url(self) -> str:
@@ -89,6 +92,7 @@ class FMGObject(BaseModel, ABC):
         raise FMGNotAssignedException
 
 
+# Used by typehints to indicate child of FMGObject
 SomeFMGObject = TypeVar("SomeFMGObject", bound=FMGObject)
 
 

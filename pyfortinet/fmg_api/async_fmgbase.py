@@ -241,7 +241,7 @@ class AsyncFMGBase:
         lock (AsyncFMGLockContext): Workspace lock handler
 
     Examples:
-        Possible arguments to initialize: [FMGSettings](settings.md#settings.FMGSettings)
+        Possible arguments to initialize: [FMGSettings](../settings.md#settings.FMGSettings)
 
         ### Using as context manager
 

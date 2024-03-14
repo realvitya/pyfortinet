@@ -406,7 +406,7 @@ class AsyncFMG(AsyncFMGBase):
             raise TypeError(f"Argument {obj} is not an FMGObject")
         return obj(fmg=self, **kwargs)
 
-    async def get_adom_list(self, filters: FILTER_TYPE = None):
+    async def get_adom_list(self, filters: FILTER_TYPE = None) -> Optional[List[str]]:
         """Gather adoms from FMG
 
         Args:

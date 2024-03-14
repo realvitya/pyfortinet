@@ -382,7 +382,7 @@ class FMG(FMGBase):
             raise TypeError(f"Argument {obj} is not an FMGObject")
         return obj(fmg=self, **kwargs)
 
-    def get_adom_list(self, filters: FILTER_TYPE = None):
+    def get_adom_list(self, filters: FILTER_TYPE = None) -> Optional[List[str]]:
         """Gather adoms from FMG
 
         Args:

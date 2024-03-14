@@ -1,6 +1,5 @@
-"""Test of human API"""
+"""Test of DVMDB object operations"""
 import pytest
-from pyfortinet import FMG, FMGSettings
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
 from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceTask

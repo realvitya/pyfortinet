@@ -67,8 +67,13 @@ class F:
     Argument format is {field}={value} or {field}__{operator}={value}
     Only one argument can be passed!
 
-    Returns:
-        Filter object can be used at ``FMG.get`` method
+    Filter object can be used at ``FMG.get`` method
+
+    Attributes:
+        negate (bool): If true the filter is negated
+        source (str): The source is the API attribute we are looking at
+        op (str): The operator for the search
+        targets (str): The target is the value we are searching for
     """
 
     negate: bool = False
