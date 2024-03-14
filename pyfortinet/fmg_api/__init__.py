@@ -1,12 +1,14 @@
 """FMG API library"""
 from abc import ABC
-from typing import Optional, TYPE_CHECKING, TypeVar
+from typing import Optional, TYPE_CHECKING, TypeVar, Literal
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from pyfortinet import FMG
 from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException
+
+GetOption = Literal["extra info", "assignment info"]
 
 
 class FMGObject(BaseModel, ABC):

@@ -4,7 +4,7 @@ from typing import Optional, Union, Any, Type, List
 
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException
-from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject
+from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE
 
@@ -58,6 +58,7 @@ class AsyncFMG(AsyncFMGBase):
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
+        options: Optional[List[GetOption]] = None
     ) -> AsyncFMGResponse:
         """Get info from FMG
 
@@ -67,6 +68,7 @@ class AsyncFMG(AsyncFMGBase):
             filters: Filter expression
             fields: Fields to return (default: None means all fields)
             loadsub: Load sub objects
+            options: API request options
 
         Examples:
             ## Low-level - dict
@@ -120,6 +122,9 @@ class AsyncFMG(AsyncFMGBase):
 
             if filters:
                 api_request["filter"] = self._get_filter_list(filters)
+
+            if options:
+                api_request["option"] = options
 
             body = {
                 "method": "get",

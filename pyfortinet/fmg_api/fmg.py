@@ -5,7 +5,7 @@ from typing import Optional, Union, Any, Type, List
 from more_itertools import first
 
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException
-from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject
+from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject, GetOption
 from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE
@@ -60,6 +60,7 @@ class FMG(FMGBase):
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
+        options: Optional[List[GetOption]] = None
     ) -> FMGResponse:
         """Get info from FMG
 
@@ -69,6 +70,7 @@ class FMG(FMGBase):
             filters: Filter expression
             fields: Fields to return (default: None means all fields)
             loadsub: Load sub objects
+            options: API request options
 
         Examples:
             ## Low-level - dict
@@ -116,6 +118,9 @@ class FMG(FMGBase):
 
             if filters:
                 api_request["filter"] = self._get_filter_list(filters)
+
+            if options:
+                api_request["option"] = options
 
             body = {
                 "method": "get",
