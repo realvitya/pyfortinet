@@ -144,13 +144,6 @@ class Device(FMGObject, BaseDevice):
     vdom: Optional[list[VDOM]]
     ha_slave: Optional[List[HASlave]]
 
-    # @property
-    # def get_url(self) -> str:
-    #     """Device API URL assembly"""
-    #     scope = "" if self.scope == "global" else f"/adom/{self.scope}"
-    #     url = self._url.replace("{adom}", scope)
-    #     return url
-
     @field_validator("conf_status", mode="before")
     def validate_conf_status(cls, v: int) -> CONF_STATUS:
         return CONF_STATUS.__dict__.get("__args__")[v]
