@@ -1,7 +1,8 @@
 """Device DB objects"""
+
 from typing import Literal, Optional, List, Dict
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, AliasChoices
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.dvmcmd import BaseDevice
@@ -37,17 +38,23 @@ class VDOM(FMGObject):
 
     # internal attributes
     _url = "/dvmdb{adom}/device/{device}/vdom"
-    # scope: str = Field("", exclude=True, description="ADOM to use (optional)")
     device: str = Field("", exclude=True, description="Assigned device (optional)")
     # API attributes
     name: Optional[str]
     comments: Optional[str]
-    meta_fields: Optional[dict[str, str]] = Field(None, alias="meta fields", serialization_alias="meta fields")
+    meta_fields: Optional[dict[str, str]] = Field(
+        None, validation_alias=AliasChoices("meta fields", "meta_fields"), serialization_alias="meta fields"
+    )
     opmode: Optional[OP_MODE]
     status: Optional[str]
     vdom_type: Optional[VDOM_TYPE]
     # extra attributes
-    assignment_info: Optional[List[Dict[str, str]]] = Field(None, alias="assignment info", serialization_alias="assignment info", exclude=True)
+    assignment_info: Optional[List[Dict[str, str]]] = Field(
+        None,
+        validation_alias=AliasChoices("assignment info", "assignment_info"),
+        serialization_alias="assignment info",
+        exclude=True,
+    )
 
     @field_validator("opmode", mode="before")
     def validate_opmode(cls, v: int) -> OP_MODE:

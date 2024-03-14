@@ -1,10 +1,11 @@
 """Firewall object types"""
+
 from ipaddress import IPv4Interface
 from typing import Literal, Optional, Union
 from uuid import UUID
 
 from more_itertools import first
-from pydantic import Field, ValidationInfo, field_validator
+from pydantic import Field, ValidationInfo, field_validator, AliasChoices
 
 from pyfortinet.fmg_api import FMGObject
 
@@ -24,7 +25,7 @@ ADDRESS_TYPE = Literal[
     "dynamic",
     "interface-subnet",
     "mac",
-    "fqdn-group"
+    "fqdn-group",
 ]
 
 
@@ -39,8 +40,14 @@ class Address(FMGObject):
 
     _url: str = "/pm/config/{scope}/obj/firewall/address"
     name: str = Field(..., max_length=128)
-    allow_routing: Optional[ALLOW_ROUTING] = Field(None, alias="allow-routing", serialization_alias="allow-routing")
-    associated_interface: Optional[Union[str, list[str]]] = Field(None, alias="associated-interface", serialization_alias="associated-interface")
+    allow_routing: Optional[ALLOW_ROUTING] = Field(
+        None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
+    )
+    associated_interface: Optional[Union[str, list[str]]] = Field(
+        None,
+        validation_alias=AliasChoices("associated-interface", "associated_interface"),
+        serialization_alias="associated-interface",
+    )
     subnet: Optional[Union[str, list[str]]] = None
     type: Optional[ADDRESS_TYPE] = None
     url: Optional[str] = None
@@ -64,22 +71,27 @@ class Address(FMGObject):
 
     @field_validator("allow_routing", mode="before")
     def validate_allow_routing(cls, v: int) -> ALLOW_ROUTING:
-        return ALLOW_ROUTING.__dict__.get("__args__")[v]
+        return ALLOW_ROUTING.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("type", mode="before")
     def validate_type(cls, v: int) -> ADDRESS_TYPE:
-        return ADDRESS_TYPE.__dict__.get("__args__")[v]
+        return ADDRESS_TYPE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
 
 class AddressMapping(Address):
     _url: str = "/pm/config/{scope}/obj/firewall/address/{address}/dynamic_mapping"
-    global_object: int = Field(..., alias="global-object", serialization_alias="global-object")
+    global_object: int = Field(
+        ..., validation_alias=AliasChoices("global-object", "global_object"), serialization_alias="global-object"
+    )
 
 
 class AddressGroup(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
     name: str
     member: list[Address]
-    exclude_member: list[Address] = Field(..., alias="exclude-member", serialization_alias="exclude-member")
+    exclude_member: list[Address] = Field(
+        ..., validation_alias=AliasChoices("exclude-member", "exclude_member"), serialization_alias="exclude-member"
+    )
     comment: str = ""
     category: ADDRESS_GROUP_CATEGORY = "default"
     type: ADDRESS_GROUP_TYPE = "default"
@@ -89,7 +101,9 @@ class AddressGroup(FMGObject):
 
 class AddressGroupMapping(AddressGroup):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp/{addrgrp}/dynamic_mapping"
-    global_object: int = Field(..., alias="global-object", serialization_alias="global-object")
+    global_object: int = Field(
+        ..., validation_alias=AliasChoices("global-object", "global_object"), serialization_alias="global-object"
+    )
 
     @field_validator("_url", check_fields=False)
     def construct_url(cls, v: str, info: ValidationInfo):
