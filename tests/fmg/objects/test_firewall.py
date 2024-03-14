@@ -8,7 +8,7 @@ from pyfortinet.fmg_api.firewall import Address
 @pytest.mark.usefixtures("fmg")
 class TestObjectsOnLab:
     def test_firewall_address(self, fmg):
-        to_add = fmg.get_obj(Address, name="test-firewall-address", subnet="10.0.0.0/24")
+        to_add = fmg.get_obj(Address, name="test-firewall-address", subnet="10.0.0.0/24", allow_routing="disable")
         # test ADD
         result = to_add.add()
         assert result

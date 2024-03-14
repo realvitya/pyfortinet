@@ -59,7 +59,7 @@ class Address(FMGObject):
         if isinstance(v, list):
             return IPv4Interface("/".join(v)).compressed
         else:
-            return v
+            return IPv4Interface(v).compressed
 
     @field_validator("associated_interface")
     def standardize_assoc_iface(cls, v):
