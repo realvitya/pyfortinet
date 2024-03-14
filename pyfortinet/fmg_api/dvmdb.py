@@ -1,5 +1,5 @@
 """Device DB objects"""
-from typing import Literal, Optional, List
+from typing import Literal, Optional, List, Dict
 
 from pydantic import Field, field_validator
 
@@ -42,17 +42,12 @@ class VDOM(FMGObject):
     # API attributes
     name: Optional[str]
     comments: Optional[str]
-    meta_fields: Optional[dict[str, str]] = Field(None, serialization_alias="meta fields")
+    meta_fields: Optional[dict[str, str]] = Field(None, alias="meta fields", serialization_alias="meta fields")
     opmode: Optional[OP_MODE]
     status: Optional[str]
     vdom_type: Optional[VDOM_TYPE]
-
-    # @property
-    # def get_url(self) -> str:
-    #     """API URL where {scope} is replaced on the fly based on the FMG selected scope (adom or global)"""
-    #     scope = f"adom/{self.adom}" if self.adom else ""
-    #     url = self._url.replace("{adom}", scope).replace("{device}", self.device)
-    #     return url
+    # extra attributes
+    assignment_info: Optional[List[Dict[str, str]]] = Field(None, alias="assignment info", serialization_alias="assignment info", exclude=True)
 
     @field_validator("opmode", mode="before")
     def validate_opmode(cls, v: int) -> OP_MODE:

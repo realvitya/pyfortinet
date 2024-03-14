@@ -143,14 +143,15 @@ class AsyncFMG(AsyncFMGBase):
                 raise
             result.data = api_result
             return result
+        # No need for the following. Pydantic "alias" can be used to handle space or dash in keys!
         # converting API names to object names (replace '-' and ' ' -> _)
-        obj_model = [
-            {key.replace("-", "_").replace(" ", "_"): value for key, value in data.items()}
-            for data in api_result.get("data")
-        ]
+        # obj_model = [
+        #     {key.replace("-", "_").replace(" ", "_"): value for key, value in data.items()}
+        #     for data in api_result.get("data")
+        # ]
         # construct object list
         objects = []
-        for value in obj_model:
+        for value in api_result.get("data"):
             objects.append(request(**value, scope=scope, fmg=self))
         result.data = objects
         result.success = True

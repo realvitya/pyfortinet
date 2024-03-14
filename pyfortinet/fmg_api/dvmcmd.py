@@ -1,5 +1,5 @@
 """Device Manager Command"""
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, List, Dict
 
 from pydantic import Field, model_validator, IPvAnyAddress, field_validator, BaseModel
 
@@ -48,15 +48,17 @@ class BaseDevice(BaseModel):
     adm_pass: Union[None, str, list[str]] = Field(None, max_length=128)
     desc: Optional[str] = None
     ip: Optional[str] = None
-    meta_fields: Optional[dict[str, str]] = Field(None, serialization_alias="meta fields")
+    meta_fields: Optional[dict[str, str]] = Field(None, alias="meta fields", serialization_alias="meta fields")
     mgmt_mode: Optional[MGMT_MODE] = None
     os_type: Optional[OS_TYPE] = None
     os_ver: Optional[OS_VER] = Field(None, description="Major release no")
     mr: Optional[int] = Field(None, description="Minor release no")
     patch: Optional[int] = Field(None, description="Patch release no")
     sn: Optional[str] = Field(None, description="Serial number")
-    device_action: Optional[DEVICE_ACTION] = Field(None, serialization_alias="device action")
-    device_blueprint: Optional[str] = Field(None, serialization_alias="device blueprint")
+    device_action: Optional[DEVICE_ACTION] = Field(None, alias="device action", serialization_alias="device action")
+    device_blueprint: Optional[str] = Field(None, alias="device blueprint", serialization_alias="device blueprint")
+    # extra attributes
+    assignment_info: Optional[List[Dict[str, str]]] = Field(None, alias="assignment info", serialization_alias="assignment info", exclude=True)
 
     @field_validator("ip")
     def validate_ip(cls, v):
@@ -92,7 +94,7 @@ class Device(FMGObject, BaseDevice):
     """Device class to add"""
 
     name: str = Field(..., pattern=r"[\w-]{1,36}")
-    device_action: Union[Literal[""], DEVICE_ACTION] = Field("", description="Leave empty for real device!",
+    device_action: Union[Literal[""], DEVICE_ACTION] = Field("", description="Leave empty for real device!", alias="device action",
                                                              serialization_alias="device action")
     adm_usr: str = Field("admin", pattern=r"[\w-]{1,36}")
     adm_pass: str = Field(..., max_length=128)
@@ -102,7 +104,7 @@ class Device(FMGObject, BaseDevice):
 class ModelDevice(FMGObject, BaseDevice):
     """Model device fields"""
 
-    device_action: DEVICE_ACTION = Field("add_model", serialization_alias="device action")
+    device_action: DEVICE_ACTION = Field("add_model", alias="device action", serialization_alias="device action")
     # device_blueprint: Optional[str] = Field(None, serialization_alias="device blueprint")
     name: str = Field(..., pattern=r"[\w-]{1,36}")
     platform_str: Optional[str] = None

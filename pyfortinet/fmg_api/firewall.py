@@ -39,8 +39,8 @@ class Address(FMGObject):
 
     _url: str = "/pm/config/{scope}/obj/firewall/address"
     name: str = Field(..., max_length=128)
-    allow_routing: Optional[ALLOW_ROUTING] = Field(None, serialization_alias="allow-routing")
-    associated_interface: Optional[Union[str, list[str]]] = Field(None, serialization_alias="associated-interface")
+    allow_routing: Optional[ALLOW_ROUTING] = Field(None, alias="allow-routing", serialization_alias="allow-routing")
+    associated_interface: Optional[Union[str, list[str]]] = Field(None, alias="associated-interface", serialization_alias="associated-interface")
     subnet: Optional[Union[str, list[str]]] = None
     type: Optional[ADDRESS_TYPE] = None
     url: Optional[str] = None
@@ -72,14 +72,14 @@ class Address(FMGObject):
 
 class AddressMapping(Address):
     _url: str = "/pm/config/{scope}/obj/firewall/address/{address}/dynamic_mapping"
-    global_object: int = Field(..., serialization_alias="global-object")
+    global_object: int = Field(..., alias="global-object", serialization_alias="global-object")
 
 
 class AddressGroup(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
     name: str
     member: list[Address]
-    exclude_member: list[Address] = Field(..., serialization_alias="exclude-member")
+    exclude_member: list[Address] = Field(..., alias="exclude-member", serialization_alias="exclude-member")
     comment: str = ""
     category: ADDRESS_GROUP_CATEGORY = "default"
     type: ADDRESS_GROUP_TYPE = "default"
@@ -89,7 +89,7 @@ class AddressGroup(FMGObject):
 
 class AddressGroupMapping(AddressGroup):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp/{addrgrp}/dynamic_mapping"
-    global_object: int = Field(..., serialization_alias="global-object")
+    global_object: int = Field(..., alias="global-object", serialization_alias="global-object")
 
     @field_validator("_url", check_fields=False)
     def construct_url(cls, v: str, info: ValidationInfo):
