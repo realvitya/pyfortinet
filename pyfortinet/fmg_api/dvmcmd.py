@@ -44,7 +44,7 @@ DEVICE_ACTION = Literal["add_model", "promote_unreg"]
 
 class BaseDevice(BaseModel):
     # api attributes
-    name: Optional[str] = Field(None, pattern=r"[\w-]{1,36}")
+    name: str = Field(..., pattern=r"[\w-]{1,36}")
     adm_usr: Optional[str] = Field(None, max_length=36)
     adm_pass: Union[None, str, list[str]] = Field(None, max_length=128)
     desc: Optional[str] = None
@@ -85,14 +85,14 @@ class BaseDevice(BaseModel):
         """ensure using text variant"""
         if isinstance(v, str):
             return v
-        return MGMT_MODE.__dict__.get("__args__")[v]
+        return MGMT_MODE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("os_type", mode="before")
     def validate_os_type(cls, v):
         """ensure using text variant"""
         if isinstance(v, str):
             return v
-        return OS_TYPE.__dict__.get("__args__")[v]
+        return OS_TYPE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("os_ver", mode="before")
     def validate_os_ver(cls, v):
@@ -100,7 +100,7 @@ class BaseDevice(BaseModel):
         if isinstance(v, str):
             return v
         elif isinstance(v, int):
-            return OS_VER.__dict__.get("__args__")[v]
+            return OS_VER.__dict__.get("__args__")[v] if isinstance(v, int) else v
         raise ValueError(f"Wrong OS version type: {type(v)}")
 
 

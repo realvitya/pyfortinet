@@ -720,14 +720,14 @@ class AsyncFMGBase:
         return response
 
     async def wait_for_task(
-        self, task_res: Union[int, AsyncFMGResponse], timeout: int = 60, callback: Callable[[int], None] = None
+        self, task_res: Union[int, AsyncFMGResponse], timeout: int = 60, callback: Callable[[int, str], None] = None
     ) -> Union[str, None]:
         """Wait for task to finish
 
         Args: task_res: (int, FMGResponse): Task or task ID to check
         timeout: (int): timeout for waiting
-        callback: (Callable[[int], None]): function to call in each iteration.
-                                           It must accept 1 arg which is the current percentage
+        callback: (Callable[[int, str], None]): function to call in each iteration.
+                                           It must accept 2 args which are the current percentage and latest log line
 
         Example:
             >>> import asyncio
@@ -741,7 +741,7 @@ class AsyncFMGBase:
             ...         result = await fmg.exec(task)
             ...         with Progress() as progress:
             ...             prog_task = progress.add_task(f"Adding device {device.name}", total=100)
-            ...             update_progress = lambda percent: progress.update(prog_task, percent)
+            ...             update_progress = lambda percent, log: progress.update(prog_task, percent)
             ...             await task.wait_for_task(task, callback=update_progress)
             >>> asyncio.run(add_device(test_device))
         """
@@ -750,15 +750,14 @@ class AsyncFMGBase:
             return
         start_time = time.time()
         while True:
-            task = await self.get(Task, F(id=task_id))
-            task_data: Task = task.first()
-            if not task.success:
+            task: Task = (await self.get(Task, F(id=task_id))).first()
+            if not task:
                 return
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
             if callback:
-                callback(task_data.percent)
+                callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
-            if task_data.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
-                return task_data.state
-            await asyncio.sleep(5)
+            if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
+                return task.state
+            await asyncio.sleep(2)

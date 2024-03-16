@@ -37,7 +37,7 @@ class VDOM(FMGObject):
     """Device Virtual Domain"""
 
     # internal attributes
-    _url = "/dvmdb{adom}/device/{device}/vdom"
+    _url = "/dvmdb/{scope}/device/{device}/vdom"
     device: str = Field("", exclude=True, description="Assigned device (optional)")
     # API attributes
     name: Optional[str]
@@ -58,11 +58,11 @@ class VDOM(FMGObject):
 
     @field_validator("opmode", mode="before")
     def validate_opmode(cls, v: int) -> OP_MODE:
-        return OP_MODE.__dict__.get("__args__")[v]
+        return OP_MODE.__dict__.get("__args__")[v-1] if isinstance(v, int) else v
 
     @field_validator("vdom_type", mode="before")
     def validate_vdom_type(cls, v: int) -> VDOM_TYPE:
-        return VDOM_TYPE.__dict__.get("__args__")[v]
+        return VDOM_TYPE.__dict__.get("__args__")[v-1] if isinstance(v, int) else v
 
 
 ROLE = Literal["slave", "master"]
@@ -94,15 +94,15 @@ class HASlave(FMGObject):
 
     @field_validator("conf_status", mode="before")
     def validate_conf_status(cls, v: int) -> CONF_STATUS:
-        return CONF_STATUS.__dict__.get("__args__")[v]
+        return CONF_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("role", mode="before")
     def validate_role(cls, v: int) -> ROLE:
-        return ROLE.__dict__.get("__args__")[v]
+        return ROLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("status", mode="before")
     def validate_status(cls, v: int) -> CONN_STATUS:
-        return CONN_STATUS.__dict__.get("__args__")[v]
+        return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
 
 class Device(FMGObject, BaseDevice):
@@ -130,35 +130,35 @@ class Device(FMGObject, BaseDevice):
     """
 
     # internal attributes
-    _url = "/dvmdb{adom}/device"
+    _url = "/dvmdb/{scope}/device"
     # api attributes
-    app_ver: Optional[str]
-    av_ver: Optional[str]
-    checksum: Optional[str]
-    conf_status: Optional[CONF_STATUS]
-    conn_mode: Optional[CONN_MODE]
-    conn_status: Optional[CONN_STATUS]
-    ha_group_id: Optional[int]
-    ha_group_name: Optional[str]
-    hostname: Optional[str]
-    mgmt_if: Optional[str]
-    mgmt_uuid: Optional[str]
-    mgt_vdom: Optional[str]
-    psk: Optional[str]
-    version: Optional[int]
-    platform_str: Optional[str]
+    app_ver: Optional[str] = Field(None, description="App DB version", exclude=True)
+    av_ver: Optional[str] = Field(None, description="Anti-Virus DB", exclude=True)
+    checksum: Optional[str] = Field(None, exclude=True)
+    conf_status: Optional[CONF_STATUS] = Field(None, exclude=True)
+    conn_mode: Optional[CONN_MODE] = Field(None, exclude=True)
+    conn_status: Optional[CONN_STATUS] = Field(None, exclude=True)
+    ha_group_id: Optional[int] = None
+    ha_group_name: Optional[str] = None
+    hostname: Optional[str] = None
+    mgmt_if: Optional[str] = None
+    mgmt_uuid: Optional[str] = None
+    mgt_vdom: Optional[str] = None
+    psk: Optional[str] = None
+    version: Optional[int] = None
+    platform_str: Optional[str] = None
     # sub objects:
-    vdom: Optional[list[VDOM]]
-    ha_slave: Optional[List[HASlave]]
+    vdom: Optional[list[VDOM]] = None
+    ha_slave: Optional[List[HASlave]] = None
 
     @field_validator("conf_status", mode="before")
     def validate_conf_status(cls, v: int) -> CONF_STATUS:
-        return CONF_STATUS.__dict__.get("__args__")[v]
+        return CONF_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("conn_mode", mode="before")
     def validate_conn_mode(cls, v: int) -> CONN_MODE:
-        return CONN_MODE.__dict__.get("__args__")[v]
+        return CONN_MODE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("conn_status", mode="before")
     def validate_conn_type(cls, v: int) -> CONN_STATUS:
-        return CONN_STATUS.__dict__.get("__args__")[v]
+        return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v

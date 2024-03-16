@@ -1,6 +1,6 @@
 """Common objects"""
 import re
-from typing import Literal, List, Union
+from typing import Literal, List, Union, Optional
 
 from pydantic.dataclasses import dataclass
 
@@ -10,7 +10,7 @@ class Scope:
     """Specify scope for an object"""
 
     name: str
-    vdom: str
+    vdom: Optional[str] = None
 
 
 @dataclass

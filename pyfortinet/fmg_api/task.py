@@ -59,7 +59,7 @@ TASK_STATE = Literal[
 class TaskLine(FMGObject):
     """Task line object"""
 
-    detail: str
+    detail: Optional[str] = None
     end_tm: Optional[int] = 0
     err: Optional[int] = 0
     history: Optional[List[TaskLineHistory]]

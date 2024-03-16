@@ -315,6 +315,8 @@ class FMGBase:
 
     def open(self) -> "FMGBase":
         """open connection"""
+        # TODO: token and cloud auth
+        # https://how-to-fortimanager-api.readthedocs.io/en/latest/001_fmg_json_api_introduction.html#token-based-authentication
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
         self._token = self._get_token()
@@ -371,7 +373,7 @@ class FMGBase:
             status = result["status"]
             if status["code"] == 0:
                 continue
-            if status["message"] == "no write permission":
+            if status["message"] == "no write permission" or status["message"] == "No permission":
                 raise FMGLockNeededException(status)
             if status["message"] == "Workspace is locked by other user":
                 raise FMGLockException(status)
@@ -700,14 +702,14 @@ class FMGBase:
         return response
 
     def wait_for_task(
-        self, task_res: Union[int, FMGResponse], timeout: int = 60, callback: Callable[[int], None] = None
+        self, task_res: Union[int, FMGResponse], timeout: int = 60, callback: Callable[[int, str], None] = None
     ) -> Union[str, None]:
         """Wait for task to finish
 
         Args: task_res: (int, FMGResponse): Task or task ID to check
         timeout: (int): timeout for waiting
-        callback: (Callable[[int], None]): function to call in each iteration.
-                                           It must accept 1 arg which is the current percentage
+        callback: (Callable[[int, str], None]): function to call in each iteration.
+                                           It must accept 2 args which are the current percentage and latest log line
 
         Example:
             >>> from pyfortinet.fmg_api.dvmcmd import Device, DeviceTask
@@ -719,23 +721,23 @@ class FMGBase:
             ...     result = fmg.exec(task)
             ...     with Progress() as progress:
             ...         prog_task = progress.add_task(f"Adding device {device.name}", total=100)
-            ...         update_progress = lambda percent: progress.update(prog_task, percent)
+            ...         update_progress = lambda percent, log: progress.update(prog_task, percent)
             ...         task.wait_for_task(task, callback=update_progress)
         """
-        task_id = task_res if isinstance(task_res, int) else task_res.data.get("data", {}).get("taskid")
+        task_id = task_res if isinstance(task_res, int) else (
+                              task_res.data.get("data", {}).get("taskid") or task_res.data.get("data", {}).get("task"))
         if task_id is None:
             return
         start_time = time.time()
         while True:
-            task = self.get(Task, F(id=task_id))
-            task_data: Task = task.first()
-            if not task.success:
+            task: Task = self.get(Task, F(id=task_id)).first()
+            if not task:
                 return
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
             if callback:
-                callback(task_data.percent)
+                callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
-            if task_data.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
-                return task_data.state
-            time.sleep(5)
+            if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
+                return task.state
+            time.sleep(2)
