@@ -20,12 +20,12 @@ dynamic = ['version', 'description']
 
 dependencies = [
     "pydantic>2,<3",
-    "pydantic_settings",
+    "pydantic-settings",
     "typer",
     "requests==2.31.0",
     "ruamel.yaml==0.17.20",
     "aiohttp",
-    "more_itertools",
+    "more-itertools",
 ]
 
 [project.optional-dependencies]
@@ -45,7 +45,8 @@ dev = [
     "mkdocs-literate-nav",
     "mkdocs-section-index",
     "mkdocstrings",
-    "mkdocstrings-python"
+    "mkdocstrings-python",
+    "rich"
 ]
 
 rich = [
@@ -114,3 +115,5 @@ convention = "google"
 
 [tool.pymarkdown]
 plugins.md013.line_length = 120
+plugins.md013.code_block_line_length = 120
+plugins.md046.enabled = false  # interfere with Note, Tip and similar boxes

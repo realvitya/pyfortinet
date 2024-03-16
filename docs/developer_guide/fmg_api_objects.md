@@ -19,7 +19,7 @@ If API documentation shows ``exec`` operation, use the [`FMGExecObject`][fmg_api
 ## 3. Writing an API route class
 
 Pydantic is heavily used to check and convert data. This way we ensure data quality and coherent way of handling data.
-For example, FMG tends to return data values as integer, but these need to be converted back to string, so it's easier 
+For example, FMG tends to return data values as integer, but these need to be converted back to string, so it's easier
 for humans to understand.
 
 The goal of the classes to implement an object which can be easily used by the user and do only minimal initialization.
@@ -50,8 +50,11 @@ class SomeAPICall(FMGObject):
     some: Optional[SOME_VALUES] = None
     # If API field has space or dash, use underscore and utilize Pydantic 'validation_alias' and 'serialization_alias'!
     # AliasChoices is required so user can use either form!
-    some_with_space: Optional[str] = Field(None, validation_alias=AliasChoices("some with space", "some_with_space"), serialization_alias="some with space")
-    some_with_dash: Optional[str] = Field(None, validation_alias=AliasChoices("some-with-dash", "some_with_dash"), serialization_alias="some-with-dash")
+    some_with_space: Optional[str] = Field(None, 
+                                           validation_alias=AliasChoices("some with space", "some_with_space"), 
+                                           serialization_alias="some with space")
+    some_with_dash: Optional[str] = Field(None, validation_alias=AliasChoices("some-with-dash", "some_with_dash"), 
+                                          serialization_alias="some-with-dash")
     # We can use our class as a result of a different API call or when we submit data
     # There are cases when we want to use data as a result but don't want to push back as an update
     # E.g. VDOM.get with loadsubs will return device. We should not set this when try to save VDOM.
@@ -60,7 +63,7 @@ class SomeAPICall(FMGObject):
     #
     # Validator example field:
     subnet: Optional[Union[str, list[str]]] = None
-    
+
     # Validators are used to standardize data
     # All of these are optional, these are just examples
     @field_validator("subnet")
@@ -88,6 +91,7 @@ class SomeAPICall(FMGObject):
 ```
 
 ### URL handling
+
 The mandatory private attribute to implement is the ``_url``. This defines the API route. It can have dynamic path,
 which is derived by the ``get_url`` property. The built-in [`FMGObject.get_url`][fmg_api.FMGObject.get_url] will look
 for ``{scope}`` string in the URL and will replace it with the ``_scope`` attribute.
@@ -100,9 +104,11 @@ remains uninitialized, when the object is used by ``FMG`` high-level object, it 
     If you set a scope for the object, it will use that scope only! Object level scope overrides FMG scope (adom).
 
 ### Version handling
+
 TBD, not implemented yet
 
 ### Field validation
+
 All fields can be validated using Pydantic arsenal. The above example describes some use-cases.
 
 You can check [Pydantic model usage](https://docs.pydantic.dev/latest/concepts/models/#basic-model-usage) or
@@ -112,6 +118,7 @@ it's possible to add regex constraint. If anytime a validation fails, the object
 ``ValidationError`` exception.
 
 ### Mandatory field handling
+
 As a thumb rule, all field should be optional, because the class we define can be a result of an API get call, or we
 just want to create an object with certain otherwise optional fields. There is one exception when we should set a field
 mandatory: When API docs mention a field as primary key, then this field must be filled in every case, and it's just
@@ -120,22 +127,26 @@ better to have it defined in our code as well.
 In Pydantic, there are two ways of defining mandatory fields:
 
 1.By not specifying ``Optional`` type hinting and/or default value
+
 ```python
 some: str
 ```
 
 2.By using ``Field`` constraint with ``...`` (Ellipse) as default value
+
 ```python
 some_other: str = Field(..., validation_alias=AliasChoices("some other", "some_other"), serialization_alias="some other")
 ```
 
-###  Class inheritance
+### Class inheritance
+
 There are cases when two API data is very similar and only slight differences need to be defined. In that case it's
 easier to define a base and more general model and inherit from it the more specific ones. Such an example is
 [`BaseDevice`][fmg_api.dvmcmd.BaseDevice] which is the parent of [`Device`][fmg_api.dvmcmd.Device]. Differences are
 the default values and mandatory fields.
 
 ## 4. Writing tests for the new class
+
 Each module should have its own test file. Please create such test-cases that the following rules are applied:
 
 1. Cover all use-cases of your class.
@@ -146,10 +157,11 @@ Each module should have its own test file. Please create such test-cases that th
 3. Utilize existing fixtures to access lab environment
 
 !!! tip
-    
+
     Best to check out existing test cases and work based on those!
 
-## 5. Ensure proper documentation in docstrings and ``docs`` folder if necessary!
+## 5. Ensure proper documentation in docstrings and ``docs`` folder if necessary
 
+This project uses Google docstring format and Markdown to enhance documentation.
 
 ## 6. Run linters to standardize and polish new code

@@ -23,8 +23,10 @@ nav:
       - Installation: user_guide/installation.md
       - Basic Usage: user_guide/basic_usage.md
   - Developer Guide:
+      - General guide: developer_guide/index.md
       - Lab setup: developer_guide/lab_setup.md
       - FMG API guide: developer_guide/fmg_api_objects.md
+      - Testing: developer_guide/testing.md
   - Code Reference: reference/
 
 plugins:
