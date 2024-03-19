@@ -1,6 +1,6 @@
 """Test of human API"""
+
 import pytest
-from pyfortinet import FMG, FMGSettings
 from pyfortinet.fmg_api.common import F
 
 
@@ -23,7 +23,5 @@ class TestObjectsOnLab:
         assert result == ["others", "root", "rootp"]
 
     def test_get_adom_list_with_complex_filter(self, fmg):
-        result = fmg.get_adom_list(
-            (F(name__like="root") + (F(name__like="rootp") + F(name="others")) & F(state=1))
-        )
+        result = fmg.get_adom_list((F(name__like="root") + (F(name__like="rootp") + F(name="others")) & F(state=1)))
         assert result == ["others", "root", "rootp"]

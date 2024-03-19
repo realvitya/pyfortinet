@@ -18,14 +18,6 @@ class Scope:
     vdom: Optional[str] = None
 
 
-@dataclass
-class Result:
-    """API result"""
-
-    code: int
-    message: str
-
-
 """
 Operator	# of target(s)	Descriptions
 "=="        1               Equal to
