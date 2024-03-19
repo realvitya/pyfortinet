@@ -142,7 +142,7 @@ some_other: str = Field(..., validation_alias=AliasChoices("some other", "some_o
 
 There are cases when two API data is very similar and only slight differences need to be defined. In that case it's
 easier to define a base and more general model and inherit from it the more specific ones. Such an example is
-[`BaseDevice`][fmg_api.dvmcmd.BaseDevice] which is the parent of [`Device`][fmg_api.dvmcmd.Device]. Differences are
+[`BaseDevice`][fmg_api.dvmdb.BaseDevice] which is the parent of [`Device`][fmg_api.dvmdb.Device]. Differences are
 the default values and mandatory fields.
 
 ## 4. Writing tests for the new class

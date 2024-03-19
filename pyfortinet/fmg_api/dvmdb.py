@@ -1,11 +1,10 @@
 """Device DB objects"""
 
-from typing import Literal, Optional, List, Dict
+from typing import Literal, Optional, List, Dict, Union
 
-from pydantic import Field, field_validator, AliasChoices
+from pydantic import Field, field_validator, AliasChoices, BaseModel, IPvAnyAddress
 
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.dvmcmd import BaseDevice
 
 CONF_STATUS = Literal["unknown", "insync", "outofsync"]
 CONN_MODE = Literal["active", "passive"]
@@ -31,6 +30,159 @@ DEV_STATUS = Literal[
 ]
 OP_MODE = Literal["nat", "transparent"]
 VDOM_TYPE = Literal["traffic", "admin"]
+MGMT_MODE = Literal["unreg", "fmg", "faz", "fmgfaz"]
+OS_TYPE = Literal[
+    "unknown",
+    "fos",
+    "fsw",
+    "foc",
+    "fml",
+    "faz",
+    "fwb",
+    "fch",
+    "fct",
+    "log",
+    "fmg",
+    "fsa",
+    "fdd",
+    "fac",
+    "fpx",
+    "fna",
+    "ffw",
+    "fsr",
+    "fad",
+    "fdc",
+    "fap",
+    "fxt",
+    "fts",
+    "fai",
+    "fwc",
+    "fis",
+    "fed",
+]
+OS_VER = Literal["unknown", "0.0", "1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0", "8.0", "9.0"]
+DEVICE_ACTION = Literal["add_model", "promote_unreg"]
+
+
+class BaseDevice(BaseModel):
+    # api attributes
+    name: str = Field(..., pattern=r"[\w-]{1,36}")  # master key, mandatory
+    adm_usr: Optional[str] = Field(None, max_length=36)
+    adm_pass: Union[None, str, list[str]] = Field(None, max_length=128)
+    desc: Optional[str] = None
+    ip: Optional[str] = None
+    meta_fields: Optional[dict[str, str]] = Field(
+        None, validation_alias=AliasChoices("meta fields", "meta_fields"), serialization_alias="meta fields"
+    )
+    mgmt_mode: Optional[MGMT_MODE] = None
+    os_type: Optional[OS_TYPE] = None
+    os_ver: Optional[OS_VER] = Field(None, description="Major release no")
+    mr: Optional[int] = Field(None, description="Minor release no")
+    patch: Optional[int] = Field(None, description="Patch release no")
+    sn: Optional[str] = Field(None, description="Serial number")
+    # extra attributes which are sent by FMG when asked for extra
+    assignment_info: Optional[List[Dict[str, str]]] = Field(
+        None,
+        validation_alias=AliasChoices("assignment info", "assignment_info"),
+        serialization_alias="assignment info",
+        exclude=True,
+    )
+
+    @field_validator("ip")
+    def validate_ip(cls, v):
+        """validate input but still represent the string"""
+        IPvAnyAddress(v)
+        return v
+
+    @field_validator("mgmt_mode", mode="before")
+    def validate_mgmt_mode(cls, v):
+        """ensure using text variant"""
+        return MGMT_MODE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("os_type", mode="before")
+    def validate_os_type(cls, v):
+        """ensure using text variant"""
+        return OS_TYPE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("os_ver", mode="before")
+    def validate_os_ver(cls, v):
+        """ensure using text variant"""
+        return OS_VER.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+
+class RealDevice(FMGObject, BaseDevice):
+    """Device class to add or remove firewall
+
+    Attributes:
+        name: Device name
+        adm_usr (str): Administrator username
+        adm_pass (str): Administrator password
+        desc (str): Device description
+        ip (str): Device IP address
+        meta_fields (dict): Meta fields data
+        mgmt_mode (MGMT_MODE): Management mode of the device
+        os_type (OS_TYPE): OS type of the device
+        os_ver (OS_VER): OS major version
+        mr (int): OS minor version
+        patch (int): OS patch version
+        sn (str): Serial number of the device
+        device_action (DEVICE_ACTION): Device add or remove action
+        device_blueprint (str): Device blueprint name
+    """
+
+    device_action: Optional[DEVICE_ACTION] = Field(
+        "",
+        description="Leave empty for real device!",
+        validation_alias=AliasChoices("device action", "device_action"),
+        serialization_alias="device action",
+    )
+    device_blueprint: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices("device blueprint", "device_blueprint"),
+        serialization_alias="device blueprint",
+    )
+    adm_usr: str = Field("admin", pattern=r"[\w-]{1,36}")
+    adm_pass: str = Field(..., max_length=128)
+    ip: str
+
+
+class ModelDevice(FMGObject, BaseDevice):
+    """Model device fields
+
+    Attributes:
+        name: Device name
+        adm_usr (str): Administrator username
+        adm_pass (str): Administrator password
+        desc (str): Device description
+        ip (str): Device IP address
+        meta_fields (dict): Meta fields data
+        mgmt_mode (MGMT_MODE): Management mode of the device
+        os_type (OS_TYPE): OS type of the device
+        os_ver (OS_VER): OS major version
+        mr (int): OS minor version
+        patch (int): OS patch version
+        sn (str): Serial number of the device
+        device_action (DEVICE_ACTION): Device add or remove action
+        device_blueprint (str): Device blueprint name
+        platform_str (str): Platform string for virtual device
+    """
+    device_action: DEVICE_ACTION = Field(
+        "add_model",
+        validation_alias=AliasChoices("device action", "device_action"),
+        serialization_alias="device action",
+    )
+    device_blueprint: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices("device blueprint", "device_blueprint"),
+        serialization_alias="device blueprint",
+    )
+    platform_str: Optional[str] = None
+    # make os_ver and mr mandatory
+    os_ver: OS_VER
+    mr: int = Field(description="Minor release")
+    # set default
+    os_type: OS_TYPE = "fos"
+    mgmt_mode: MGMT_MODE = "fmg"
 
 
 class VDOM(FMGObject):
@@ -106,7 +258,7 @@ class HASlave(FMGObject):
 
 
 class Device(FMGObject, BaseDevice):
-    """ADOM level read-only Device object
+    """ADOM level Device object
 
     Attributes:
         name (str): object name
@@ -148,7 +300,7 @@ class Device(FMGObject, BaseDevice):
     version: Optional[int] = None
     platform_str: Optional[str] = None
     # sub objects:
-    vdom: Optional[list[VDOM]] = None
+    vdom: Optional[list[VDOM]] = Field(None, exclude=True)
     ha_slave: Optional[List[HASlave]] = None
 
     @field_validator("conf_status", mode="before")

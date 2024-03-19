@@ -15,6 +15,7 @@ theme:
 
 extra_css:
   - extra.css
+  - code_select.css
 
 nav:
   - PyFortinet: index.md
@@ -31,6 +32,7 @@ nav:
 
 plugins:
 - search
+- autorefs
 - gen-files:
     scripts:
       - docs/gen_ref_pages.py
@@ -39,12 +41,29 @@ plugins:
       python:
         paths: [ pyfortinet ]
         options:
+          line_length: 120
+          separate_signature: true
           show_signature_annotations: true
           signature_crossrefs: true
           # add __init__ args to class and ignore __init__ summary text
           merge_init_into_class: true
           docstring_options:
             ignore_init_summary: true
+          members: true
+          show_labels: true
+          group_by_category: true
+          parameter_headings: false
+          filters:
+            - "!^_"  # exclude private members
+            - "^__init__$"
+            - "^_url$"
+            - "^_fmg$"
+#         still INSIDER features
+#          summary: true
+#          extensions:
+#            - griffe_pydantic:
+#                schema: true
+
 - section-index
 - literate-nav
 
@@ -56,6 +75,7 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+      use_pygments: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
