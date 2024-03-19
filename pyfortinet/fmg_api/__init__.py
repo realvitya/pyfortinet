@@ -135,4 +135,4 @@ class FMGExecObject(FMGBaseObject, ABC):
 
 
 # Used by typehints to indicate child of FMGObject
-SomeFMGObject = TypeVar("SomeFMGObject", FMGObject, FMGExecObject)
+AnyFMGObject = TypeVar("AnyFMGObject", FMGObject, FMGExecObject)

@@ -4,7 +4,7 @@ from typing import Optional, Union, Any, Type, List
 
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException
-from pyfortinet.fmg_api import FMGObject, FMGExecObject, SomeFMGObject, GetOption
+from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE
 
@@ -400,7 +400,7 @@ class AsyncFMG(AsyncFMGBase):
             logger.error(result.data["error"])
             return result
 
-    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject]], **kwargs) -> SomeFMGObject:
+    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject]], **kwargs) -> AnyFMGObject:
         """Get an object and tie it to this FMG"""
         if not issubclass(obj, Union[FMGObject, FMGExecObject]):
             raise TypeError(f"Argument {obj} is not an FMGObject or FMGExecObject type")
