@@ -75,6 +75,8 @@ class FMG(FMGBase):
         Examples:
             ## Low-level - dict
 
+            ```pycon
+
             >>> address_request = {
             ...    "url": "/pm/config/global/obj/firewall/address",
             ...    "filter": [ ["name", "==", "test-address"] ],
@@ -83,14 +85,18 @@ class FMG(FMGBase):
             >>> settings = {...}
             >>> with FMG(**settings) as fmg:
             ...    fmg.get(address_request)
+            ```
 
             ## High-level - obj
+
+            ```pycon
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> from pyfortinet.fmg_api.common import F
             >>> settings = {...}
             >>> with FMG(**settings) as fmg:
             ...    addresses = fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
+            ```
 
         Returns:
             (FMGResponse): response object with data
@@ -167,6 +173,8 @@ class FMG(FMGBase):
         Examples:
             ## Low-level - dict
 
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -179,9 +187,12 @@ class FMG(FMGBase):
             ...     }
             ... }
             >>> with FMG(**settings) as fmg:
-            >>>     fmg.add(address_request)
+            ...     fmg.add(address_request)
+            ```
 
             ## High-level - obj
+
+            ```pycon
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
@@ -189,6 +200,7 @@ class FMG(FMGBase):
             ...                   type="ipmask", start_ip="10.0.0.1/24")
             >>> with FMG(**settings) as fmg:
             ...     fmg.add(address)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -218,20 +230,26 @@ class FMG(FMGBase):
         Examples:
             ## Low-level - dict
 
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address/test-address",
             ... }
             >>> with FMG(**settings) as fmg:
-            >>>     fmg.delete(address_request)
+            ...     fmg.delete(address_request)
+            ```
 
             ## High-level - obj
+
+            ```pycon
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
             >>> address = Address(name="test-address")
             >>> with FMG(**settings) as fmg:
             ...     fmg.delete(address)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -260,6 +278,8 @@ class FMG(FMGBase):
         Examples:
             ## Low-level - dict
 
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -272,9 +292,12 @@ class FMG(FMGBase):
             ...     }
             ... }
             >>> with FMGBase(**settings) as fmg:
-            >>>     fmg.update(address_request)
+            ...     fmg.update(address_request)
+            ```
 
             ## High-level - obj
+
+            ```pycon
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
@@ -282,6 +305,7 @@ class FMG(FMGBase):
             ...                   type="ipmask", start_ip="10.0.0.1/24")
             >>> with FMGBase(**settings) as fmg:
             ...     fmg.update(address)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -310,6 +334,8 @@ class FMG(FMGBase):
         Examples:
             ## Low-level - dict
 
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -322,9 +348,12 @@ class FMG(FMGBase):
             ...     }
             ... }
             >>> with FMGBase(**settings) as fmg:
-            >>>     fmg.set(address_request)
+            ...     fmg.set(address_request)
+            ```
 
             ## High-level - obj
+
+            ```pycon
 
             >>> from pyfortinet.fmg_api.firewall import Address
             >>> settings = {...}
@@ -332,6 +361,7 @@ class FMG(FMGBase):
             ...                   type="ipmask", start_ip="10.0.0.1/24")
             >>> with FMGBase(**settings) as fmg:
             ...     fmg.set(address)
+            ```
 
         Returns:
             (FMGResponse): Result of operation

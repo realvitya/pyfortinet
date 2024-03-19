@@ -246,6 +246,7 @@ class AsyncFMGBase:
         Possible arguments to initialize: [FMGSettings](../settings.md#settings.FMGSettings)
 
         ### Using as context manager
+        ```pycon
 
         >>> import asyncio
         >>> settings = {...}
@@ -253,8 +254,10 @@ class AsyncFMGBase:
         ...     async with AsyncFMGBase(**settings) as conn:
         ...         print(await conn.get_version())
         >>> asyncio.run(get_version())
+        ```
 
         ### Using as function:
+        ```pycon
 
         >>> import asyncio
         >>> from pyfortinet.exceptions import FMGException
@@ -269,6 +272,7 @@ class AsyncFMGBase:
         ...     finally:
         ...         await conn.close()
         >>> asyncio.run(get_version())
+        ```
     """
 
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
@@ -475,17 +479,20 @@ class AsyncFMGBase:
             request: Get operation's param structure
 
         Examples:
+            ```pycon
+
             >>> import asyncio
             >>> address_request = {
             ...    "url": "/pm/config/global/obj/firewall/address",
             ...    "filter": [ ["name", "==", "test-address"] ],
             ...    "fields": [ "name", "subnet" ]
-            ...}
+            ... }
             >>> settings = {...}
             >>> async def get_address(request: dict[str, Any]):
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         return await fmg.get(address_request)
             >>> asyncio.run(get_address())
+            ```
 
         Returns:
             (AsyncFMGResponse): response object with data
@@ -526,6 +533,8 @@ class AsyncFMGBase:
             request: Add operation's data structure
 
         Examples:
+            ```pycon
+
             >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
@@ -542,6 +551,7 @@ class AsyncFMGBase:
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         return await fmg.add(address_request)
             >>> asyncio.run(add_request(address_request))
+            ```
 
         Returns:
             (AsyncFMGResponse): Result of operation
@@ -579,6 +589,8 @@ class AsyncFMGBase:
             request: Update operation's data structure
 
         Examples:
+            ```pycon
+
             >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
@@ -595,6 +607,7 @@ class AsyncFMGBase:
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         return await fmg.update(address_request)
             >>> asyncio.run(update_address())
+            ```
 
         Returns:
             (AsyncFMGResponse): Result of operation
@@ -632,6 +645,8 @@ class AsyncFMGBase:
             request: Set operation's data structure
 
         Examples:
+            ```pycon
+
             >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
@@ -648,6 +663,7 @@ class AsyncFMGBase:
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         return await fmg.set(address_request)
             >>> asyncio.run(set_address())
+            ```
 
         Returns:
             (AsyncFMGResponse): Result of operation
@@ -685,6 +701,8 @@ class AsyncFMGBase:
             request: Update operation's data structure
 
         Examples:
+            ```pycon
+
             >>> import asyncio
             >>> settings = {...}
             >>> address_request = {
@@ -694,6 +712,7 @@ class AsyncFMGBase:
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         await fmg.delete(address_request)
             >>> asyncio.run(delete_address(address_request))
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -738,11 +757,14 @@ class AsyncFMGBase:
             loop_interval: (int): interval between task status updates in seconds
 
         Example:
+            ```pycon
+
             >>> import asyncio
-            >>> from pyfortinet.fmg_api.dvmcmd import Device, DeviceTask
+            >>> from pyfortinet.fmg_api.dvmcmd import DeviceTask
+            >>> from pyfortinet.fmg_api.dvmdb import RealDevice
             >>> from rich.progress import Progress
             >>> settings = {...}
-            >>> test_device = Device(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
+            >>> test_device = RealDevice(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
             >>> async def add_device(device: Device):
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         task = DeviceTask(adom=fmg.adom, device=device)
@@ -752,6 +774,7 @@ class AsyncFMGBase:
             ...             update_progress = lambda percent, log: progress.update(prog_task, percent)
             ...             await result.wait_for_task(task, callback=update_progress)
             >>> asyncio.run(add_device(test_device))
+            ```
         """
         task_id = task_res if isinstance(task_res, int) else task_res.data.get("data", {}).get("taskid")
         if task_id is None:

@@ -7,7 +7,12 @@ from pydantic.dataclasses import dataclass
 
 @dataclass
 class Scope:
-    """Specify scope for an object"""
+    """Specify scope for an object
+
+    Attributes:
+        name (str): Scope name (e.g. firewall name or group name)
+        vdom (str): VDOM if applicable
+    """
 
     name: str
     vdom: Optional[str] = None

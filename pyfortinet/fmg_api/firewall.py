@@ -55,7 +55,11 @@ class Address(FMGObject):
 
     @field_validator("subnet")
     def standardize_subnet(cls, v):
-        """validator: x.x.x.x/y.y.y.y -> x.x.x.x/y"""
+        """validator: x.x.x.x/y.y.y.y -> x.x.x.x/y
+
+        API use this list form: ["1.2.3.4", "255.255.255.0"]
+        Human use this form: "1.2.3.4/24"
+        """
         if isinstance(v, list):
             return IPv4Interface("/".join(v)).compressed
         else:

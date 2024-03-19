@@ -244,11 +244,16 @@ class FMGBase:
 
         ### Using as context manager
 
+        ```pycon
+
         >>> settings = {...}
         >>> with FMGBase(**settings) as conn:
         ...     print(conn.get_version())
+        ```
 
         ### Using as function:
+
+        ```pycon
 
         >>> from pyfortinet.exceptions import FMGException
         >>> settings = {...}
@@ -260,6 +265,7 @@ class FMGBase:
         ...     print(f"Error: {err}")
         ... finally:
         ...     conn.close()
+        ```
     """
 
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
@@ -468,16 +474,17 @@ class FMGBase:
             request: Get operation's param structure
 
         Examples:
-            ## Low-level - dict
+            ```pycon
 
             >>> address_request = {
             ...    "url": "/pm/config/global/obj/firewall/address",
             ...    "filter": [ ["name", "==", "test-address"] ],
             ...    "fields": [ "name", "subnet" ]
-            ...}
+            ... }
             >>> settings = {...}
             >>> with FMGBase(**settings) as fmg:
             ...    fmg.get(address_request)
+            ```
 
         Returns:
             (FMGResponse): response object with data
@@ -518,6 +525,8 @@ class FMGBase:
             request: Add operation's data structure
 
         Examples:
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -531,6 +540,7 @@ class FMGBase:
             ... }
             >>> with FMGBase(**settings) as fmg:
             ...     fmg.add(address_request)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -568,6 +578,8 @@ class FMGBase:
             request: Update operation's data structure
 
         Examples:
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -581,6 +593,7 @@ class FMGBase:
             ... }
             >>> with FMGBase(**settings) as fmg:
             >>>     fmg.update(address_request)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -618,6 +631,8 @@ class FMGBase:
             request: Set operation's data structure
 
         Examples:
+            ```pycon
+
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address",
@@ -631,6 +646,7 @@ class FMGBase:
             ... }
             >>> with FMGBase(**settings) as fmg:
             >>>     fmg.set(address_request)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -668,14 +684,15 @@ class FMGBase:
             request: Update operation's data structure
 
         Examples:
-            ## Low-level - dict
+            ```pycon
 
             >>> settings = {...}
             >>> address_request = {
             ...     "url": "/pm/config/global/obj/firewall/address/test-address",
             ... }
             >>> with FMGBase(**settings) as fmg:
-            >>>     fmg.delete(address_request)
+            ...     fmg.delete(address_request)
+            ```
 
         Returns:
             (FMGResponse): Result of operation
@@ -720,17 +737,21 @@ class FMGBase:
             loop_interval: (int): interval between task status updates
 
         Example:
-            >>> from pyfortinet.fmg_api.dvmcmd import Device, DeviceTask
+            ```pycon
+
+            >>> from pyfortinet.fmg_api.dvmcmd import DeviceTask
+            >>> from pyfortinet.fmg_api.dvmdb import RealDevice
             >>> from rich.progress import Progress
             >>> settings = {...}
-            >>> device = Device(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
+            >>> device = RealDevice(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
             >>> with FMGBase(**settings) as fmg:
             ...     task = DeviceTask(adom=fmg.adom, device=device)
             ...     result = fmg.exec(task)
             ...     with Progress() as progress:
             ...         prog_task = progress.add_task(f"Adding device {device.name}", total=100)
             ...         update_progress = lambda percent, log: progress.update(prog_task, percent)
-            ...         task.wait_for_task(task, callback=update_progress)
+            ...         result.wait_for_task(task, callback=update_progress)
+            ```
         """
         task_id = (
             task_res
