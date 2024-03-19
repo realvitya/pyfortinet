@@ -199,11 +199,7 @@ class FMG(FMGBase):
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
+            api_data = request.model_dump(by_alias=True, exclude_none=True)
             return super().add(request={"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
@@ -295,11 +291,7 @@ class FMG(FMGBase):
             return super().update(request)
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
+            api_data = request.model_dump(by_alias=True, exclude_none=True)
             return super().update({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
@@ -349,11 +341,7 @@ class FMG(FMGBase):
             return super().set(request)
         elif isinstance(request, FMGObject):  # high-level operation
             request.scope = request.scope or self._settings.adom
-            api_data = {
-                key: value
-                for key, value in request.model_dump(by_alias=True).items()
-                if not key.startswith("_") and value is not None
-            }
+            api_data = request.model_dump(by_alias=True, exclude_none=True)
             return super().set({"url": request.get_url, "data": api_data})
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
