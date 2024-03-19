@@ -1,4 +1,6 @@
 """Test of human API"""
+import asyncio
+
 from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
@@ -8,11 +10,16 @@ from tests.conftest import AsyncTestCase
 
 
 class TestObjectsOnLab(AsyncTestCase):
+    @staticmethod
+    async def async_callback(percent: int, log: str):
+        """Async test callback"""
+        await asyncio.sleep(0.1)
+
     async def test_dvmdb_device(self, fmg: AsyncFMG):
         device = fmg.get_obj(ModelDevice, name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
         job = DeviceTask(adom=fmg.adom, device=device)
         result = await fmg.exec(job)
-        await result.wait_for_task()
+        await result.wait_for_task(callback=self.async_callback)
         assert result.success
         job = DeviceTask(adom=fmg.adom, device=device, action="del")
         result = await fmg.exec(job)

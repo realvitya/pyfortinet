@@ -7,7 +7,7 @@ import re
 import time
 from copy import copy
 from random import randint
-from typing import Any, Callable, Optional, Union, List
+from typing import Any, Callable, Optional, Union, List, Coroutine
 from dataclasses import dataclass, field
 
 import aiohttp
@@ -129,10 +129,12 @@ class AsyncFMGResponse:
             return self.data[0] if self.data[0] else None
         return None
 
-    async def wait_for_task(self, timeout: int = 60, callback: Callable[[int, int], None] = None):
+    async def wait_for_task(
+        self, callback: Callable[[int, str], Union[None | Coroutine]] = None, timeout: int = 60, loop_interval: int = 2
+    ):
         if not self.success or not self.fmg:
             return
-        await self.fmg.wait_for_task(self, timeout, callback)
+        await self.fmg.wait_for_task(self, callback=callback, timeout=timeout, loop_interval=loop_interval)
 
 
 class AsyncFMGLockContext:
@@ -720,14 +722,20 @@ class AsyncFMGBase:
         return response
 
     async def wait_for_task(
-        self, task_res: Union[int, AsyncFMGResponse], timeout: int = 60, callback: Callable[[int, str], None] = None
+        self,
+        task_res: Union[int, AsyncFMGResponse],
+        callback: Callable[[int, str], None] = None,
+        timeout: int = 60,
+        loop_interval: int = 2,
     ) -> Union[str, None]:
         """Wait for task to finish
 
-        Args: task_res: (int, FMGResponse): Task or task ID to check
-        timeout: (int): timeout for waiting
-        callback: (Callable[[int, str], None]): function to call in each iteration.
-                                           It must accept 2 args which are the current percentage and latest log line
+        Args:
+            task_res: (int, AsyncFMGResponse): Task or task ID to check
+            callback: (Callable[[int, str], None]): function to call in each iteration.
+                                              It must accept 2 args which are the current percentage and latest log line
+            timeout: (int): timeout for waiting in seconds
+            loop_interval: (int): interval between task status updates in seconds
 
         Example:
             >>> import asyncio
@@ -742,7 +750,7 @@ class AsyncFMGBase:
             ...         with Progress() as progress:
             ...             prog_task = progress.add_task(f"Adding device {device.name}", total=100)
             ...             update_progress = lambda percent, log: progress.update(prog_task, percent)
-            ...             await task.wait_for_task(task, callback=update_progress)
+            ...             await result.wait_for_task(task, callback=update_progress)
             >>> asyncio.run(add_device(test_device))
         """
         task_id = task_res if isinstance(task_res, int) else task_res.data.get("data", {}).get("taskid")
@@ -755,9 +763,12 @@ class AsyncFMGBase:
                 return
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
-            if callback:
-                callback(task.percent, task.line[-1].detail if task.line else "")
+            if callable(callback):
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(task.percent, task.line[-1].detail if task.line else "")
+                else:
+                    callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
             if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
                 return task.state
-            await asyncio.sleep(2)
+            await asyncio.sleep(loop_interval)

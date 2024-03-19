@@ -1,4 +1,5 @@
 """FMGBase connection"""
+
 import functools
 import logging
 import re
@@ -19,7 +20,8 @@ from pyfortinet.exceptions import (
     FMGTokenException,
     FMGUnhandledException,
     FMGInvalidDataException,
-    FMGObjectAlreadyExistsException, FMGInvalidURL,
+    FMGObjectAlreadyExistsException,
+    FMGInvalidURL,
 )
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
@@ -126,10 +128,10 @@ class FMGResponse:
             return self.data[0] if self.data[0] else None
         return None
 
-    def wait_for_task(self, timeout: int = 60, callback: Callable[[int, int], None] = None):
+    def wait_for_task(self, callback: Callable[[int, str], None] = None, timeout: int = 60, loop_interval: int = 2):
         if not self.success or not self.fmg:
             return
-        self.fmg.wait_for_task(self, timeout, callback)
+        self.fmg.wait_for_task(self, callback=callback, timeout=timeout, loop_interval=loop_interval)
 
 
 class FMGLockContext:
@@ -528,7 +530,7 @@ class FMGBase:
             ...     }
             ... }
             >>> with FMGBase(**settings) as fmg:
-            >>>     fmg.add(address_request)
+            ...     fmg.add(address_request)
 
         Returns:
             (FMGResponse): Result of operation
@@ -702,14 +704,20 @@ class FMGBase:
         return response
 
     def wait_for_task(
-        self, task_res: Union[int, FMGResponse], timeout: int = 60, callback: Callable[[int, str], None] = None
+        self,
+        task_res: Union[int, FMGResponse],
+        callback: Callable[[int, str], None] = None,
+        timeout: int = 60,
+        loop_interval: int = 2,
     ) -> Union[str, None]:
         """Wait for task to finish
 
-        Args: task_res: (int, FMGResponse): Task or task ID to check
-        timeout: (int): timeout for waiting
-        callback: (Callable[[int, str], None]): function to call in each iteration.
-                                           It must accept 2 args which are the current percentage and latest log line
+        Args:
+            task_res: (int, FMGResponse): Task or task ID to check
+            callback: (Callable[[int, str], None]): function to call in each iteration.
+                                              It must accept 2 args which are the current percentage and latest log line
+            timeout: (int): timeout for waiting
+            loop_interval: (int): interval between task status updates
 
         Example:
             >>> from pyfortinet.fmg_api.dvmcmd import Device, DeviceTask
@@ -724,8 +732,11 @@ class FMGBase:
             ...         update_progress = lambda percent, log: progress.update(prog_task, percent)
             ...         task.wait_for_task(task, callback=update_progress)
         """
-        task_id = task_res if isinstance(task_res, int) else (
-                              task_res.data.get("data", {}).get("taskid") or task_res.data.get("data", {}).get("task"))
+        task_id = (
+            task_res
+            if isinstance(task_res, int)
+            else (task_res.data.get("data", {}).get("taskid") or task_res.data.get("data", {}).get("task"))
+        )
         if task_id is None:
             return
         start_time = time.time()
@@ -735,9 +746,9 @@ class FMGBase:
                 return
             if time.time() - start_time > timeout:
                 raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
-            if callback:
+            if callable(callback):
                 callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
             if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
                 return task.state
-            time.sleep(2)
+            time.sleep(loop_interval)
