@@ -9,10 +9,22 @@ if TYPE_CHECKING:
     AnyFMG = Union[FMG, AsyncFMG]
 from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException
 
-GetOption = Literal["extra info", "assignment info"]
+GetOption = Literal[
+    "extra info",  # returns more info (e.g. timestamps of changes)
+    "assignment info",  # returns where this object is assigned to
+    "loadsub",  # When enabled, this option is used to instruct the FortiManager to return sub table information.
+    "no loadsub",
+    "count",  # This option is used to return the number of entries in a given table.
+    "syntax",  # It is used to return the schema of a table or object.
+    "devinfo",  # This option could be used to obtain a kind of ADOM checksum used to detect whether a change was made.
+    "obj flags",
+    "datasrc",  # This option is generally used to get list of possible object types and the objects themselves that
+                # could be used within an object you want to create or update.
+    "chksum",  # This option is used to retrieve the version or checksum of a specific table.
+]
 
 
-class FMGObject(BaseModel, ABC):
+class FMGBaseObject(BaseModel, ABC):
     """Abstract base object for all high-level objects
 
     Scope must be set before referencing the url! It's done by FMGBase requests as it defaults all objects to its
@@ -67,6 +79,22 @@ class FMGObject(BaseModel, ABC):
             # if input already in /adom/... then fix it
             self._scope = "global" if value == "global" else f"adom/{value}".replace("adom/adom", "adom")
 
+
+class FMGObject(FMGBaseObject, ABC):
+    """Abstract base object for all high-level objects
+
+    Scope must be set before referencing the url! It's done by FMGBase requests as it defaults all objects to its
+    selected ADOM.
+
+    In case of AsyncFMG, caller must ensure await-ing the request.
+
+    Attributes:
+        scope (str): FMG selected scope (adom or global)
+        _version (str): Supported API version
+        _url (str): template for API URL
+        _fmg (FMG): FMG instance
+    """
+
     def add(self):
         """Add this object to FMG"""
         if self._fmg:
@@ -92,11 +120,7 @@ class FMGObject(BaseModel, ABC):
         raise FMGNotAssignedException
 
 
-# Used by typehints to indicate child of FMGObject
-SomeFMGObject = TypeVar("SomeFMGObject", bound=FMGObject)
-
-
-class FMGExecObject(FMGObject, ABC):
+class FMGExecObject(FMGBaseObject, ABC):
     """FMG execute job type"""
 
     @property
@@ -108,3 +132,7 @@ class FMGExecObject(FMGObject, ABC):
         if self._fmg:
             return self._fmg.exec(self)
         raise FMGNotAssignedException
+
+
+# Used by typehints to indicate child of FMGObject
+SomeFMGObject = TypeVar("SomeFMGObject", FMGObject, FMGExecObject)

@@ -400,10 +400,10 @@ class AsyncFMG(AsyncFMGBase):
             logger.error(result.data["error"])
             return result
 
-    def get_obj(self, obj: type(FMGObject), **kwargs) -> SomeFMGObject:
+    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject]], **kwargs) -> SomeFMGObject:
         """Get an object and tie it to this FMG"""
-        if not issubclass(obj, FMGObject):
-            raise TypeError(f"Argument {obj} is not an FMGObject")
+        if not issubclass(obj, Union[FMGObject, FMGExecObject]):
+            raise TypeError(f"Argument {obj} is not an FMGObject or FMGExecObject type")
         return obj(fmg=self, **kwargs)
 
     async def get_adom_list(self, filters: FILTER_TYPE = None) -> Optional[List[str]]:
