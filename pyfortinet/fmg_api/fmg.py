@@ -210,7 +210,7 @@ class FMG(FMGBase):
             return super().add(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             api_data = request.model_dump(by_alias=True, exclude_none=True)
             return super().add(request={"url": request.get_url, "data": api_data})
         else:
@@ -259,7 +259,7 @@ class FMG(FMGBase):
             return super().delete(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             return super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
@@ -314,7 +314,7 @@ class FMG(FMGBase):
         if isinstance(request, dict):  # JSON input, low-level operation
             return super().update(request)
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             api_data = request.model_dump(by_alias=True, exclude_none=True)
             return super().update({"url": request.get_url, "data": api_data})
         else:
@@ -370,7 +370,7 @@ class FMG(FMGBase):
         if isinstance(request, dict):  # JSON input, low-level operation
             return super().set(request)
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             api_data = request.model_dump(by_alias=True, exclude_none=True)
             return super().set({"url": request.get_url, "data": api_data})
         else:
@@ -387,7 +387,7 @@ class FMG(FMGBase):
             return super().exec(request)
         elif isinstance(request, FMGExecObject):
             logger.info("requesting exec with high-level op to %s", request.get_url)
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             return super().exec({"url": request.get_url, "data": request.data})
         else:
             result = FMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)

@@ -219,7 +219,7 @@ class AsyncFMG(AsyncFMGBase):
             return await super().add(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             api_data = request.model_dump(by_alias=True, exclude_none=True)
             return await super().add(request={"url": request.get_url, "data": api_data})
         else:
@@ -273,7 +273,7 @@ class AsyncFMG(AsyncFMGBase):
             return await super().delete(request)
 
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             return await super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
@@ -333,7 +333,7 @@ class AsyncFMG(AsyncFMGBase):
         if isinstance(request, dict):  # JSON input, low-level operation
             return await super().update(request)
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             api_data = request.model_dump(by_alias=True, exclude_none=True)
             return await super().update({"url": request.get_url, "data": api_data})
         else:
@@ -394,7 +394,7 @@ class AsyncFMG(AsyncFMGBase):
         if isinstance(request, dict):  # JSON input, low-level operation
             return await super().set(request)
         elif isinstance(request, FMGObject):  # high-level operation
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             api_data = request.model_dump(by_alias=True, exclude_none=True)
             return await super().set({"url": request.get_url, "data": api_data})
         else:
@@ -411,7 +411,7 @@ class AsyncFMG(AsyncFMGBase):
             return await super().exec(request)
         elif isinstance(request, FMGExecObject):
             logger.info("requesting exec with high-level op to %s", request.get_url)
-            request.scope = request.scope or self._settings.adom
+            request.fmg_scope = request.fmg_scope or self._settings.adom
             return await super().exec({"url": request.get_url, "data": request.data})
         else:
             result = AsyncFMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)

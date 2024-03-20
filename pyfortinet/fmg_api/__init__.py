@@ -33,7 +33,7 @@ class FMGBaseObject(BaseModel, ABC):
     In case of AsyncFMG, caller must ensure await-ing the request.
 
     Attributes:
-        scope (str): FMG selected scope (adom or global)
+        fmg_scope (str): FMG selected scope (adom or global)
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance
@@ -52,7 +52,7 @@ class FMGBaseObject(BaseModel, ABC):
             fmg (AnyFMG): FMG instance
         """
         super().__init__(*args, **kwargs)
-        self.scope = kwargs.get("scope")
+        self.fmg_scope = kwargs.get("fmg_scope")
         self._fmg: "AnyFMG" = kwargs.get("fmg")
 
     @property
@@ -61,20 +61,20 @@ class FMGBaseObject(BaseModel, ABC):
 
         To be overridden by more complex API URLs in different classes
         """
-        if not self.scope:
+        if not self.fmg_scope:
             if "{scope}" in self._url:
                 raise FMGMissingScopeException(f"Missing scope for {self}")
             return self._url
-        url = self._url.replace("{scope}", self.scope)
+        url = self._url.replace("{scope}", self.fmg_scope)
         return url
 
     @property
-    def scope(self) -> str:
+    def fmg_scope(self) -> str:
         """Object scope (adom)"""
         return self._scope
 
-    @scope.setter
-    def scope(self, value: Optional[str] = None):
+    @fmg_scope.setter
+    def fmg_scope(self, value: Optional[str] = None):
         if value:
             # if input already in /adom/... then fix it
             self._scope = "global" if value == "global" else f"adom/{value}".replace("adom/adom", "adom")
@@ -121,11 +121,18 @@ class FMGObject(FMGBaseObject, ABC):
 
 
 class FMGExecObject(FMGBaseObject, ABC):
-    """FMG execute job type"""
+    """FMG execute job type
+
+    Attributes:
+        scope (str): FMG selected scope (adom or global)
+        _version (str): Supported API version
+        _url (str): template for API URL
+        _fmg (FMG): FMG instance
+    """
 
     @property
     def data(self):
-        return self.model_dump(by_alias=True)
+        return self.model_dump(by_alias=True, exclude_none=True)
 
     def exec(self):
         """Exec FMG operation on this object"""

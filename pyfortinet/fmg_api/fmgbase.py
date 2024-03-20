@@ -87,7 +87,7 @@ def lock(func: Callable) -> Callable:
                     else:
                         raise FMGException(f"No ADOM found to lock in url '{url}'") from err
                 else:
-                    adom = args[0].scope
+                    adom = args[0].fmg_scope
                 if adom not in self.lock.locked_adoms:
                     self.lock(adom)
                 else:  # ADOM already locked, do not try to lock it again
