@@ -386,12 +386,12 @@ class AsyncFMGBase:
             status = result["status"]
             if status["code"] == 0:
                 continue
-            if status["message"] == "no write permission":
+            if status["message"] == "No permission for the resource":
+                raise FMGAuthenticationException(status)
+            if re.search(r"no( write)? permission$", status["message"], flags=re.I):
                 raise FMGLockNeededException(status)
             if status["message"] == "Workspace is locked by other user":
                 raise FMGLockException(status)
-            if status["message"] == "No permission for the resource":
-                raise FMGAuthenticationException(status)
             if status["message"] == "The data is invalid for selected url":
                 raise FMGInvalidDataException(status)
             if status["message"] == "Object already exists":
