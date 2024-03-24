@@ -10,7 +10,11 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List, Coroutine
 from dataclasses import dataclass, field
 
-import aiohttp
+try:
+    import aiohttp
+except ModuleNotFoundError:
+    """async install option"""
+
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
@@ -292,6 +296,10 @@ class AsyncFMGBase:
             discard_on_close (bool): Discard changes after connection close (workspace mode)
             discard_on_error (bool): Discard changes when exception occurs (workspace mode)
         """
+        try:
+            import aiohttp
+        except ModuleNotFoundError:
+            raise Exception("Please install aiohttp or pip install pyfortinet[async]!")
         if not settings:
             settings = FMGSettings(**kwargs)
         self._settings = settings

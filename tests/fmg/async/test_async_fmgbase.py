@@ -3,7 +3,10 @@
 from copy import deepcopy
 
 import pytest
-from aiohttp import ClientConnectorError
+try:
+    from aiohttp import ClientConnectorError
+except ModuleNotFoundError:
+    """support optional async"""
 from pydantic import SecretStr, ValidationError
 
 from pyfortinet import AsyncFMGBase
