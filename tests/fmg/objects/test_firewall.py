@@ -1,7 +1,9 @@
 """Test of human API"""
+
 import pytest
 from pyfortinet import FMG, FMGSettings
 from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.dvmdb import Device
 from pyfortinet.fmg_api.firewall import Address
 
 
@@ -33,3 +35,8 @@ class TestObjectsOnLab:
         assert result
         result = fmg.get(Address, F(name="test-firewall-address"))
         assert result and not result.data  # ensure empty result
+
+    # def test_firewall_address_mapping(self, fmg):
+    #     server = fmg.get_obj(Address, name="test-server", subnet="10.0.0.1/32")
+    #     FG01 = fmg.get(Device, F(name="FG01")).first()
+    #     assert True

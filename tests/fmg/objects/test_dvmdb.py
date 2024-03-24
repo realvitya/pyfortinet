@@ -1,4 +1,5 @@
 """Test of DVMDB object operations"""
+
 import pytest
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device

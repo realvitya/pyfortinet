@@ -24,7 +24,6 @@ dependencies = [
     "typer",
     "requests==2.31.0",
     "ruamel.yaml==0.17.20",
-    "aiohttp",
     "more-itertools",
 ]
 
@@ -33,7 +32,7 @@ dev = [
     "pytest-cov",
     "pytest",
     "pytest-async",
-    #"pytest-dependency",
+    "pytest-dependency",
     "flit",
     "invoke",
     "pre-commit",
@@ -46,22 +45,35 @@ dev = [
     "mkdocs-section-index",
     "mkdocstrings",
     "mkdocstrings-python",
+    "rich",
+    "aiohttp",
+]
+
+# fancy ouput should be optional
+rich = [
     "rich"
 ]
 
-rich = [
-    "rich"
+# async should be optional
+async = [
+    "aiohttp"
+]
+
+# to ease installing all optional dependencies
+all = [
+    "rich",
+    "async"
 ]
 
 [tool.flit.module]
 name = "pyfortinet"
 
 [project.scripts]
-fortiapi = "pyfortinet.main:main"
+#fortiapi = "pyfortinet.main:main"  # TDB
 
 [project.urls]
-Source = "https://github.com/viktorkertesz/pyfortinet"
-#Documentation = "https://"
+Source = "https://github.com/realvitya/pyfortinet"
+Documentation = "https://realvitya.github.io/pyfortinet/"
 
 [tool.pytest.ini_options]
 minversion = "6.0"

@@ -1,4 +1,5 @@
 """Test of human API"""
+
 import asyncio
 
 from pyfortinet import AsyncFMG
