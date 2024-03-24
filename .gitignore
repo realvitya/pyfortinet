@@ -6,3 +6,6 @@ __pycache__
 .coverage
 .relint.yml
 lab-config.yml
+site/
+.pytest_cache
+.ruff_cache

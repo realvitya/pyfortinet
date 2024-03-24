@@ -2,7 +2,7 @@
 from typing import Literal, Union
 
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.address import Address, AddressGroup
+from pyfortinet.fmg_api.firewall import Address, AddressGroup
 
 Action = Literal["deny", "accept", "ipsec", "ssl-vpn", "redirect", "isolate"]
 
