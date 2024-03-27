@@ -47,7 +47,7 @@ nav:
   - User Guide:
       - Quick Start Guide: user_guide/quickstart.md
       - Installation: user_guide/installation.md
-#      - Basic Usage: user_guide/basic_usage.md
+      - Howto: user_guide/howto.md
   - Developer Guide:
       - General guide: developer_guide/index.md
       - Lab setup: developer_guide/lab_setup.md

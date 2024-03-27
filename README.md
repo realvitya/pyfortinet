@@ -45,7 +45,7 @@ config = {
 }
 with FMG(**config) as fmg:
     # create and assign new address object to FMG
-    server1 = fmg.get_obj(Address, name="server1", subnet="192.168.0.1/32")
+    server1 = fmg.get_obj(Address(name="server1", subnet="192.168.0.1/32"))
     server1.add()
     # get exact address object from FMG
     server2 = fmg.get(Address, F(name="server2")).first()
@@ -84,7 +84,7 @@ async def main():
     }
     async with AsyncFMG(**config) as fmg:
         # create and assign new address object to FMG
-        server1 = fmg.get_obj(Address, name="server1", subnet="192.168.0.1/32")
+        server1 = fmg.get_obj(Address(name="server1", subnet="192.168.0.1/32"))
         await server1.add()
         # get list of addresses from FMG and pick the first element
         address = (await fmg.get(Address, F(name__like="test-firewall-addr%"))).first()
