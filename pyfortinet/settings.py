@@ -1,4 +1,5 @@
 """Fortimanager settings"""
+
 from typing import Annotated
 
 from pydantic import Field, SecretStr, field_validator
@@ -28,8 +29,12 @@ class FMGSettings(BaseSettings):
     ] = True
     timeout: Annotated[float, Field(description="Connection timeout for requests in seconds")] = 120.0
     raise_on_error: Annotated[bool, Field(description="Raise exception on error")] = True
-    discard_on_close: Annotated[bool, Field(description="Discard changes after connection close (workspace mode)")] = False
-    discard_on_error: Annotated[bool, Field(description="Discard changes when exception occurs (workspace mode)")] = True
+    discard_on_close: Annotated[bool, Field(description="Discard changes after connection close (workspace mode)")] = (
+        False
+    )
+    discard_on_error: Annotated[bool, Field(description="Discard changes when exception occurs (workspace mode)")] = (
+        True
+    )
 
     @field_validator("base_url", mode="before")
     def check_base_url(cls, v: str):
