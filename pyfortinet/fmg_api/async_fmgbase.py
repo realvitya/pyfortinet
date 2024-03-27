@@ -129,8 +129,8 @@ class AsyncFMGResponse:
                 return self.data.get("data")[0] if self.data.get("data") else None
             else:
                 return self.data.get("data")
-        elif isinstance(self.data, list):
-            return self.data[0] if self.data[0] else None
+        elif isinstance(self.data, list) and self.data:  # non-empty list
+            return self.data[0]
         return None
 
     async def wait_for_task(
