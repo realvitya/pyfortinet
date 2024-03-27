@@ -519,7 +519,7 @@ class FMGBase:
 
     @auth_required
     @lock
-    def add(self, request: dict[str, str]) -> FMGResponse:
+    def add(self, request: dict[str, Any]) -> FMGResponse:
         """Add operation
 
         Args:
@@ -572,7 +572,7 @@ class FMGBase:
 
     @auth_required
     @lock
-    def update(self, request: dict[str, str]) -> FMGResponse:
+    def update(self, request: dict[str, Any]) -> FMGResponse:
         """Update operation
 
         Args:
@@ -625,7 +625,7 @@ class FMGBase:
 
     @auth_required
     @lock
-    def set(self, request: dict[str, str]) -> FMGResponse:
+    def set(self, request: dict[str, Any]) -> FMGResponse:
         """Set operation
 
         Args:

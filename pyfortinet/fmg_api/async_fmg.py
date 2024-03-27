@@ -170,7 +170,7 @@ class AsyncFMG(AsyncFMGBase):
         result.success = True
         return result
 
-    async def add(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    async def add(self, request: Union[dict[str, Any], FMGObject]) -> AsyncFMGResponse:
         """Add operation
 
         Args:
@@ -285,7 +285,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def update(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    async def update(self, request: Union[dict[str, Any], FMGObject]) -> AsyncFMGResponse:
         """Update operation
 
         Args:
@@ -346,7 +346,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def set(self, request: Union[dict[str, str], FMGObject]) -> AsyncFMGResponse:
+    async def set(self, request: Union[dict[str, Any], FMGObject]) -> AsyncFMGResponse:
         """Set operation
 
         Args:
@@ -407,7 +407,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    async def exec(self, request: Union[dict[str, str], FMGExecObject]) -> AsyncFMGResponse:
+    async def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> AsyncFMGResponse:
         """Execute on FMG"""
         if isinstance(request, dict):  # low-level operation
             return await super().exec(request)

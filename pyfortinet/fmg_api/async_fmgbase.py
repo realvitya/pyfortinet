@@ -535,7 +535,7 @@ class AsyncFMGBase:
 
     @auth_required
     @lock
-    async def add(self, request: dict[str, str]) -> AsyncFMGResponse:
+    async def add(self, request: dict[str, Any]) -> AsyncFMGResponse:
         """Add operation
 
         Args:
@@ -591,7 +591,7 @@ class AsyncFMGBase:
 
     @auth_required
     @lock
-    async def update(self, request: dict[str, str]) -> AsyncFMGResponse:
+    async def update(self, request: dict[str, Any]) -> AsyncFMGResponse:
         """Update operation
 
         Args:
@@ -647,7 +647,7 @@ class AsyncFMGBase:
 
     @auth_required
     @lock
-    async def set(self, request: dict[str, str]) -> AsyncFMGResponse:
+    async def set(self, request: dict[str, Any]) -> AsyncFMGResponse:
         """Set operation
 
         Args:

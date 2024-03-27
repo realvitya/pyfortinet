@@ -166,7 +166,7 @@ class FMG(FMGBase):
         result.success = True
         return result
 
-    def add(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def add(self, request: Union[dict[str, Any], FMGObject]) -> FMGResponse:
         """Add operation
 
         Args:
@@ -271,7 +271,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def update(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def update(self, request: Union[dict[str, Any], FMGObject]) -> FMGResponse:
         """Update operation
 
         Args:
@@ -327,7 +327,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def set(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def set(self, request: Union[dict[str, Any], FMGObject]) -> FMGResponse:
         """Set operation
 
         Args:
@@ -383,7 +383,7 @@ class FMG(FMGBase):
                 raise FMGWrongRequestException(request)
             return response
 
-    def exec(self, request: Union[dict[str, str], FMGExecObject]) -> FMGResponse:
+    def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> FMGResponse:
         """Execute on FMG"""
         if isinstance(request, dict):  # low-level operation
             return super().exec(request)
