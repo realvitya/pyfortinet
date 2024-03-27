@@ -1,5 +1,6 @@
 """FMG API for humans"""
 import logging
+from inspect import isclass
 from typing import Optional, Union, Any, Type, List
 
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
@@ -418,11 +419,25 @@ class AsyncFMG(AsyncFMGBase):
             logger.error(result.data["error"])
             return result
 
-    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject]], **kwargs) -> AnyFMGObject:
-        """Get an object and tie it to this FMG"""
-        if not issubclass(obj, Union[FMGObject, FMGExecObject]):
-            raise TypeError(f"Argument {obj} is not an FMGObject or FMGExecObject type")
-        return obj(fmg=self, **kwargs)
+    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs) -> AnyFMGObject:
+        """Get an object and tie it to this FMG
+
+        Arguments:
+            obj: Any type or instance of FMGObject or FMGExecObject
+
+        Keyword Args:
+            kwargs: fields for the new object initialization
+
+        Returns:
+            (AnyFMGObject): New object, tied to this FMG
+        """
+        if isinstance(obj, Union[FMGObject, FMGExecObject]):
+            obj._fmg = self
+            return obj
+        elif isclass(obj) and issubclass(obj, Union[FMGObject, FMGExecObject]):
+            return obj(fmg=self, **kwargs)
+
+        raise TypeError(f"Argument {obj} is not an FMGObject or FMGExecObject type")
 
     async def get_adom_list(self, filters: FILTER_TYPE = None) -> Optional[List[str]]:
         """Gather adoms from FMG
