@@ -132,6 +132,7 @@ class FMG(FMGBase):
             body = {
                 "method": "get",
                 "params": [{"url": url, **api_request}],
+                "verbose": 1,
                 "session": self._token.get_secret_value(),
                 "id": self._id,
             }

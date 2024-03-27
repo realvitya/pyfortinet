@@ -508,6 +508,7 @@ class AsyncFMGBase:
         body = {
             "method": "get",
             "params": [request],
+            "verbose": 1,  # get string values instead of numeric
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
