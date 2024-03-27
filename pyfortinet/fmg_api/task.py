@@ -73,7 +73,7 @@ class TaskLine(FMGObject):
 
     @field_validator("state", mode="before")
     def validate_src(cls, v: int) -> TASK_STATE:
-        return TASK_STATE.__dict__.get("__args__")[v]
+        return TASK_STATE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
 
 class Task(FMGObject):
@@ -100,8 +100,8 @@ class Task(FMGObject):
 
     @field_validator("src", mode="before")
     def validate_src(cls, v: int) -> TASK_SRC:
-        return TASK_SRC.__dict__.get("__args__")[v]
+        return TASK_SRC.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("state", mode="before")
     def validate_state(cls, v: int) -> TASK_STATE:
-        return TASK_STATE.__dict__.get("__args__")[v]
+        return TASK_STATE.__dict__.get("__args__")[v] if isinstance(v, int) else v

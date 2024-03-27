@@ -91,7 +91,8 @@ class BaseDevice(BaseModel):
     @field_validator("ip")
     def validate_ip(cls, v):
         """validate input but still represent the string"""
-        IPvAnyAddress(v)
+        if v:
+            assert IPvAnyAddress(v)
         return v
 
     @field_validator("mgmt_mode", mode="before")
@@ -209,11 +210,11 @@ class VDOM(FMGObject):
     )
 
     @field_validator("opmode", mode="before")
-    def validate_opmode(cls, v: int) -> OP_MODE:
+    def validate_opmode(cls, v) -> OP_MODE:
         return OP_MODE.__dict__.get("__args__")[v-1] if isinstance(v, int) else v
 
     @field_validator("vdom_type", mode="before")
-    def validate_vdom_type(cls, v: int) -> VDOM_TYPE:
+    def validate_vdom_type(cls, v) -> VDOM_TYPE:
         return VDOM_TYPE.__dict__.get("__args__")[v-1] if isinstance(v, int) else v
 
 
@@ -245,15 +246,15 @@ class HASlave(FMGObject):
     status: CONN_STATUS
 
     @field_validator("conf_status", mode="before")
-    def validate_conf_status(cls, v: int) -> CONF_STATUS:
+    def validate_conf_status(cls, v) -> CONF_STATUS:
         return CONF_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("role", mode="before")
-    def validate_role(cls, v: int) -> ROLE:
+    def validate_role(cls, v) -> ROLE:
         return ROLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("status", mode="before")
-    def validate_status(cls, v: int) -> CONN_STATUS:
+    def validate_status(cls, v) -> CONN_STATUS:
         return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
 
@@ -304,13 +305,13 @@ class Device(FMGObject, BaseDevice):
     ha_slave: Optional[List[HASlave]] = None
 
     @field_validator("conf_status", mode="before")
-    def validate_conf_status(cls, v: int) -> CONF_STATUS:
+    def validate_conf_status(cls, v) -> CONF_STATUS:
         return CONF_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("conn_mode", mode="before")
-    def validate_conn_mode(cls, v: int) -> CONN_MODE:
+    def validate_conn_mode(cls, v) -> CONN_MODE:
         return CONN_MODE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("conn_status", mode="before")
-    def validate_conn_type(cls, v: int) -> CONN_STATUS:
+    def validate_conn_type(cls, v) -> CONN_STATUS:
         return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
