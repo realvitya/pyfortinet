@@ -45,6 +45,7 @@ dev = [
     "mkdocs-section-index",
     "mkdocstrings",
     "mkdocstrings-python",
+    # optional dependencies
     "rich",
     "aiohttp",
 ]
@@ -62,7 +63,7 @@ async = [
 # to ease installing all optional dependencies
 all = [
     "rich",
-    "async"
+    "aiohttp"
 ]
 
 [tool.flit.module]
