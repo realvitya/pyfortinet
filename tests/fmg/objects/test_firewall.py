@@ -50,12 +50,13 @@ class TestObjectsOnLab:
         # create server object in FMG
         server.add()
         # create a mapping to server object with the fw device and different IP
-        server.dynamic_mapping = [Address(mapping__scope=[{"name": fw.name, "vdom": "root"}], subnet="2.2.2.2")]
+        # server.dynamic_mapping = [Address(mapping__scope=[{"name": fw.name, "vdom": "root"}], subnet="2.2.2.2")]
+        server.dynamic_mapping = [Address(mapping__scope=fw.get_vdom_scope("root"), subnet="2.2.2.2")]
         # update server object in FMG
         result = server.update()
         assert result
         # re-load server object from FMG
-        server = fmg.get(Address, F(name="test-server")).first()
+        server: Address = fmg.get(Address, F(name="test-server")).first()
         # check if we have our mapping
         assert any(address.subnet == "2.2.2.2/32" for address in server.dynamic_mapping)
         #

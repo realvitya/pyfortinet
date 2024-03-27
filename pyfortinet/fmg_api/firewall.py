@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union, List
 from uuid import UUID
 
 from more_itertools import first
-from pydantic import Field, ValidationInfo, field_validator, AliasChoices, BaseModel
+from pydantic import Field, field_validator, AliasChoices, BaseModel
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
@@ -126,7 +126,7 @@ class Address(FMGObject):
     comment: Optional[str] = None
     country: Optional[str] = None
     dirty: Optional[DIRTY] = None
-    dynamic_mapping: Optional[list["Address"]] = None
+    dynamic_mapping: Optional[Union[List["Address"], "Address"]] = None
     end_ip: Optional[str] = None
     epg_name: Optional[str] = Field(
         None, validation_alias=AliasChoices("epg-name", "epg_name"), serialization_alias="epg-name"
@@ -193,7 +193,7 @@ class Address(FMGObject):
     global_object: Optional[int] = Field(
         None, validation_alias=AliasChoices("global-object", "global_object"), serialization_alias="global-object"
     )
-    mapping__scope: Optional[List[Union[dict, Scope]]] = Field(
+    mapping__scope: Optional[Union[Union[dict, Scope], List[Union[dict, Scope]]]] = Field(
         None, validation_alias=AliasChoices("_scope", "mapping__scope"), serialization_alias="_scope"
     )
 

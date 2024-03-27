@@ -5,6 +5,7 @@ from typing import Literal, Optional, List, Dict, Union
 from pydantic import Field, field_validator, AliasChoices, BaseModel, IPvAnyAddress
 
 from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api.common import Scope
 
 CONF_STATUS = Literal["unknown", "insync", "outofsync"]
 CONN_MODE = Literal["active", "passive"]
@@ -316,3 +317,13 @@ class Device(FMGObject, BaseDevice):
     @field_validator("conn_status", mode="before")
     def validate_conn_type(cls, v) -> CONN_STATUS:
         return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    def get_vdom_scope(self, vdom: str) -> Optional[Scope]:
+        """Get Scope for a VDOM to be used by filters
+
+        Returns:
+            (Scope or None): The scope for the given VDOM
+        """
+        if vdom in (s_vdom.name for s_vdom in self.vdom):
+            return Scope(name=self.name, vdom=vdom)
+        return None
