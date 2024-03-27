@@ -1,4 +1,5 @@
 """Fortinet Policy object"""
+
 from typing import Literal, Union
 
 from pyfortinet.fmg_api import FMGObject

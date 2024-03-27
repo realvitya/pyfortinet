@@ -1,4 +1,5 @@
 """FMG API library"""
+
 from abc import ABC
 from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
 
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from pyfortinet import FMG, AsyncFMG
+
     AnyFMG = Union[FMG, AsyncFMG]
 from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException
 
@@ -19,7 +21,7 @@ GetOption = Literal[
     "devinfo",  # This option could be used to obtain a kind of ADOM checksum used to detect whether a change was made.
     "obj flags",
     "datasrc",  # This option is generally used to get list of possible object types and the objects themselves that
-                # could be used within an object you want to create or update.
+    # could be used within an object you want to create or update.
     "chksum",  # This option is used to retrieve the version or checksum of a specific table.
 ]
 

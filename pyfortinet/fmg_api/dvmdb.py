@@ -167,6 +167,7 @@ class ModelDevice(FMGObject, BaseDevice):
         device_blueprint (str): Device blueprint name
         platform_str (str): Platform string for virtual device
     """
+
     device_action: DEVICE_ACTION = Field(
         "add_model",
         validation_alias=AliasChoices("device action", "device_action"),
@@ -211,11 +212,11 @@ class VDOM(FMGObject):
 
     @field_validator("opmode", mode="before")
     def validate_opmode(cls, v) -> OP_MODE:
-        return OP_MODE.__dict__.get("__args__")[v-1] if isinstance(v, int) else v
+        return OP_MODE.__dict__.get("__args__")[v - 1] if isinstance(v, int) else v
 
     @field_validator("vdom_type", mode="before")
     def validate_vdom_type(cls, v) -> VDOM_TYPE:
-        return VDOM_TYPE.__dict__.get("__args__")[v-1] if isinstance(v, int) else v
+        return VDOM_TYPE.__dict__.get("__args__")[v - 1] if isinstance(v, int) else v
 
 
 ROLE = Literal["slave", "master"]

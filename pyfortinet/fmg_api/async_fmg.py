@@ -1,7 +1,8 @@
 """FMG API for humans"""
+
 import logging
 from inspect import isclass
-from typing import Optional, Union, Any, Type, List
+from typing import Optional, Union, Any, Type, List, Dict
 
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException
@@ -59,7 +60,7 @@ class AsyncFMG(AsyncFMGBase):
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
-        options: Optional[List[GetOption]] = None
+        options: Optional[List[GetOption]] = None,
     ) -> AsyncFMGResponse:
         """Get info from FMG
 
@@ -276,7 +277,9 @@ class AsyncFMG(AsyncFMGBase):
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.fmg_scope = request.fmg_scope or self._settings.adom
-            return await super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
+            return await super().delete(
+                {"url": f"{request.get_url}/{request.name}"}
+            )  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -416,17 +419,19 @@ class AsyncFMG(AsyncFMGBase):
             request.fmg_scope = request.fmg_scope or self._settings.adom
             return await super().exec({"url": request.get_url, "data": request.data})
         else:
-            result = AsyncFMGResponse(fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400)
+            result = AsyncFMGResponse(
+                fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400
+            )
             logger.error(result.data["error"])
             return result
 
-    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs) -> AnyFMGObject:
+    def get_obj(
+        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Dict[str, Any]
+    ) -> AnyFMGObject:
         """Get an object and tie it to this FMG
 
         Arguments:
             obj: Any type or instance of FMGObject or FMGExecObject
-
-        Keyword Args:
             kwargs: fields for the new object initialization
 
         Returns:

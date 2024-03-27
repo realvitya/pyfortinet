@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 import pytest
+
 try:
     from aiohttp import ClientConnectorError
 except ModuleNotFoundError:

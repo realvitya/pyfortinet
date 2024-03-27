@@ -34,7 +34,9 @@ FABRIC_OBJECT = Literal["disable", "enable"]
 NODE_IP_ONLY = Literal["disable", "enable"]
 OBJ_TYPE = Literal["ip", "mac"]
 SDN_ADDR_TYPE = Literal["private", "public", "all"]
-SUB_TYPE = Literal[ "sdn", "clearpass-spt", "fsso", "ems-tag", "swc-tag", "fortivoice-tag", "fortinac-tag", "fortipolicy-tag" ]
+SUB_TYPE = Literal[
+    "sdn", "clearpass-spt", "fsso", "ems-tag", "swc-tag", "fortivoice-tag", "fortinac-tag", "fortipolicy-tag"
+]
 
 
 class Address(FMGObject):
@@ -89,12 +91,15 @@ class Address(FMGObject):
         global_object (int): global object related to this address.
         mapping__scope (List[dict, Scope]): the mapping scope for this address.
     """
+
     class AddressList(BaseModel):
         ip: Optional[str] = None
-        net_id: Optional[str] = Field(None, validation_alias=AliasChoices("net-id", "net_id"),
-                                      serialization_alias="net-id")
-        obj_id: Optional[str] = Field(None, validation_alias=AliasChoices("obj-id", "obj_id"),
-                                      serialization_alias="obj-id")
+        net_id: Optional[str] = Field(
+            None, validation_alias=AliasChoices("net-id", "net_id"), serialization_alias="net-id"
+        )
+        obj_id: Optional[str] = Field(
+            None, validation_alias=AliasChoices("obj-id", "obj_id"), serialization_alias="obj-id"
+        )
 
     class AddressTagging(BaseModel):
         category: Optional[str] = None
@@ -111,48 +116,86 @@ class Address(FMGObject):
         validation_alias=AliasChoices("associated-interface", "associated_interface"),
         serialization_alias="associated-interface",
     )
-    cache_ttl: Optional[int] = Field(None, validation_alias=AliasChoices("cache-ttl", "cache_ttl"), serialization_alias="cache-ttl")
-    clearpass_spt: Optional[CLEARPASS_SPT] = Field(None, validation_alias=AliasChoices("clearpass-spt", "clearpass_spt"), serialization_alias="clearpass-spt")
+    cache_ttl: Optional[int] = Field(
+        None, validation_alias=AliasChoices("cache-ttl", "cache_ttl"), serialization_alias="cache-ttl"
+    )
+    clearpass_spt: Optional[CLEARPASS_SPT] = Field(
+        None, validation_alias=AliasChoices("clearpass-spt", "clearpass_spt"), serialization_alias="clearpass-spt"
+    )
     color: Optional[int] = None
     comment: Optional[str] = None
     country: Optional[str] = None
     dirty: Optional[DIRTY] = None
     dynamic_mapping: Optional[list["Address"]] = None
     end_ip: Optional[str] = None
-    epg_name: Optional[str] = Field(None, validation_alias=AliasChoices("epg-name", "epg_name"), serialization_alias="epg-name")
-    fabric_object: Optional[FABRIC_OBJECT] = Field(None, validation_alias=AliasChoices("fabric-object", "fabric_object"), serialization_alias="fabric-object")
+    epg_name: Optional[str] = Field(
+        None, validation_alias=AliasChoices("epg-name", "epg_name"), serialization_alias="epg-name"
+    )
+    fabric_object: Optional[FABRIC_OBJECT] = Field(
+        None, validation_alias=AliasChoices("fabric-object", "fabric_object"), serialization_alias="fabric-object"
+    )
     filter: Optional[str] = None
     fqdn: Optional[str] = None
-    fsso_group: Optional[List[str]] = Field(None, validation_alias=AliasChoices("fsso-group", "fsso_group"), serialization_alias="fsso-group")
+    fsso_group: Optional[List[str]] = Field(
+        None, validation_alias=AliasChoices("fsso-group", "fsso_group"), serialization_alias="fsso-group"
+    )
     interface: Optional[str] = None
     list: Optional[List["AddressList"]] = None
     macaddr: Optional[List[str]] = None
-    node_ip_only: Optional[NODE_IP_ONLY] = Field(None, validation_alias=AliasChoices("node-ip-only", "node_ip_only"), serialization_alias="node-ip-only")
+    node_ip_only: Optional[NODE_IP_ONLY] = Field(
+        None, validation_alias=AliasChoices("node-ip-only", "node_ip_only"), serialization_alias="node-ip-only"
+    )
     obj_id: Optional[str] = Field(None, validation_alias=AliasChoices("obj-id", "obj_id"), serialization_alias="obj-id")
-    obj_tag: Optional[str] = Field(None, validation_alias=AliasChoices("obj-tag", "obj_tag"), serialization_alias="obj-tag")
-    obj_type: Optional[OBJ_TYPE] = Field(None, validation_alias=AliasChoices("obj-type", "obj_type"), serialization_alias="obj-type")
+    obj_tag: Optional[str] = Field(
+        None, validation_alias=AliasChoices("obj-tag", "obj_tag"), serialization_alias="obj-tag"
+    )
+    obj_type: Optional[OBJ_TYPE] = Field(
+        None, validation_alias=AliasChoices("obj-type", "obj_type"), serialization_alias="obj-type"
+    )
     organization: Optional[str] = None
-    policy_group: Optional[str] = Field(None, validation_alias=AliasChoices("policy-group", "policy_group"), serialization_alias="policy-group")
+    policy_group: Optional[str] = Field(
+        None, validation_alias=AliasChoices("policy-group", "policy_group"), serialization_alias="policy-group"
+    )
     sdn: Optional[str] = None
-    sdn_addr_type: Optional[SDN_ADDR_TYPE] = Field(None, validation_alias=AliasChoices("sdn-addr-type", "sdn_addr_type"), serialization_alias="sdn-addr-type")
-    sdn_tag: Optional[str] = Field(None, validation_alias=AliasChoices("sdn-tag", "sdn_tag"), serialization_alias="sdn-tag")
-    start_ip: Optional[str] = Field(None, validation_alias=AliasChoices("start-ip", "start_ip"), serialization_alias="start-ip")
-    sub_type: Optional[SUB_TYPE] = Field(None, validation_alias=AliasChoices("sub-type", "sub_type"), serialization_alias="sub-type")
+    sdn_addr_type: Optional[SDN_ADDR_TYPE] = Field(
+        None, validation_alias=AliasChoices("sdn-addr-type", "sdn_addr_type"), serialization_alias="sdn-addr-type"
+    )
+    sdn_tag: Optional[str] = Field(
+        None, validation_alias=AliasChoices("sdn-tag", "sdn_tag"), serialization_alias="sdn-tag"
+    )
+    start_ip: Optional[str] = Field(
+        None, validation_alias=AliasChoices("start-ip", "start_ip"), serialization_alias="start-ip"
+    )
+    sub_type: Optional[SUB_TYPE] = Field(
+        None, validation_alias=AliasChoices("sub-type", "sub_type"), serialization_alias="sub-type"
+    )
     subnet: Optional[Union[str, List[str]]] = None
-    subnet_name: Optional[str] = Field(None, validation_alias=AliasChoices("subnet-name", "subnet_name"), serialization_alias="subnet-name")
-    tag_detection_level: Optional[str] = Field(None, validation_alias=AliasChoices("tag-detection-level", "tag_detection_level"), serialization_alias="tag-detection-level")
-    tag_type: Optional[str] = Field(None, validation_alias=AliasChoices("tag-type", "tag_type"), serialization_alias="tag-type")
+    subnet_name: Optional[str] = Field(
+        None, validation_alias=AliasChoices("subnet-name", "subnet_name"), serialization_alias="subnet-name"
+    )
+    tag_detection_level: Optional[str] = Field(
+        None,
+        validation_alias=AliasChoices("tag-detection-level", "tag_detection_level"),
+        serialization_alias="tag-detection-level",
+    )
+    tag_type: Optional[str] = Field(
+        None, validation_alias=AliasChoices("tag-type", "tag_type"), serialization_alias="tag-type"
+    )
     tagging: Optional[List[AddressTagging]] = None
     tenant: Optional[str] = None
     type: Optional[ADDRESS_TYPE] = None
     uuid: Optional[str] = None
     wildcard: Optional[str] = None
-    wildcard_fqdn: Optional[str] = Field(None, validation_alias=AliasChoices("wildcard-fqdn", "wildcard_fqdn"), serialization_alias="wildcard-fqdn")
+    wildcard_fqdn: Optional[str] = Field(
+        None, validation_alias=AliasChoices("wildcard-fqdn", "wildcard_fqdn"), serialization_alias="wildcard-fqdn"
+    )
     # Mapping fields
     global_object: Optional[int] = Field(
         None, validation_alias=AliasChoices("global-object", "global_object"), serialization_alias="global-object"
     )
-    mapping__scope: Optional[List[Union[dict, Scope]]] = Field(None, validation_alias=AliasChoices("_scope", "mapping__scope"), serialization_alias="_scope")
+    mapping__scope: Optional[List[Union[dict, Scope]]] = Field(
+        None, validation_alias=AliasChoices("_scope", "mapping__scope"), serialization_alias="_scope"
+    )
 
     @field_validator("subnet")
     def standardize_subnet(cls, v):

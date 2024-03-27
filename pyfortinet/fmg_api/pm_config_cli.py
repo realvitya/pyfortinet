@@ -1,2 +1,3 @@
 """CLI template operations"""
+
 GETS = {}

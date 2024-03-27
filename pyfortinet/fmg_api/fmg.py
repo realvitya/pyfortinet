@@ -1,7 +1,8 @@
 """FMG API for humans"""
+
 import logging
 from inspect import isclass
-from typing import Optional, Union, Any, Type, List
+from typing import Optional, Union, Any, Type, List, Dict
 
 from more_itertools import first
 
@@ -61,7 +62,7 @@ class FMG(FMGBase):
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
-        options: Optional[List[GetOption]] = None
+        options: Optional[List[GetOption]] = None,
     ) -> FMGResponse:
         """Get info from FMG
 
@@ -262,7 +263,9 @@ class FMG(FMGBase):
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.fmg_scope = request.fmg_scope or self._settings.adom
-            return super().delete({"url": f"{request.get_url}/{request.name}"})  # assume URL with name for del operation
+            return super().delete(
+                {"url": f"{request.get_url}/{request.name}"}
+            )  # assume URL with name for del operation
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
@@ -396,7 +399,9 @@ class FMG(FMGBase):
             logger.error(result.data["error"])
             return result
 
-    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs) -> AnyFMGObject:
+    def get_obj(
+        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Dict[str, Any]
+    ) -> AnyFMGObject:
         """Get an object and tie it to this FMG
 
         Arguments:

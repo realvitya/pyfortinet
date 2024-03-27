@@ -1,4 +1,5 @@
 """Security console API"""
+
 from typing import Optional, Literal, List
 
 from pyfortinet.fmg_api import FMGExecObject, FMGObject
@@ -16,6 +17,7 @@ class InstallDeviceTask(FMGExecObject):
         flags (List[INSTALL_DEVICE_FLAGS]): flags for the task
         scope (List[Scope]): scopes for the task (e.g. group name or device with vdom)
     """
+
     _url = "/securityconsole/install/device"
     adom: Optional[str] = None
     dev_rev_comments: Optional[str] = None

@@ -1,4 +1,5 @@
 """Task"""
+
 from typing import Literal, Optional, Union, List
 
 from pydantic import Field, field_validator, model_validator
@@ -78,6 +79,7 @@ class TaskLine(FMGObject):
 
 class Task(FMGObject):
     """Task class"""
+
     _url = "/task/task"
 
     adom: Optional[int]

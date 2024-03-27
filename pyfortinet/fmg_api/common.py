@@ -1,4 +1,5 @@
 """Common objects"""
+
 import re
 from typing import Literal, List, Union, Optional
 
@@ -224,7 +225,7 @@ def text_to_filter(text: str) -> FILTER_TYPE:
 
      Raises:
          ValueError: text cannot be parsed
-     """
+    """
     text = text.strip()
     while text:
         # search F tokens
@@ -239,7 +240,7 @@ def text_to_filter(text: str) -> FILTER_TYPE:
                 f_token = F(**kwargs)
         else:
             raise ValueError(f"Couldn't parse '{text}'!")
-        text = text[f_match.end():].strip()
+        text = text[f_match.end() :].strip()
         if not text:
             return f_token
         # search list or complex filter ops
@@ -248,7 +249,7 @@ def text_to_filter(text: str) -> FILTER_TYPE:
             op = {"and": "&&", "or": "||", ",": ","}.get(op_match.group("op"))
         else:
             raise ValueError(f"Couldn't parse '{text}'!")
-        text = text[op_match.end():].strip()
+        text = text[op_match.end() :].strip()
         f_token2 = text_to_filter(text)
         if op == ",":
             return FilterList(f_token, f_token2)

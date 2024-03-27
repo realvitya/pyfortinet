@@ -1,4 +1,5 @@
 """Pytest setup"""
+
 import asyncio
 from pathlib import Path
 
@@ -32,7 +33,7 @@ def prepare_lab():
     requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def fmg_base(request):
     # Create FMGBase object
     try:
@@ -50,7 +51,7 @@ def fmg_base(request):
     fmg.close(discard_changes=True)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def fmg(request):
     # Create FMG object
     try:
@@ -70,6 +71,7 @@ def fmg(request):
 
 class AsyncTestCase:
     """Base class for async test cases."""
+
     @pytest.fixture(scope="session")
     def event_loop(self):
         """Override default event loop
@@ -83,7 +85,7 @@ class AsyncTestCase:
         yield loop
         loop.close()
 
-    @pytest.fixture(autouse=True, scope='class')
+    @pytest.fixture(autouse=True, scope="class")
     async def fmg_base(self):
         """Create and use a single FMG instance during all class tests.
 
@@ -111,7 +113,7 @@ class AsyncTestCase:
         # Logout and close connection to FMG
         await fmg_base.close(discard_changes=True)
 
-    @pytest.fixture(autouse=True, scope='class')
+    @pytest.fixture(autouse=True, scope="class")
     async def fmg(self):
         """Create and use a single FMG instance during all class tests.
 
