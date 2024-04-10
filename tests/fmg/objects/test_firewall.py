@@ -3,7 +3,7 @@
 import pytest
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.firewall import Address
+from pyfortinet.fmg_api.firewall import Address, AddressGroup
 
 
 @pytest.mark.usefixtures("fmg")
@@ -76,3 +76,26 @@ class TestObjectsOnLab:
         # assert any(address.subnet == "2.2.2.2/32" for address in server.dynamic_mapping)
         # # check if we really deleted the second mapping
         # assert not any(address.subnet == "3.3.3.3/32" for address in server.dynamic_mapping)
+
+    def test_firewall_address_group(self, fmg):
+        # create members
+        member1 = fmg.get_obj(Address(name="test-address1", subnet="10.0.0.1"))
+        member2 = fmg.get_obj(Address(name="test-address2", subnet="10.0.0.2"))
+        member3 = fmg.get_obj(Address(name="test-address3", subnet="10.0.0.3"))
+        member1.add()
+        member2.add()
+        member3.add()
+        # create groups with members
+        group1 = fmg.get_obj(AddressGroup(name="test-group1", member=[member1, member2]))
+        group2 = fmg.get_obj(AddressGroup(name="test-group2", member=[member1, group1]))
+        assert group1.add()
+        assert group2.add()
+        group1.member.append(member3)
+        assert group1.update()
+        # check if members still match from FMG loaded object
+        assert [member.name for member in group1.member] == fmg.get(AddressGroup, F(name="test-group1")).first().member
+        # deleting objects must follow dependency tree else FMG error out by deleting object used
+        group2.delete()
+        group1.delete()
+        member1.delete()
+        member2.delete()
