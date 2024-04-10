@@ -63,6 +63,11 @@ class SomeAPICall(FMGObject):
     #
     # Validator example field:
     subnet: Optional[Union[str, list[str]]] = None
+    #
+    # Transforming data before API call (field_serializer):
+    # API expect list of object names and not all object data. It would cause invalid data error!
+    # Down below we need to define a field_serializer
+    members: List[Union[str, Address, "AddressGroup"] = None
 
     # Validators are used to standardize data
     # All of these are optional, these are just examples
@@ -88,6 +93,22 @@ class SomeAPICall(FMGObject):
         if self.action == "del":
             self.device = self.device.name  # deleting a device requires device id or name
         return self
+
+    # The serializer below will replace object dumps with .name field.
+    # You can specify multiple fields like here: members and exclude_members
+    # If you define this in a class which you reference inside this function, put the name into ""
+    # Like "AddressGroup" here.
+    # As a result, model dump will contain list of strings with reference to other member names only
+    @field_serializer("members", "exclude_members")
+    def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
+        """Ensure member names are passed to API as it is expected"""
+        serialized = []
+        for member in members:
+            if isinstance(member, str):
+                serialized.append(member)
+            serialized.append(member.name)
+        return serialized
+
 ```
 
 ### URL handling

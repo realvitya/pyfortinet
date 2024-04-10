@@ -5,14 +5,14 @@ from typing import Literal, Optional, Union, List
 from uuid import UUID
 
 from more_itertools import first
-from pydantic import Field, field_validator, AliasChoices, BaseModel
+from pydantic import Field, field_validator, AliasChoices, BaseModel, conlist, field_serializer
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
 
 ADDRESS_GROUP_TYPE = Literal["default", "array", "folder"]
 ADDRESS_GROUP_CATEGORY = Literal["default", "ztna-ems-tag", "ztna-geo-tag"]
-ALLOW_ROUTING = Literal["disable", "enable"]
+ENABLE_DISABLE = Literal["disable", "enable"]
 ADDRESS_TYPE = Literal[
     "ipmask",
     "iprange",
@@ -30,13 +30,17 @@ ADDRESS_TYPE = Literal[
 ]
 CLEARPASS_SPT = Literal["unknown", "healthy", "quarantine", "checkup", "transition", "infected", "transient"]
 DIRTY = Literal["dirty", "clean"]
-FABRIC_OBJECT = Literal["disable", "enable"]
-NODE_IP_ONLY = Literal["disable", "enable"]
 OBJ_TYPE = Literal["ip", "mac"]
 SDN_ADDR_TYPE = Literal["private", "public", "all"]
 SUB_TYPE = Literal[
     "sdn", "clearpass-spt", "fsso", "ems-tag", "swc-tag", "fortivoice-tag", "fortinac-tag", "fortipolicy-tag"
 ]
+
+
+class AddressTagging(BaseModel):
+    category: Optional[str] = None
+    name: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 class Address(FMGObject):
@@ -101,14 +105,9 @@ class Address(FMGObject):
             None, validation_alias=AliasChoices("obj-id", "obj_id"), serialization_alias="obj-id"
         )
 
-    class AddressTagging(BaseModel):
-        category: Optional[str] = None
-        name: Optional[str] = None
-        tags: Optional[List[str]] = None
-
     _url: str = "/pm/config/{scope}/obj/firewall/address"
     name: Optional[str] = Field(None, max_length=128)
-    allow_routing: Optional[ALLOW_ROUTING] = Field(
+    allow_routing: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
     )
     associated_interface: Optional[Union[str, list[str]]] = Field(
@@ -131,7 +130,7 @@ class Address(FMGObject):
     epg_name: Optional[str] = Field(
         None, validation_alias=AliasChoices("epg-name", "epg_name"), serialization_alias="epg-name"
     )
-    fabric_object: Optional[FABRIC_OBJECT] = Field(
+    fabric_object: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("fabric-object", "fabric_object"), serialization_alias="fabric-object"
     )
     filter: Optional[str] = None
@@ -142,7 +141,7 @@ class Address(FMGObject):
     interface: Optional[str] = None
     list: Optional[List["AddressList"]] = None
     macaddr: Optional[List[str]] = None
-    node_ip_only: Optional[NODE_IP_ONLY] = Field(
+    node_ip_only: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("node-ip-only", "node_ip_only"), serialization_alias="node-ip-only"
     )
     obj_id: Optional[str] = Field(None, validation_alias=AliasChoices("obj-id", "obj_id"), serialization_alias="obj-id")
@@ -218,8 +217,8 @@ class Address(FMGObject):
             return v
 
     @field_validator("allow_routing", mode="before")
-    def validate_allow_routing(cls, v) -> ALLOW_ROUTING:
-        return ALLOW_ROUTING.__dict__.get("__args__")[v] if isinstance(v, int) else v
+    def validate_allow_routing(cls, v) -> ENABLE_DISABLE:
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("type", mode="before")
     def validate_type(cls, v) -> ADDRESS_TYPE:
@@ -241,11 +240,11 @@ class Address(FMGObject):
 
     @field_validator("fabric_object", mode="before")
     def validate_fabric_object(cls, v) -> str:
-        return FABRIC_OBJECT.__dict__.get("__args__")[v] if isinstance(v, int) else v
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_validator("node_ip_only", mode="before")
     def validate_node_ip_only(cls, v) -> str:
-        return NODE_IP_ONLY.__dict__.get("__args__")[v] if isinstance(v, int) else v
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     # @field_validator("obj_type", mode="before")
     # def validate_obj_type(cls, v: int) -> str:
@@ -276,13 +275,52 @@ class Address(FMGObject):
 
 class AddressGroup(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
-    name: str
-    member: list[Address]
-    exclude_member: list[Address] = Field(
-        ..., validation_alias=AliasChoices("exclude-member", "exclude_member"), serialization_alias="exclude-member"
+    allow_routing: Optional[ENABLE_DISABLE] = Field(
+        None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
     )
-    comment: str = ""
-    category: ADDRESS_GROUP_CATEGORY = "default"
-    type: ADDRESS_GROUP_TYPE = "default"
-    uuid: Optional[UUID]
-    dynamic_mapping: list["AddressGroupMapping"]
+    category: Optional[ADDRESS_GROUP_CATEGORY] = "default"
+    color: Optional[int] = None
+    comment: Optional[str] = None
+    dynamic_mapping: Optional[Union[List["AddressGroup"], "AddressGroup"]] = None
+    exclude: Optional[ENABLE_DISABLE] = None
+    exclude_member: Optional[List[Union[str, Address, "AddressGroup"]]] = Field(
+        None, max_length=5000, validation_alias=AliasChoices("exclude-member", "exclude_member"), serialization_alias="exclude-member"
+    )
+    fabric_object: Optional[ENABLE_DISABLE] = None
+    member: Optional[List[Union[str, Address, "AddressGroup"]]] = Field(
+        None, max_length=5000
+    )
+    name: Optional[str] = None
+    tagging: Optional[List[AddressTagging]] = None
+    type: Optional[ADDRESS_GROUP_TYPE] = "default"
+    uuid: Optional[UUID] = None
+
+    @field_serializer("member", "exclude_member")
+    def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
+        """Ensure member names are passed to API as it is expected"""
+        serialized = []
+        for member in members:
+            if isinstance(member, str):
+                serialized.append(member)
+            serialized.append(member.name)
+        return serialized
+
+    @field_validator("allow_routing", mode="before")
+    def validate_allow_routing(cls, v) -> ENABLE_DISABLE:
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("category", mode="before")
+    def validate_category(cls, v) -> ADDRESS_GROUP_CATEGORY:
+        return ADDRESS_GROUP_CATEGORY.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("exclude", mode="before")
+    def validate_exclude(cls, v) -> ENABLE_DISABLE:
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("fabric_object", mode="before")
+    def validate_fabric_object(cls, v) ->ENABLE_DISABLE:
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("type", mode="before")
+    def validate_type(cls, v) -> ADDRESS_GROUP_TYPE:
+        return ADDRESS_GROUP_TYPE.__dict__.get("__args__")[v] if isinstance(v, int) else v
