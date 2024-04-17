@@ -33,10 +33,6 @@ class FMGUnhandledException(FMGException):
     """Unhandled error"""
 
 
-class FMGEmptyResultException(FMGException):
-    """No result for a request"""
-
-
 class FMGInvalidDataException(FMGException):
     """The data is invalid for selected url"""
 
