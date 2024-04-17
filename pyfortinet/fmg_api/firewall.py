@@ -106,6 +106,7 @@ class Address(FMGObject):
         )
 
     _url: str = "/pm/config/{scope}/obj/firewall/address"
+    _master_keys: list = ["name"]
     name: Optional[str] = Field(None, max_length=128)
     allow_routing: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
@@ -275,6 +276,7 @@ class Address(FMGObject):
 
 class AddressGroup(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
+    _master_keys: list = ["name"]
     allow_routing: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
     )

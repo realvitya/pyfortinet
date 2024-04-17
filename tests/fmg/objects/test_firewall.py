@@ -90,10 +90,14 @@ class TestObjectsOnLab:
         group2 = fmg.get_obj(AddressGroup(name="test-group2", member=[member1, group1]))
         assert group1.add()
         assert group2.add()
+        # add member3 in-memory
         group1.member.append(member3)
+        # update FMG
         assert group1.update()
+        # reload from FMG
+        group1.refresh()
         # check if members still match from FMG loaded object
-        assert [member.name for member in group1.member] == fmg.get(AddressGroup, F(name="test-group1")).first().member
+        assert group1.member == ["test-address1", "test-address2", "test-address3"]
         # deleting objects must follow dependency tree else FMG error out by deleting object used
         group2.delete()
         group1.delete()

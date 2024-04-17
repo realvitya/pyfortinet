@@ -66,6 +66,8 @@ DEVICE_ACTION = Literal["add_model", "promote_unreg"]
 
 
 class BaseDevice(BaseModel):
+    # internal attributes
+    _master_keys = ["name"]
     # api attributes
     name: str = Field(..., pattern=r"[\w-]{1,36}")  # master key, mandatory
     adm_usr: Optional[str] = Field(None, max_length=36)
@@ -193,8 +195,9 @@ class VDOM(FMGObject):
 
     # internal attributes
     _url = "/dvmdb/{scope}/device/{device}/vdom"
-    device: str = Field("", exclude=True, description="Assigned device (optional)")
+    _master_keys = ["name"]
     # API attributes
+    device: str = Field("", exclude=True, description="Assigned device (optional)")
     name: Optional[str]
     comments: Optional[str]
     meta_fields: Optional[dict[str, str]] = Field(
