@@ -273,6 +273,11 @@ class Address(FMGObject):
         else:  # string
             return " ".join(IPv4Address(part).compressed for part in v.split())
 
+    @field_validator("uuid", mode="before")
+    def validate_uuid(cls, v) -> str:
+        assert UUID(v)
+        return str(v)
+
 
 class AddressGroup(FMGObject):
     _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
@@ -295,7 +300,7 @@ class AddressGroup(FMGObject):
     name: Optional[str] = None
     tagging: Optional[List[AddressTagging]] = None
     type: Optional[ADDRESS_GROUP_TYPE] = "default"
-    uuid: Optional[UUID] = None
+    uuid: Optional[str] = None
 
     @field_serializer("member", "exclude_member")
     def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
@@ -304,6 +309,7 @@ class AddressGroup(FMGObject):
         for member in members:
             if isinstance(member, str):
                 serialized.append(member)
+                continue
             serialized.append(member.name)
         return serialized
 
@@ -326,3 +332,8 @@ class AddressGroup(FMGObject):
     @field_validator("type", mode="before")
     def validate_type(cls, v) -> ADDRESS_GROUP_TYPE:
         return ADDRESS_GROUP_TYPE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator("uuid", mode="before")
+    def validate_uuid(cls, v) -> str:
+        assert UUID(v)
+        return str(v)
