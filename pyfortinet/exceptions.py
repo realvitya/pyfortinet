@@ -55,3 +55,7 @@ class FMGInvalidURL(FMGException):
 
 class FMGNotAssignedException(FMGException):
     """FMG not assigned to object"""
+
+
+class FMGMissingMasterKeyException(FMGException):
+    """Master key is missing for this API class"""

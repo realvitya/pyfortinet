@@ -6,11 +6,11 @@ from typing import Optional, Union, Any, Type, List, Dict
 
 from more_itertools import first
 
-from pyfortinet.exceptions import FMGException, FMGWrongRequestException
+from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required
 from pyfortinet.settings import FMGSettings
-from pyfortinet.fmg_api.common import FILTER_TYPE
+from pyfortinet.fmg_api.common import FILTER_TYPE, F
 
 logger = logging.getLogger(__name__)
 
@@ -438,3 +438,19 @@ class FMG(FMGBase):
         if response.success:
             return [adom.get("name") for adom in response.data.get("data")]
         return None
+
+    def refresh(self, obj: FMGObject) -> FMGObject:
+        """Re-load data from FMG"""
+        if not obj.master_keys:
+            raise FMGMissingMasterKeyException
+        # Build filter
+        filter_complex = F(**{obj.master_keys[0]: getattr(obj, obj.master_keys[0])})
+        for f in obj.master_keys[1:]:
+            filter_complex = filter_complex & F(**{f: getattr(obj, f)})
+        # Get object data, assume only one because we use master keys (primary key in sql)
+        new = self.get(type(obj), filter_complex).first()
+        if new:
+            # overwrite our object fields with data from FMG
+            for att in vars(obj):
+                setattr(obj, att, getattr(new, att))
+        return obj

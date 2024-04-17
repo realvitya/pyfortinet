@@ -1,7 +1,7 @@
 """FMG API library"""
 
 from abc import ABC
-from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
+from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union, List
 
 from pydantic import BaseModel
 
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from pyfortinet import FMG, AsyncFMG
 
     AnyFMG = Union[FMG, AsyncFMG]
-from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException
+from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException, FMGMissingMasterKeyException
 
 GetOption = Literal[
     "extra info",  # returns more info (e.g. timestamps of changes)
@@ -95,7 +95,13 @@ class FMGObject(FMGBaseObject, ABC):
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance
+        _master_keys (str): name of attributes which represents unique key in FMG DB for this API class
     """
+    _master_keys: Optional[List[str]] = None
+
+    @property
+    def master_keys(self) -> List[str]:
+        return self._master_keys
 
     def add(self):
         """Add this object to FMG"""
@@ -119,6 +125,12 @@ class FMGObject(FMGBaseObject, ABC):
         """Delete FMG operation on this object"""
         if self._fmg:
             return self._fmg.delete(self)
+        raise FMGNotAssignedException
+
+    def refresh(self):
+        """Re-load data from FMG"""
+        if self._fmg:
+            return self._fmg.refresh(self)
         raise FMGNotAssignedException
 
 
