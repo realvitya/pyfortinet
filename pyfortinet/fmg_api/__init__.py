@@ -91,7 +91,7 @@ class FMGObject(FMGBaseObject, ABC):
     In case of AsyncFMG, caller must ensure await-ing the request.
 
     Attributes:
-        scope (str): FMG selected scope (adom or global)
+        fmg_scope (str): FMG selected scope (adom or global)
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance
@@ -138,7 +138,7 @@ class FMGExecObject(FMGBaseObject, ABC):
     """FMG execute job type
 
     Attributes:
-        scope (str): FMG selected scope (adom or global)
+        fmg_scope (str): FMG selected scope (adom or global)
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance
