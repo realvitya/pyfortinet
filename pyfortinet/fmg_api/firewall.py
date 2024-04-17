@@ -5,7 +5,7 @@ from typing import Literal, Optional, Union, List
 from uuid import UUID
 
 from more_itertools import first
-from pydantic import Field, field_validator, AliasChoices, BaseModel, conlist, field_serializer
+from pydantic import Field, field_validator, AliasChoices, BaseModel, field_serializer
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
