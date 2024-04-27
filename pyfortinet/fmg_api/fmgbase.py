@@ -10,6 +10,7 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List
 
 import requests
+from more_itertools import first
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
@@ -27,6 +28,7 @@ from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.settings import FMGSettings
+from pyfortinet.fmg_api.error_table import get_fmg_error
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ def lock(func: Callable) -> Callable:
                 # args[0] is the request dict or obj
                 if isinstance(args[0], dict):
                     url = args[0].get("url")
-                    adom_match = re.search(r"/(?P<adom>global|(?<=adom/)\w+)/", url)
+                    adom_match = re.search(r"/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
                     if adom_match:
                         adom = adom_match.group("adom")
                     else:
@@ -131,7 +133,7 @@ class FMGResponse:
     def wait_for_task(self, callback: Callable[[int, str], None] = None, timeout: int = 60, loop_interval: int = 2):
         if not self.success or not self.fmg:
             return
-        self.fmg.wait_for_task(self, callback=callback, timeout=timeout, loop_interval=loop_interval)
+        return self.fmg.wait_for_task(self, callback=callback, timeout=timeout, loop_interval=loop_interval)
 
 
 class FMGLockContext:
@@ -381,19 +383,26 @@ class FMGBase:
             status = result["status"]
             if status["code"] == 0:
                 continue
-            if status["message"] == "No permission for the resource":
-                raise FMGAuthenticationException(status)
-            if re.search(r"no( write)? permission$", status["message"], flags=re.I):
-                raise FMGLockNeededException(status)
-            if status["message"] == "Workspace is locked by other user":
-                raise FMGLockException(status)
-            if status["message"] == "The data is invalid for selected url":
-                raise FMGInvalidDataException(status)
-            if status["message"] == "Object already exists":
-                raise FMGObjectAlreadyExistsException(f"{status}: {request.get('params')}")
-            if status["message"] == "Invalid url":
-                raise FMGInvalidURL(f"URL: {request['params'][0]['url']}")
+            error = get_fmg_error(error_code=status["code"])
+            if error is not None:  # found error code
+                if isinstance(error, str):  # it's a string, not handled
+                    raise FMGUnhandledException(status)
+                raise error(status)  # raise handled exception
             raise FMGUnhandledException(status)
+            # # error not found, continue in best effort fashion
+            # if status["message"] == "No permission for the resource":
+            #     raise FMGAuthenticationException(status)
+            # if re.search(r"no( write)? permission$", status["message"], flags=re.I):
+            #     raise FMGLockNeededException(status)
+            # if status["message"] == "Workspace is locked by other user":
+            #     raise FMGLockException(status)
+            # if status["message"] == "The data is invalid for selected url":
+            #     raise FMGInvalidDataException(status)
+            # if status["message"] == "Object already exists":
+            #     raise FMGObjectAlreadyExistsException(f"{status}: {request.get('params')}")
+            # if status["message"] == "Invalid url":
+            #     raise FMGInvalidURL(f"URL: {request['params'][0]['url']}")
+            # raise FMGUnhandledException(status)
         return results[0] if len(results) == 1 else results
 
     def _get_token(self) -> SecretStr:
@@ -715,7 +724,62 @@ class FMGBase:
             response.status = api_result.get("status")
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
+            logger.error("Error in request: %s", api_result["error"])
+            if self._raise_on_error:
+                raise
+        response.data = api_result
+        return response
+
+    @auth_required
+    @lock
+    def clone(self, request: dict[str, str], create_task: bool = False) -> FMGResponse:
+        """Clone operation
+
+        Args:
+            request (dict): Clone operation's data structure
+            create_task (bool): Wheter to create task
+
+        Examples:
+            ```pycon
+
+            >>> settings = {...}
+            >>> clone_request = {
+            ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object
+            ...     "data": {
+            ....         "name": "clone-address",  # destination object
+            ... }
+            >>> with FMGBase(**settings) as fmg:
+            ...     fmg.clone(clone_request)
+            ```
+
+        Returns:
+            (FMGResponse): Result of operation
+        """
+        response = FMGResponse(fmg=self)
+        body = {
+            "method": "clone",
+            "params": [
+                {
+                    "url": request.get("url"),
+                    "data": request.get("data"),
+                }
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
+        adom = self.adom if self.adom != "global" else "root"
+        if create_task:
+            body["create_task"] = {
+                "adom": adom,
+                "name": f"cloning task of {request.get('url').split('/')[-1]}",  # name task after this request object
+            }
+        try:
+            api_result = self._post(request=body)
+            response.success = True
+            response.status = api_result.get("status")
+        except FMGUnhandledException as err:
+            api_result = {"error": str(err)}
+            logger.error("Error in request: %s", api_result["error"])
             if self._raise_on_error:
                 raise
         response.data = api_result

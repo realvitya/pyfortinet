@@ -13,6 +13,9 @@ class TestObjectsOnLab:
         # test ADD
         result = to_add.add()
         assert result
+        # test CLONE
+        result = to_add.clone(name="clone-firewall-address")
+        assert result
         # wildcard test
         wildcard = fmg.get_obj(Address(name="test-wildcard", type="wildcard", wildcard="10.0.0.1 255.255.0.255"))
         result = wildcard.add()
@@ -36,6 +39,10 @@ class TestObjectsOnLab:
         assert result and not result.data  # ensure empty result
         # test SET
         result = to_add.set()
+        assert result
+        # cleanup
+        cloned = fmg.get(Address, F(name="clone-firewall-address")).first()
+        result = cloned.delete()
         assert result
         result = to_add.delete()
         assert result

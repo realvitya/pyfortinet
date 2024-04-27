@@ -2,7 +2,7 @@
 
 import pytest
 from pyfortinet.fmg_api.common import F
-from pyfortinet.fmg_api.dvmdb import Device
+from pyfortinet.fmg_api.dvmdb import Device, ADOM
 from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceTask
 
 
@@ -18,4 +18,17 @@ class TestObjectsOnLab:
         result = fmg.exec(job)
         assert result
         result = fmg.get(Device, F(name__like="TEST%"))
+        assert result
+
+    def test_dvmdb_adom(self, fmg):
+        root_adom = fmg.get(ADOM, F(name="root")).first()
+        test_adom = fmg.get_obj(ADOM(name="test-adom"))
+        test_adom.add()
+        result = test_adom.clone(create_task=True, name="clone-adom")
+        result.wait_for_task(callback=lambda percent, log: print(f"Task at {percent}%: {log}"))
+        assert result
+        clone_adom = fmg.get(ADOM, F(name="clone-adom")).first()
+        result = clone_adom.delete()
+        assert result
+        result = test_adom.delete()
         assert result

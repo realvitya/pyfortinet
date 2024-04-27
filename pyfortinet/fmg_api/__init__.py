@@ -127,6 +127,12 @@ class FMGObject(FMGBaseObject, ABC):
             return self._fmg.delete(self)
         raise FMGNotAssignedException
 
+    def clone(self, create_task: bool = False, **new: str):
+        """Clone this object to a new one"""
+        if self._fmg:
+            return self._fmg.clone(self, create_task=create_task, **new)
+        raise FMGNotAssignedException
+
     def refresh(self):
         """Re-load data from FMG"""
         if self._fmg:
