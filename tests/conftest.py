@@ -38,6 +38,7 @@ def prepare_lab():
 def fmg_base(request):
     # Create FMGBase object
     try:
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
         fmg = FMGBase(FMGSettings(**pytest.lab_config.get("fmg")))
     except AttributeError as err:
         raise FMGConfigurationException("FMG settings are missing") from err
@@ -56,6 +57,7 @@ def fmg_base(request):
 def fmg(request):
     # Create FMG object
     try:
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
         fmg = FMG(FMGSettings(**pytest.lab_config.get("fmg")))
     except AttributeError as err:
         raise FMGConfigurationException("FMG settings are missing") from err

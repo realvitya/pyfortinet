@@ -7,6 +7,51 @@ from pydantic import Field, field_validator, AliasChoices, BaseModel, IPvAnyAddr
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
 
+
+ADOM_FLAGS = Literal[
+    "migration",
+    "db_export",
+    "no_vpn_console",
+    "backup",
+    "other_devices",
+    "is_autosync",
+    "per_device_wtp",
+    "policy_check_on_install",
+    "install_on_policy_check_fail",
+    "auto_push_cfg",
+    "per_device_fsw",
+]
+ADOM_MODE = Literal["ems", "gms", "provider"]
+ADOM_RESTRICTED_PRDS = Literal[
+    "fos",
+    "foc",
+    "fml",
+    "fch",
+    "fwb",
+    "log",
+    "fct",
+    "faz",
+    "fsa",
+    "fsw",
+    "fmg",
+    "fdd",
+    "fac",
+    "fpx",
+    "fna",
+    "ffw",
+    "fsr",
+    "fad",
+    "fdc",
+    "fap",
+    "fxt",
+    "fts",
+    "fai",
+    "fwc",
+    "fis",
+    "fed",
+    "fpa",
+    "fabric",
+]
 CONF_STATUS = Literal["unknown", "insync", "outofsync"]
 CONN_MODE = Literal["active", "passive"]
 CONN_STATUS = Literal["UNKNOWN", "up", "down"]
@@ -330,3 +375,53 @@ class Device(FMGObject, BaseDevice):
         if vdom in (s_vdom.name for s_vdom in self.vdom):
             return Scope(name=self.name, vdom=vdom)
         return None
+
+
+class ADOM(FMGObject):
+    """ADOM object
+
+    Attributes:
+        create_time:
+        desc:
+        flags:
+        log_db_retention_hours:
+        log_disk_quota:
+        log_disk_quota_alert_thres:
+        log_disk_quota_split_ratio:
+        log_file_retention_hours:
+        meta_fields:
+        mig_mr:
+        mig_os_ver:
+        mode:
+        mr:
+        name:
+        os_ver:
+        restricted_prds:
+        state:
+        uuid:
+        workspace_mode:
+    """
+    _url = "/dvmdb/adom"
+    _master_keys = ["name"]
+
+    create_time: Optional[int] = None
+    desc: Optional[str] = None
+    flags: Optional[Union[ADOM_FLAGS, List[ADOM_FLAGS]]] = None
+    log_db_retention_hours: Optional[int] = None
+    log_disk_quota: Optional[int] = None
+    log_disk_quota_alert_thres: Optional[int] = None
+    log_disk_quota_split_ratio: Optional[int] = None
+    log_file_retention_hours: Optional[int] = None
+    meta_fields: Optional[dict[str, str]] = Field(
+        None, validation_alias=AliasChoices("meta fields", "meta_fields"), serialization_alias="meta fields"
+    )
+    mig_mr: Optional[int] = None
+    mig_os_ver: Optional[OS_VER] = None
+    mode: Optional[ADOM_MODE] = None
+    mr: Optional[int] = None
+    name: Optional[str] = None
+    os_ver: Optional[OS_VER] = None
+    restricted_prds: Optional[ADOM_RESTRICTED_PRDS] = None
+    state: Optional[int] = None
+    uuid: Optional[str] = None
+    workspace_mode: Optional[int] = None

@@ -454,3 +454,66 @@ class FMG(FMGBase):
             for att in vars(obj):
                 setattr(obj, att, getattr(new, att))
         return obj
+
+    def clone(self, request: Union[dict[str, str], FMGObject], *, create_task: bool = False, **new: str) -> FMGResponse:
+        """Clone an object
+
+        Args:
+            request (dict|FMGObject): Object to clone or request dict
+            create_task (bool): Create background task and do not block here. Beware, that you must not close connection
+                                till task is finished, otherwise the task might fail. (use wait_for_task)
+            new (str): keys for new object
+
+        Note:
+            The object need to have _master_keys which is defining the base of cloning. Usually it's "name", but
+            it is possible to define multiple master keys for future use. All those will be passed to the API.
+
+        Example:
+            ## Low-level - dict
+
+            ```pycon
+
+            >>> settings = {...}
+            >>> clone_request = {
+            ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object
+            ...     "data": {
+            ....         "name": "clone-address",  # destination object
+            ... }
+            >>> with FMGBase(**settings) as fmg:
+            ...     fmg.clone(clone_request)
+            ```
+
+            ## High-level - obj
+
+            ```pycon
+
+            >>> adom = fmg.get_obj(ADOM(name="myadom"))  # source object
+            >>> result = fmg.clone(adom, create_task=True, name="newadom")  # destination object
+            >>> result.wait_for_task()
+            "done"
+            ```
+
+        """
+        response = FMGResponse(fmg=self)
+        if isinstance(request, dict):  # JSON input, low-level operation
+            return super().clone(request, create_task=create_task)
+        elif isinstance(request, FMGObject):  # high-level operation
+            if not request.master_keys:
+                raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
+            master_key = first(request.master_keys)  # assume one master_key, like `name`
+            master_value = getattr(request, master_key)
+            request.fmg_scope = request.fmg_scope or self._settings.adom
+            return super().clone(
+                {
+                    "url": f"{request.get_url}/{master_value}",
+                    "data": new,
+                },
+                create_task=create_task
+            )
+        else:
+            response.data = {"error": f"Wrong type of request received: {request}"}
+            response.status = 400
+            logger.error(response.data["error"])
+            if self._raise_on_error:
+                raise FMGWrongRequestException(request)
+            return response
