@@ -24,6 +24,9 @@ def get_fmg_error(error_code: Union[str, int]) -> Optional[Union[Type[FMGExcepti
 
 
 API_ERRORS = {
+    # from experiments / undocumented
+    9891: "insufficient licenses",
+    # from documentation
     0: "OK",
     1: "Unknown error",
     2: FMGObjectAlreadyExistsException,  # "Object already exists",
