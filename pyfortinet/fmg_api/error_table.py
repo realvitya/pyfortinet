@@ -25,7 +25,7 @@ def get_fmg_error(error_code: Union[str, int]) -> Optional[Union[Type[FMGExcepti
 
 API_ERRORS = {
     # from experiments / undocumented
-    9891: "insufficient licenses",
+    9891: "insufficient licenses",  # got by cloning adom. text is visible on gui cloning log.
     # from documentation
     0: "OK",
     1: "Unknown error",
