@@ -1,6 +1,7 @@
 """Pytest setup"""
 
 import asyncio
+import time
 from pathlib import Path
 
 import pytest
@@ -80,7 +81,7 @@ class AsyncTestCase:
         manager errors otherwise.
         """
         # give some time for previous test to correctly logout and clean up
-        asyncio.sleep(2)
+        time.sleep(2)
         loop = asyncio.get_event_loop()
         yield loop
         loop.close()
