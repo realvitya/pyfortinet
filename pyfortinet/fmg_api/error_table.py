@@ -20,7 +20,7 @@ def get_fmg_error(error_code: Union[str, int]) -> Optional[Union[Type[FMGExcepti
         returns: FMGAuthenticationException
     """
     error_code = abs(int(error_code))  # standardize error code to positive int
-    return API_ERRORS[error_code]
+    return API_ERRORS[error_code] if error_code in API_ERRORS else "Undocumented error"
 
 
 API_ERRORS = {
