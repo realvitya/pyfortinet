@@ -389,20 +389,6 @@ class FMGBase:
                     raise FMGUnhandledException(status)
                 raise error(status)  # raise handled exception
             raise FMGUnhandledException(status)
-            # # error not found, continue in best effort fashion
-            # if status["message"] == "No permission for the resource":
-            #     raise FMGAuthenticationException(status)
-            # if re.search(r"no( write)? permission$", status["message"], flags=re.I):
-            #     raise FMGLockNeededException(status)
-            # if status["message"] == "Workspace is locked by other user":
-            #     raise FMGLockException(status)
-            # if status["message"] == "The data is invalid for selected url":
-            #     raise FMGInvalidDataException(status)
-            # if status["message"] == "Object already exists":
-            #     raise FMGObjectAlreadyExistsException(f"{status}: {request.get('params')}")
-            # if status["message"] == "Invalid url":
-            #     raise FMGInvalidURL(f"URL: {request['params'][0]['url']}")
-            # raise FMGUnhandledException(status)
         return results[0] if len(results) == 1 else results
 
     def _get_token(self) -> SecretStr:
