@@ -15,18 +15,14 @@ try:
 except ModuleNotFoundError:
     """async install option"""
 
-from more_itertools import first
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
     FMGException,
+    FMGAuthenticationException,
     FMGTokenException,
     FMGLockNeededException,
     FMGLockException,
-    FMGAuthenticationException,
-    FMGInvalidDataException,
-    FMGObjectAlreadyExistsException,
-    FMGInvalidURL,
     FMGUnhandledException,
 )
 from pyfortinet.fmg_api import FMGObject
@@ -45,24 +41,24 @@ def auth_required(func: Callable) -> Callable:
         func: function to handle authentication errors
 
     Returns:
-        function with authentication handling enabled
+        (Callable): function with authentication handling enabled
     """
 
     @functools.wraps(func)
-    async def decorated(self, *args, **kwargs):
+    async def auth_decorated(self: Union[dict, "AsyncFMGBase"] = None, *args, **kwargs):
         """method which needs authentication"""
         if not self._token:
             raise FMGTokenException("No token was obtained. Open connection first!")
         try:
             return await func(self, *args, **kwargs)
-        except FMGException as err:
+        except FMGAuthenticationException as err:
             try:  # try again after refreshing token
                 self._token = await self._get_token()  # pylint: disable=protected-access  # decorator of methods
                 return await func(self, *args, **kwargs)
             except FMGException as err2:
                 raise err2 from err
 
-    return decorated
+    return auth_decorated
 
 
 def lock(func: Callable) -> Callable:
