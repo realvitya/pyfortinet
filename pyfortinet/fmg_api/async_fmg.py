@@ -4,6 +4,8 @@ import logging
 from inspect import isclass
 from typing import Optional, Union, Any, Type, List, Dict
 
+from more_itertools import first
+
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
@@ -478,3 +480,72 @@ class AsyncFMG(AsyncFMGBase):
             for att in vars(obj):
                 setattr(obj, att, getattr(new, att))
         return obj
+
+    async def clone(self, request: Union[dict[str, str], FMGObject], *, create_task: bool = False, **new: str) -> AsyncFMGResponse:
+        """Clone an object
+
+        Args:
+            request (dict|FMGObject): Object to clone or request dict
+            create_task (bool): Create background task and do not block here. Beware, that you must not close connection
+                                till task is finished, otherwise the task might fail. (use wait_for_task)
+            new (str): keys for new object
+
+        Note:
+            The object need to have _master_keys which is defining the base of cloning. Usually it's "name", but
+            it is possible to define multiple master keys for future use. All those will be passed to the API.
+
+        Example:
+            ## Low-level - dict
+
+            ```pycon
+
+            >>> settings = {...}
+            >>> clone_request = {
+            ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object
+            ...     "data": {
+            ....         "name": "clone-address",  # destination object
+            ... }
+            >>> async def clone_address(request):
+            ...     async with AsyncFMGBase(**settings) as fmg:
+            ...         await fmg.clone(request)
+            >>> asyncio.run(clone_address(clone_request))
+            ```
+
+            ## High-level - obj
+
+            ```pycon
+
+            >>> from pyfortinet.fmg_api.dvmdb import ADOM
+            >>> settings = {...}
+            >>> async def clone_adom(name: str, new: str):
+            ...     async with AsyncFMG(**settings) as fmg:
+            ...         source_adom = fmg.get_obj(ADOM(name=name))
+            ...         result = await fmg.clone(source_adom, create_task=True, name=new)
+            ...         await result.wait_for_task()
+            >>> asyncio.run(clone_adom("root", "root-clone"))
+            ```
+
+        """
+        response = AsyncFMGResponse(fmg=self)
+        if isinstance(request, dict):  # JSON input, low-level operation
+            return await super().clone(request, create_task=create_task)
+        elif isinstance(request, FMGObject):  # high-level operation
+            if not request.master_keys:
+                raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
+            master_key = first(request.master_keys)  # assume one master_key, like `name`
+            master_value = getattr(request, master_key)
+            request.fmg_scope = request.fmg_scope or self._settings.adom
+            return await super().clone(
+                {
+                    "url": f"{request.get_url}/{master_value}",
+                    "data": new,
+                },
+                create_task=create_task
+            )
+        else:
+            response.data = {"error": f"Wrong type of request received: {request}"}
+            response.status = 400
+            logger.error(response.data["error"])
+            if self._raise_on_error:
+                raise FMGWrongRequestException(request)
+            return response
