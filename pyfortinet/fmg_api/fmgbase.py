@@ -10,7 +10,6 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List
 
 import requests
-from more_itertools import first
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
@@ -20,9 +19,6 @@ from pyfortinet.exceptions import (
     FMGLockNeededException,
     FMGTokenException,
     FMGUnhandledException,
-    FMGInvalidDataException,
-    FMGObjectAlreadyExistsException,
-    FMGInvalidURL,
 )
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
