@@ -279,9 +279,13 @@ class AsyncFMG(AsyncFMGBase):
 
         elif isinstance(request, FMGObject):  # high-level operation
             request.fmg_scope = request.fmg_scope or self._settings.adom
+            if not request.master_keys:
+                raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
+            master_key = first(request.master_keys)  # assume one master_key, like `name`
+            master_value = getattr(request, master_key)
             return await super().delete(
-                {"url": f"{request.get_url}/{request.name}"}
-            )  # assume URL with name for del operation
+                {"url": f"{request.get_url}/{master_value}"}
+            )
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
             response.status = 400
