@@ -7,7 +7,7 @@ import time
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
-from typing import Any, Callable, Optional, Union, List
+from typing import Any, Callable, Optional, Union, List, Iterator
 
 import requests
 from pydantic import SecretStr
@@ -76,20 +76,27 @@ def lock(func: Callable) -> Callable:
                 if not args:  # in case we got kwargs request
                     args = [kwargs.get("request")]
                     del kwargs["request"]
-                # args[0] is the request dict or obj
-                if isinstance(args[0], dict):
-                    url = args[0].get("url")
-                    adom_match = re.search(r"/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
-                    if adom_match:
-                        adom = adom_match.group("adom")
-                    else:
-                        raise FMGException(f"No ADOM found to lock in url '{url}'") from err
+                # ensure args[0] is a list of request dict or obj to support multiple request in one API call
+                if isinstance(args[0], list):
+                    args_to_check = args[0]
                 else:
-                    adom = args[0].fmg_scope
-                if adom not in self.lock.locked_adoms:
-                    self.lock(adom)
-                else:  # ADOM already locked, do not try to lock it again
-                    raise
+                    args_to_check = [args[0]]
+                for arg in args_to_check:
+                    if isinstance(arg, dict):
+                        url = arg.get("url")
+                        adom_match = re.search(r"/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
+                        if adom_match:
+                            adom = adom_match.group("adom")
+                        else:
+                            raise FMGException(f"No ADOM found to lock in url '{url}'") from err
+                    elif isinstance(arg, FMGObject):
+                        adom = arg.fmg_scope
+                    else:
+                        raise ValueError(f"Unknown request: {arg}")
+                    if adom not in self.lock.locked_adoms:
+                        self.lock(adom)
+                    # else:  # ADOM already locked, do not try to lock it again
+                    #     raise
                 return func(self, *args, **kwargs)
             except FMGException as err2:
                 raise err2 from err
@@ -103,17 +110,21 @@ class FMGResponse:
 
     Attributes:
         data (dict|List[FMGObject]): response data
-        status (int): status code
         success (bool): True on success
+        fmg (FMGBase): FMG object tied to this response
     """
 
-    data: Union[dict, List[FMGObject]] = field(default_factory=dict)  # data got from FMG
-    status: int = 0  # status code of the request
+    data: Union[List[dict], List[FMGObject]] = field(default_factory=dict)  # data got from FMG
     success: bool = False  # True on successful request
     fmg: "FMGBase" = None
 
     def __bool__(self) -> bool:
         return self.success
+
+    def __iter__(self) -> Iterator:
+        if isinstance(self.data, dict):
+            return iter([self.data])
+        return iter(self.data)
 
     def first(self) -> Optional[Union[FMGObject, dict]]:
         """Return first data or None if result is empty"""
@@ -180,9 +191,9 @@ class FMGLockContext:
             adoms = ["root"]
         for adom in adoms:
             url = "/dvmdb/global/workspace/lock/" if adom.lower() == "global" else f"/dvmdb/adom/{adom}/workspace/lock/"
-            result.data.update({adom: self._fmg.exec(request={"url": url})})
-            if result.data[adom].data.get("error"):
-                raise FMGLockException(result.data[adom].data)
+            result.data = [{adom: self._fmg.exec(request={"url": url})}]
+            if result.data[0][adom].data[0].get("error"):
+                raise FMGLockException(result.data[0][adom].data[0])
             self._locked_adoms.add(adom)
         return result
 
@@ -196,8 +207,8 @@ class FMGLockContext:
                 url = "/dvmdb/global/workspace/unlock/"
             else:
                 url = f"/dvmdb/adom/{adom}/workspace/unlock/"
-            result.data.update({adom: self._fmg.exec(request={"url": url})})
-            if not result.data[adom].data.get("error"):
+            result.data = [{adom: self._fmg.exec(request={"url": url})}]
+            if not result.data[0][adom].data[0].get("error"):
                 self._locked_adoms.remove(adom)
 
         if self._locked_adoms:
@@ -435,7 +446,10 @@ class FMGBase:
 
     @auth_required
     def exec(self, request: dict[str, str]) -> FMGResponse:
-        """Execute on FMG"""
+        """Execute on FMG
+
+        This method currently does not support multiple requests in one call!
+        """
         logger.info("requesting exec with low-level op to %s", request.get("url"))
         body = {
             "method": "exec",
@@ -450,16 +464,20 @@ class FMGBase:
         }
         try:
             api_result = self._post(request=body)
+            if isinstance(api_result, dict):
+                api_result = [api_result]
         except FMGException as err:
             api_result = {"error": str(err)}
             logger.error("Error in exec request: %s", api_result["error"])
-        result = FMGResponse(fmg=self, data=api_result, success=api_result.get("status", {}).get("code") == 0)
+        result = FMGResponse(fmg=self, data=api_result, success=api_result[0].get("status", {}).get("code") == 0)
         return result
 
     # noqa: PLR0912 - Too many branches
     @auth_required
     def get(self, request: dict[str, Any]) -> FMGResponse:  # noqa: PLR0912 - Too many branches
         """Get info from FMG
+
+        This method currently does not support multiple requests in one call!
 
         Args:
             request: Get operation's param structure
@@ -510,8 +528,11 @@ class FMGBase:
 
     @auth_required
     @lock
-    def add(self, request: dict[str, Any]) -> FMGResponse:
+    def add(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Add operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Add operation's data structure
@@ -538,21 +559,25 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        if isinstance(request, dict):
+            request = [request]
         body = {
             "method": "add",
             "params": [
                 {
-                    "data": request.get("data"),
-                    "url": request.get("url"),
+                    "data": req.get("data"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
         try:
             api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
+            if isinstance(api_result, dict):
+                api_result = [api_result]
+            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
             logger.error("Error in add request: %s", api_result["error"])
@@ -563,8 +588,11 @@ class FMGBase:
 
     @auth_required
     @lock
-    def update(self, request: dict[str, Any]) -> FMGResponse:
+    def update(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Update operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Update operation's data structure
@@ -591,21 +619,25 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        if isinstance(request, dict):
+            request = [request]
         body = {
             "method": "update",
             "params": [
                 {
-                    "data": request.get("data"),
-                    "url": request.get("url"),
+                    "data": req.get("data"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
         try:
             api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
+            if isinstance(api_result, dict):
+                api_result = [api_result]
+            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
             logger.error("Error in update request: %s", api_result["error"])
@@ -616,8 +648,11 @@ class FMGBase:
 
     @auth_required
     @lock
-    def set(self, request: dict[str, Any]) -> FMGResponse:
+    def set(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Set operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Set operation's data structure
@@ -644,21 +679,25 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        if isinstance(request, dict):
+            request = [request]
         body = {
             "method": "set",
             "params": [
                 {
-                    "data": request.get("data"),
-                    "url": request.get("url"),
+                    "data": req.get("data"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
         try:
             api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
+            if isinstance(api_result, dict):
+                api_result = [api_result]
+            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
             logger.error("Error in update request: %s", api_result["error"])
@@ -669,8 +708,11 @@ class FMGBase:
 
     @auth_required
     @lock
-    def delete(self, request: dict[str, str]) -> FMGResponse:
+    def delete(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Delete operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Update operation's data structure
@@ -690,20 +732,24 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        if isinstance(request, dict):
+            request = [request]
         body = {
             "method": "delete",
             "params": [
                 {
-                    "url": request.get("url"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
         try:
             api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
+            if isinstance(api_result, dict):
+                api_result = [api_result]
+            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
             logger.error("Error in request: %s", api_result["error"])
@@ -714,8 +760,11 @@ class FMGBase:
 
     @auth_required
     @lock
-    def clone(self, request: dict[str, str], create_task: bool = False) -> FMGResponse:
+    def clone(self, request: Union[dict[str, Any], List[dict[str, Any]]], create_task: bool = False) -> FMGResponse:
         """Clone operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request (dict): Clone operation's data structure
@@ -729,6 +778,7 @@ class FMGBase:
             ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object
             ...     "data": {
             ....         "name": "clone-address",  # destination object
+            ...     }
             ... }
             >>> with FMGBase(**settings) as fmg:
             ...     fmg.clone(clone_request)
@@ -738,13 +788,16 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        if isinstance(request, dict):
+            request = [request]
         body = {
             "method": "clone",
             "params": [
                 {
-                    "url": request.get("url"),
-                    "data": request.get("data"),
+                    "url": req.get("url"),
+                    "data": req.get("data"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
@@ -753,12 +806,14 @@ class FMGBase:
         if create_task:
             body["create_task"] = {
                 "adom": adom,
-                "name": f"cloning task of {request.get('url').split('/')[-1]}",  # name task after this request object
+                # name task after this request object
+                "name": f"cloning task of {', '.join(req.get('url').split('/')[-1] for req in request)}",
             }
         try:
             api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
+            if isinstance(api_result, dict):
+                api_result = [api_result]
+            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
             logger.error("Error in request: %s", api_result["error"])
@@ -803,7 +858,7 @@ class FMGBase:
         task_id = (
             task_res
             if isinstance(task_res, int)
-            else (task_res.data.get("data", {}).get("taskid") or task_res.data.get("data", {}).get("task"))
+            else (task_res.data[0].get("data", {}).get("taskid") or task_res.data[0].get("data", {}).get("task"))
         )
         if task_id is None:
             return

@@ -14,6 +14,9 @@ from pyfortinet.fmg_api.common import FILTER_TYPE, F
 
 logger = logging.getLogger(__name__)
 
+REQUEST_ARG = Union[dict[str, Any], FMGObject]
+MULTI_REQUEST_ARG = Union[REQUEST_ARG, List[REQUEST_ARG]]
+
 
 class FMG(FMGBase):
     """FMG API for humans
@@ -167,8 +170,11 @@ class FMG(FMGBase):
         result.success = True
         return result
 
-    def add(self, request: Union[dict[str, Any], FMGObject]) -> FMGResponse:
+    def add(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Add operation
+
+        Notes:
+            This method supports passing multiple objects as list
 
         Args:
             request: Add operation's data structure or object
@@ -209,22 +215,24 @@ class FMG(FMGBase):
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):  # dict input, low-level operation
+        if not isinstance(request, list):
+            request = [request]
+        if isinstance(request[0], dict):  # dict input, low-level operation
             return super().add(request)
-
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.fmg_scope = request.fmg_scope or self._settings.adom
-            api_data = request.model_dump(by_alias=True, exclude_none=True)
-            return super().add(request={"url": request.get_url, "data": api_data})
+        elif isinstance(request[0], FMGObject):  # high-level operation
+            api_data = []
+            for req in request:
+                req.fmg_scope = req.fmg_scope or self._settings.adom
+                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+            return super().add(request=api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
             logger.error(response.data["error"])
             if self._raise_on_error:
                 raise FMGWrongRequestException(request)
             return response
 
-    def delete(self, request: Union[dict[str, str], FMGObject]) -> FMGResponse:
+    def delete(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Delete operation
 
         Args:
@@ -258,28 +266,33 @@ class FMG(FMGBase):
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):  # JSON input, low-level operation
+        if not isinstance(request, list):
+            request = [request]
+        if isinstance(request[0], dict):  # dict input, low-level operation
             return super().delete(request)
 
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.fmg_scope = request.fmg_scope or self._settings.adom
-            if not request.master_keys:
-                raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
-            master_key = first(request.master_keys)  # assume one master_key, like `name`
-            master_value = getattr(request, master_key)
-            return super().delete(
-                {"url": f"{request.get_url}/{master_value}"}
-            )
+        elif isinstance(request[0], FMGObject):  # high-level operation
+            api_data = []
+            for req in request:
+                req.fmg_scope = req.fmg_scope or self._settings.adom
+                if not req.master_keys:
+                    raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
+                master_key = first(req.master_keys)  # assume one master_key, like `name`
+                master_value = getattr(req, master_key)
+                api_data.append({"url": f"{req.get_url}/{master_value}"})
+            return super().delete(api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
             logger.error(response.data["error"])
             if self._raise_on_error:
                 raise FMGWrongRequestException(request)
             return response
 
-    def update(self, request: Union[dict[str, Any], FMGObject]) -> FMGResponse:
+    def update(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Update operation
+
+        Notes:
+            This method supports passing multiple objects as list
 
         Args:
             request: Update operation's data structure
@@ -320,22 +333,29 @@ class FMG(FMGBase):
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):  # JSON input, low-level operation
+        if not isinstance(request, list):
+            request = [request]
+        if isinstance(request[0], dict):  # dict input, low-level operation
             return super().update(request)
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.fmg_scope = request.fmg_scope or self._settings.adom
-            api_data = request.model_dump(by_alias=True, exclude_none=True)
-            return super().update({"url": request.get_url, "data": api_data})
+        elif isinstance(request[0], FMGObject):  # high-level operation
+            api_data = []
+            for req in request:
+                req.fmg_scope = req.fmg_scope or self._settings.adom
+                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+            return super().update(request=api_data)
+
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
             logger.error(response.data["error"])
             if self._raise_on_error:
                 raise FMGWrongRequestException(request)
             return response
 
-    def set(self, request: Union[dict[str, Any], FMGObject]) -> FMGResponse:
+    def set(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Set operation
+
+        Notes:
+            This method supports passing multiple objects as list
 
         Args:
             request: Update operation's data structure
@@ -376,15 +396,19 @@ class FMG(FMGBase):
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):  # JSON input, low-level operation
+        if not isinstance(request, list):
+            request = [request]
+        if isinstance(request[0], dict):  # dict input, low-level operation
             return super().set(request)
-        elif isinstance(request, FMGObject):  # high-level operation
-            request.fmg_scope = request.fmg_scope or self._settings.adom
-            api_data = request.model_dump(by_alias=True, exclude_none=True)
-            return super().set({"url": request.get_url, "data": api_data})
+        elif isinstance(request[0], FMGObject):  # high-level operation
+            api_data = []
+            for req in request:
+                req.fmg_scope = req.fmg_scope or self._settings.adom
+                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+            return super().set(request=api_data)
+
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            response.status = 400
             logger.error(response.data["error"])
             if self._raise_on_error:
                 raise FMGWrongRequestException(request)
@@ -459,7 +483,7 @@ class FMG(FMGBase):
                 setattr(obj, att, getattr(new, att))
         return obj
 
-    def clone(self, request: Union[dict[str, str], FMGObject], *, create_task: bool = False, **new: str) -> FMGResponse:
+    def clone(self, request: REQUEST_ARG, *, create_task: bool = False, **new: str) -> FMGResponse:
         """Clone an object
 
         Args:
@@ -471,6 +495,8 @@ class FMG(FMGBase):
         Note:
             The object need to have _master_keys which is defining the base of cloning. Usually it's "name", but
             it is possible to define multiple master keys for future use. All those will be passed to the API.
+
+            This method does NOT support multiple requests in one call! Use low-level API if this is needed!
 
         Example:
             ## Low-level - dict
@@ -512,7 +538,7 @@ class FMG(FMGBase):
                     "url": f"{request.get_url}/{master_value}",
                     "data": new,
                 },
-                create_task=create_task
+                create_task=create_task,
             )
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}

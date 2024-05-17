@@ -121,7 +121,7 @@ class TestObjectsOnLab:
     def test_address_add_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
-            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            "url": f"/pm/config/{scope}/obj/firewall/address",
             "data": {
                 "name": "test-address",
                 "subnet": "10.0.0.1/32",
@@ -129,6 +129,29 @@ class TestObjectsOnLab:
         }
         result = fmg_base.add(address_request)
         assert result.success
+
+    def test_address_multiple_add_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = [
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address",
+                "data": {
+                    "name": "test-address10",
+                    "subnet": "10.0.0.10/32",
+                },
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address",
+                "data": {
+                    "name": "test-address11",
+                    "subnet": "10.0.0.11/32",
+                },
+            }
+        ]
+        result = fmg_base.add(address_request)
+        assert result.success
+        for res in result:
+            assert "test-address" in res.get("data").get("name")
 
     def test_address_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
@@ -138,6 +161,25 @@ class TestObjectsOnLab:
                 "subnet": "10.0.0.2/32",
             },
         }
+        result = fmg_base.update(address_request)
+        assert result.success
+
+    def test_address_multiple_update_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = [
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address10",
+                "data": {
+                    "subnet": "10.0.0.100/32",
+                },
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address11",
+                "data": {
+                    "subnet": "10.0.0.111/32",
+                },
+            }
+        ]
         result = fmg_base.update(address_request)
         assert result.success
 
@@ -158,6 +200,19 @@ class TestObjectsOnLab:
         result = fmg_base.delete(address_request)
         assert result.success
 
+    def test_address_multiple_del_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = [
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address10",
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address11",
+            },
+        ]
+        result = fmg_base.delete(address_request)
+        assert result.success
+
     def test_address_set_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
@@ -169,10 +224,76 @@ class TestObjectsOnLab:
         result = fmg_base.set(address_request)
         assert result.success
 
-    def test_address_cleanup(self, fmg_base):
+    def test_address_multiple_set_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = [
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address10",
+                "data": {
+                    "subnet": "10.0.0.10/32",
+                },
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address11",
+                "data": {
+                    "subnet": "10.0.0.11/32",
+                },
+            }
+        ]
+        result = fmg_base.set(address_request)
+        assert result.success
+
+    def test_address_clone_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
-            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            "url": f"/pm/config/{scope}/obj/firewall/address/test-address",  # source object
+            "data": {
+                "name": "clone-address",  # destination object
+            }
         }
+        result = fmg_base.clone(address_request)
+        assert result.success
+
+    def test_address_multiple_clone_dict(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = [
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address10",  # source object
+                "data": {
+                    "name": "clone-address10",  # destination object
+                }
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address11",  # source object
+                "data": {
+                    "name": "clone-address11",  # destination object
+                }
+            },
+        ]
+        result = fmg_base.clone(address_request)
+        assert result.success
+
+    def test_address_cleanup(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = [
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address10",
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/test-address11",
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/clone-address",
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/clone-address10",
+            },
+            {
+                "url": f"/pm/config/{scope}/obj/firewall/address/clone-address11",
+            },
+        ]
         result = fmg_base.delete(address_request)
         assert result.success

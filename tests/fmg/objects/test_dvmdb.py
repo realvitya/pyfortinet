@@ -22,8 +22,13 @@ class TestObjectsOnLab:
 
     def test_dvmdb_adom(self, fmg):
         root_adom = fmg.get(ADOM, F(name="root")).first()
-        test_adom = fmg.get_obj(ADOM(name="test-adom"))
-        test_adom.add()
+        test_adom = fmg.get(ADOM, F(name="test-adom")).first()
+        if not test_adom:
+            test_adom = fmg.get_obj(ADOM(name="test-adom"))
+            test_adom.add()
+        result = fmg.get(ADOM, F(name="clone-adom"))
+        if result.first():
+            fmg.delete(ADOM(name="clone-adom"))
         result = test_adom.clone(create_task=True, name="clone-adom")
         result.wait_for_task(callback=lambda percent, log: print(f"Task at {percent}%: {log}"))
         assert result

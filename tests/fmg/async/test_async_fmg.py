@@ -54,3 +54,22 @@ class TestObjectsOnLab(AsyncTestCase):
         assert result
         result = await fmg.get(Address, F(name="test-firewall-address"))
         assert result and not result.data  # ensure empty result
+
+    async def test_multi_obj(self, fmg: AsyncFMG):
+        addr1 = fmg.get_obj(Address(name="test-addr1", subnet="10.0.0.1/32"))
+        addr2 = fmg.get_obj(Address(name="test-addr2", subnet="10.0.0.2/32"))
+        result = await fmg.add([addr1, addr2])
+        assert result
+        addr1.subnet = "10.0.0.11/32"
+        addr2.subnet = "10.0.0.12/32"
+        result = await fmg.update([addr1, addr2])
+        assert result
+        addr1.subnet = "10.0.0.11/32"
+        addr2.subnet = "10.0.0.12/32"
+        result = await fmg.set([addr1, addr2])
+        assert result
+        result = await fmg.delete([addr1, addr2])
+        assert result
+        # ensure object is deleted
+        result = (await fmg.get(Address, F(name="test-addr1"))).first()
+        assert result is None
