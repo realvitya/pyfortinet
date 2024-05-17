@@ -334,6 +334,13 @@ class AddressGroup(FMGObject):
     tagging: Optional[List[AddressTagging]] = None
     type: Optional[ADDRESS_GROUP_TYPE] = "default"
     uuid: Optional[str] = None
+    # Mapping fields
+    global_object: Optional[int] = Field(
+        None, validation_alias=AliasChoices("global-object", "global_object"), serialization_alias="global-object"
+    )
+    mapping__scope: Optional[Union[Union[dict, Scope], List[Union[dict, Scope]]]] = Field(
+        None, validation_alias=AliasChoices("_scope", "mapping__scope"), serialization_alias="_scope"
+    )
 
     @field_serializer("member", "exclude_member")
     def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
