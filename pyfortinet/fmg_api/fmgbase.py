@@ -10,6 +10,7 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List, Iterator
 
 import requests
+from more_itertools import first
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
@@ -125,6 +126,20 @@ class FMGResponse:
         if isinstance(self.data, dict):
             return iter([self.data])
         return iter(self.data)
+
+    def __getitem__(self, key: Union[int, str, tuple]) -> Union[dict, FMGObject]:
+        if isinstance(key, int):
+            return self.data[key]
+        master_key = ""
+        if isinstance(key, tuple):  # master_key is also passed as result["myhost", "hostname"]
+            key, master_key = key
+        if isinstance(key, str) and self.data:
+            if isinstance(self.data[0], dict) and master_key:  # need to use master_key arg to find desired key
+                return next((d for d in self.data if d.get("data", {}).get(master_key) == key), None)
+            if isinstance(self.data[0], FMGObject):
+                return next((d for d in self.data if getattr(d, master_key or first(d.master_keys, None)) == key),
+                            None)
+            raise ValueError(f"Invalid key: '{key}'")
 
     def first(self) -> Optional[Union[FMGObject, dict]]:
         """Return first data or None if result is empty"""

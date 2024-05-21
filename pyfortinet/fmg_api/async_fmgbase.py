@@ -10,6 +10,10 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List, Coroutine, Iterator
 from dataclasses import dataclass, field
 
+from more_itertools import first
+
+from pyfortinet.fmg_api.fmgbase import FMGResponse
+
 try:
     import aiohttp
 except ModuleNotFoundError:
@@ -110,7 +114,7 @@ def lock(func: Callable) -> Callable:
 
 
 @dataclass
-class AsyncFMGResponse:
+class AsyncFMGResponse(FMGResponse):
     """Response to a request
 
     Attributes:
@@ -119,28 +123,7 @@ class AsyncFMGResponse:
         fmg (AsyncFMGBase): FMG object tied to this response
     """
 
-    data: Union[List[dict], List[FMGObject]] = field(default_factory=dict)  # data got from FMG
-    success: bool = False  # True on successful request
     fmg: "AsyncFMGBase" = None
-
-    def __bool__(self) -> bool:
-        return self.success
-
-    def __iter__(self) -> Iterator:
-        if isinstance(self.data, dict):
-            return iter([self.data])
-        return iter(self.data)
-
-    def first(self) -> Optional[Union[FMGObject, dict]]:
-        """Return first data or None if result is empty"""
-        if isinstance(self.data, dict):
-            if isinstance(self.data.get("data"), list):
-                return self.data.get("data")[0] if self.data.get("data") else None
-            else:
-                return self.data.get("data")
-        elif isinstance(self.data, list) and self.data:  # non-empty list
-            return self.data[0]
-        return None
 
     async def wait_for_task(
         self, callback: Callable[[int, str], Union[None | Coroutine]] = None, timeout: int = 60, loop_interval: int = 2
