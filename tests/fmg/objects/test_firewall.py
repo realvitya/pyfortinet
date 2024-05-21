@@ -5,7 +5,7 @@ import pytest
 from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.firewall import Address, AddressGroup
+from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom
 from tests.conftest import AsyncTestCase
 
 
@@ -115,6 +115,13 @@ class TestObjectsOnLab:
         member1.delete()
         member2.delete()
 
+    def test_firewall_custom_service(self, fmg):
+        services = fmg.get(ServiceCustom)
+        assert services["QUAKE", "name"].name == "QUAKE" and services["QUAKE"].name == "QUAKE"
+        with pytest.raises(AttributeError):
+            quake = services["QUAKE", "qweqweqwe"]
+        assert services
+
 
 class TestAsynchObjectsOnLab(AsyncTestCase):
     async def test_firewall_address(self, fmg: AsyncFMG):
@@ -219,3 +226,14 @@ class TestAsynchObjectsOnLab(AsyncTestCase):
         await group1.delete()
         await member1.delete()
         await member2.delete()
+
+    async def test_firewall_custom_service(self, fmg: AsyncFMG):
+        services = await fmg.get(ServiceCustom)
+        assert services["QUAKE", "name"].name == "QUAKE" and services["QUAKE"].name == "QUAKE"
+        with pytest.raises(AttributeError):
+            quake = services["QUAKE", "qweqweqwe"]
+        assert services
+
+    async def test_firewall_custom_service(self, fmg: AsyncFMG):
+        services = await fmg.get(ServiceCustom)
+        assert services

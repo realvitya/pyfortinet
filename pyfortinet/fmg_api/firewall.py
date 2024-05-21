@@ -1,11 +1,11 @@
 """Firewall object types"""
-
+import re
 from ipaddress import IPv4Interface, IPv4Address
 from typing import Literal, Optional, Union, List
 from uuid import UUID
 
 from more_itertools import first
-from pydantic import Field, field_validator, AliasChoices, BaseModel, field_serializer
+from pydantic import Field, field_validator, AliasChoices, BaseModel, field_serializer, model_validator
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
@@ -372,7 +372,7 @@ class AddressGroup(FMGObject):
 
 
 class ServiceCategory(FMGObject):
-    _url = "/pm/config/{scope}/firewall/service/category"
+    _url = "/pm/config/{scope}/obj/firewall/service/category"
     _master_keys = ["name"]
     comment: Optional[str] = None
     fabric_object: Optional[ENABLE_DISABLE] = Field(
@@ -385,6 +385,26 @@ class ServiceCategory(FMGObject):
     @field_validator("fabric_object", mode="before")
     def standardize_enabled_disabled(cls, v):
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+
+class PortRange(BaseModel):
+    """Port range class
+
+    This dataclass is to hold source_start:source_end and destination_start:destination_end port data.
+    While creating new instance, only _end source or destination is required if only a single port would be
+    passed.
+    """
+
+    source_start: Optional[int] = None
+    source_end: Optional[int] = None
+    destination_start: Optional[int] = None
+    destination_end: Optional[int] = None
+
+    @model_validator(mode="after")
+    def standardize_port_handling(self):
+        """Ensure start and end are either None or the same if not different"""
+        self.source_start = self.source_start or self.source_end
+        self.destination_start = self.destination_start or self.destination_end
 
 
 class ServiceCustom(FMGObject):
@@ -419,7 +439,8 @@ class ServiceCustom(FMGObject):
         udp_portrange
         visibility
     """
-    _url = "/pm/config/{scope}/firewall/service/custom"
+
+    _url = "/pm/config/{scope}/obj/firewall/service/custom"
     _master_keys = ["name"]
     app_category: Optional[List[int]] = Field(
         None,
@@ -431,8 +452,8 @@ class ServiceCustom(FMGObject):
         validation_alias=AliasChoices("app-service-type", "app_service_type"),
         serialization_alias="app-service-type",
     )
-    application: Optional[int] = None
-    category: Optional[ServiceCategory] = None
+    application: Optional[List[int]] = None
+    category: Optional[List[Union[ServiceCategory, str]]] = None
     check_reset_range: Optional[CHECK_RESET_RANGE] = Field(
         None,
         validation_alias=AliasChoices("check-reset-range", "check_reset_range"),
@@ -458,7 +479,7 @@ class ServiceCustom(FMGObject):
         serialization_alias="protocol-number",
     )
     proxy: Optional[ENABLE_DISABLE] = None
-    sctp_portrange: Optional[str] = Field(
+    sctp_portrange: Optional[List[Union[PortRange, str]]] = Field(
         None,
         validation_alias=AliasChoices("sctp-portrange", "sctp_portrange"),
         serialization_alias="sctp-portrange",
@@ -478,7 +499,7 @@ class ServiceCustom(FMGObject):
         validation_alias=AliasChoices("tcp-halfopen-timer", "tcp_halfopen_timer"),
         serialization_alias="tcp-halfopen-timer",
     )
-    tcp_portrange: Optional[str] = Field(
+    tcp_portrange: Optional[List[str]] = Field(
         None,
         validation_alias=AliasChoices("tcp-portrange", "tcp_portrange"),
         serialization_alias="tcp-portrange",
@@ -494,10 +515,80 @@ class ServiceCustom(FMGObject):
     udp_idle_timer: Optional[int] = Field(
         None, validation_alias=AliasChoices("udp-idle-timer", "udp_idle_timer"), serialization_alias="udp-idle-timer"
     )
-    udp_portrange: Optional[str] = Field(
+    udp_portrange: Optional[List[str]] = Field(
         None, validation_alias=AliasChoices("udp-portrange", "udp_portrange"), serialization_alias="udp-portrange"
     )
     visibility: Optional[ENABLE_DISABLE] = None
+
+    @field_serializer("category")
+    def member_names_only(cls, categories: List[Union[str, ServiceCategory]]) -> List[str]:
+        """Ensure member names are passed to API as it is expected"""
+        serialized = []
+        for category in categories:
+            if isinstance(category, str):
+                serialized.append(category)
+                continue
+            serialized.append(category.name)
+        return serialized
+
+    @field_serializer("udp_portrange", "tcp_portrange", "sctp_portrange")
+    def portranges_to_string(ranges: List[PortRange]) -> List[str]:
+        """Ensure portranges are passed to API as it is expected
+
+            input format is string as follows:
+            [dst_start-]dst_end:[src_start-]src_end
+
+        Examples:
+            513:512-1023 means: dst 500 and source range of 512-1023
+        """
+        serialized = []
+        for range in ranges:
+            src = ""
+            dst = ""
+
+            if range.source_start and range.source_start == range.source_end:
+                src = range.source_start
+            elif range.source_end:
+                if range.source_start:
+                    src = f"{range.source_start}-{range.source_end}"
+                else:
+                    src = range.source_end
+            if range.destination_start and range.destination_start == range.destination_end:
+                dst = range.destination_start
+            elif range.destination_end:
+                if range.destination_start:
+                    dst = f"{range.destination_start}-{range.destination_end}"
+                else:
+                    dst = range.destination_end
+            if src:
+                serialized.append(f"{dst}:{src}")
+            else:
+                serialized.append(dst)
+        return serialized
+
+    @field_validator("udp_portrange", "tcp_portrange", "sctp_portrange")
+    def ensure_port_ranges(cls, v) -> List[PortRange]:
+        """Create PortRange object from string to standardize portrange handling"""
+        ranges = []
+        if isinstance(v, str):
+            v = [v]
+        if v and isinstance(v[0], PortRange):
+            return v
+        for range in v:
+            "dst_st-dst_end:src_st-src_end"
+            match = re.match(
+                r"^(?P<dst>(?P<destination_start>\d+)(?:-(?P<destination_end>\d+))?)"
+                r"(?::(?P<src>(?P<source_start>\d+)(?:-(?P<source_end>\d+))?))?$",
+                range,
+            )
+            if match:
+                data = match.groupdict()
+                if not data["destination_end"]:
+                    data["destination_end"] = data["destination_start"]
+                if not data["source_end"]:
+                    data["source_end"] = data["source_start"]
+                ranges.append(PortRange(**data))
+        return ranges
 
     @field_validator("app_service_type", mode="before")
     def standardize_app_service_type(cls, v):
@@ -526,6 +617,7 @@ class ServiceGroup(FMGObject):
     Attributes:
 
     """
+
     _url = "/pm/config/{scope}/firewall/service/group"
     _master_keys = ["name"]
     color: Optional[int] = None
@@ -578,91 +670,76 @@ class ProfileGroup(FMGObject):
         waf_profile: Name of an existing Web application firewall profile.
         webfilter_profile: Name of an existing Web filter profile.
     """
+
     _url = "/pm/config/{scope}/obj/firewall/profile-group"
     _master_keys = ["name"]
     application_list: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("application-list", "application_list"),
-        serialization_alias="application-list"
+        serialization_alias="application-list",
     )
     av_profile: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("av-profile", "av_profile"),
-        serialization_alias="av-profile"
+        None, validation_alias=AliasChoices("av-profile", "av_profile"), serialization_alias="av-profile"
     )
     dlp_profile: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("dlp-profile", "dlp_profile"),
-        serialization_alias="dlp-profile"
+        None, validation_alias=AliasChoices("dlp-profile", "dlp_profile"), serialization_alias="dlp-profile"
     )
     dnsfilter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("dnsfilter-profile", "dnsfilter_profile"),
-        serialization_alias="dnsfilter-profile"
+        serialization_alias="dnsfilter-profile",
     )
     emailfilter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("emailfilter-profile", "emailfilter_profile"),
-        serialization_alias="emailfilter-profile"
+        serialization_alias="emailfilter-profile",
     )
     file_filter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("file-filter-profile", "file_filter_profile"),
-        serialization_alias="file-filter-profile"
+        serialization_alias="file-filter-profile",
     )
     icap_profile: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("icap-profile", "icap_profile"),
-        serialization_alias="icap-profile"
+        None, validation_alias=AliasChoices("icap-profile", "icap_profile"), serialization_alias="icap-profile"
     )
     ips_sensor: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("ips-sensor", "ips_sensor"),
-        serialization_alias="ips-sensor"
+        None, validation_alias=AliasChoices("ips-sensor", "ips_sensor"), serialization_alias="ips-sensor"
     )
     ips_voip_filter: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("ips-voip-filter", "ips_voip_filter"),
-        serialization_alias="ips-voip-filter"
+        None, validation_alias=AliasChoices("ips-voip-filter", "ips_voip_filter"), serialization_alias="ips-voip-filter"
     )
     name: Optional[str] = None
     profile_protocol_options: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("profile-protocol-options", "profile_protocol_options"),
-        serialization_alias="profile-protocol-options"
+        serialization_alias="profile-protocol-options",
     )
     sctp_filter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("sctp-filter-profile", "sctp_filter_profile"),
-        serialization_alias="sctp-filter-profile"
+        serialization_alias="sctp-filter-profile",
     )
     ssh_filter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("ssh-filter-profile", "ssh_filter_profile"),
-        serialization_alias="ssh-filter-profile"
+        serialization_alias="ssh-filter-profile",
     )
     ssl_ssh_profile: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("ssl-ssh-profile", "ssl_ssh_profile"),
-        serialization_alias="ssl-ssh-profile"
+        None, validation_alias=AliasChoices("ssl-ssh-profile", "ssl_ssh_profile"), serialization_alias="ssl-ssh-profile"
     )
     videofilter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("videofilter-profile", "videofilter_profile"),
-        serialization_alias="videofilter-profile"
+        serialization_alias="videofilter-profile",
     )
     voip_profile: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("voip-profile", "voip_profile"),
-        serialization_alias="voip-profile"
+        None, validation_alias=AliasChoices("voip-profile", "voip_profile"), serialization_alias="voip-profile"
     )
     waf_profile: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("waf-profile", "waf_profile"),
-        serialization_alias="waf-profile"
+        None, validation_alias=AliasChoices("waf-profile", "waf_profile"), serialization_alias="waf-profile"
     )
     webfilter_profile: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("webfilter-profile", "webfilter_profile"),
-        serialization_alias="webfilter-profile"
+        serialization_alias="webfilter-profile",
     )
