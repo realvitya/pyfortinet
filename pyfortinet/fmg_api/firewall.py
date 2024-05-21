@@ -343,7 +343,7 @@ class AddressGroup(FMGObject):
     )
 
     @field_serializer("member", "exclude_member")
-    def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
+    def member_names_only(self, members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
         for member in members:
@@ -521,7 +521,7 @@ class ServiceCustom(FMGObject):
     visibility: Optional[ENABLE_DISABLE] = None
 
     @field_serializer("category")
-    def member_names_only(cls, categories: List[Union[str, ServiceCategory]]) -> List[str]:
+    def member_names_only(self, categories: List[Union[str, ServiceCategory]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
         for category in categories:
@@ -532,7 +532,7 @@ class ServiceCustom(FMGObject):
         return serialized
 
     @field_serializer("udp_portrange", "tcp_portrange", "sctp_portrange")
-    def portranges_to_string(ranges: List[PortRange]) -> List[str]:
+    def portranges_to_string(self, ranges: List[PortRange]) -> List[str]:
         """Ensure portranges are passed to API as it is expected
 
             input format is string as follows:
@@ -542,24 +542,24 @@ class ServiceCustom(FMGObject):
             513:512-1023 means: dst 500 and source range of 512-1023
         """
         serialized = []
-        for range in ranges:
+        for rng in ranges:
             src = ""
             dst = ""
 
-            if range.source_start and range.source_start == range.source_end:
-                src = range.source_start
-            elif range.source_end:
-                if range.source_start:
-                    src = f"{range.source_start}-{range.source_end}"
+            if rng.source_start and rng.source_start == rng.source_end:
+                src = rng.source_start
+            elif rng.source_end:
+                if rng.source_start:
+                    src = f"{rng.source_start}-{rng.source_end}"
                 else:
-                    src = range.source_end
-            if range.destination_start and range.destination_start == range.destination_end:
-                dst = range.destination_start
-            elif range.destination_end:
-                if range.destination_start:
-                    dst = f"{range.destination_start}-{range.destination_end}"
+                    src = rng.source_end
+            if rng.destination_start and rng.destination_start == rng.destination_end:
+                dst = rng.destination_start
+            elif rng.destination_end:
+                if rng.destination_start:
+                    dst = f"{rng.destination_start}-{rng.destination_end}"
                 else:
-                    dst = range.destination_end
+                    dst = rng.destination_end
             if src:
                 serialized.append(f"{dst}:{src}")
             else:
@@ -632,7 +632,7 @@ class ServiceGroup(FMGObject):
     proxy: Optional[ENABLE_DISABLE] = None
 
     @field_serializer("member")
-    def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
+    def member_names_only(self, members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
         for member in members:
