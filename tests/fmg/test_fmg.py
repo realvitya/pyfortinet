@@ -6,6 +6,7 @@ from pyfortinet.fmg_api.firewall import Address
 
 
 @pytest.mark.usefixtures("fmg")
+@pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
     def test_get_adom_list(self, fmg):
         result = fmg.get_adom_list(F(name__like="root"))  # root filter

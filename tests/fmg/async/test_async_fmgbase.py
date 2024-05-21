@@ -57,8 +57,8 @@ class TestAsyncFMGSettings:
 
 
 @need_lab
-@pytest.mark.usefixtures("prepare_lab")
-class TestLab:
+@pytest.mark.filterwarnings("ignore:Unverified")
+class TestLab(AsyncTestCase):
     """Lab tests"""
 
     config = pytest.lab_config.get("fmg")  # configured in conftest.py
@@ -95,7 +95,7 @@ class TestLab:
             await conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_expired_session_and_wrong_creds(self, prepare_lab):
+    async def test_fmg_lab_expired_session_and_wrong_creds(self):
         """Simulate expired token and changed credentials"""
         settings = FMGSettings(**self.config)
         async with AsyncFMGBase(settings) as conn:
@@ -105,7 +105,7 @@ class TestLab:
                 await conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_fail_logout_with_expired_token(self, prepare_lab, caplog):
+    async def test_fmg_lab_fail_logout_with_expired_token(self, caplog):
         """Simulate expired token by logout"""
         settings = FMGSettings(**self.config)
         async with AsyncFMGBase(settings) as conn:
@@ -113,7 +113,7 @@ class TestLab:
         assert "Logout failed" in caplog.text
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_fail_logout_with_disconnect(self, prepare_lab, caplog):
+    async def test_fmg_lab_fail_logout_with_disconnect(self, caplog):
         """Simulate disconnection by logout"""
         settings = FMGSettings(**self.config)
         async with AsyncFMGBase(settings) as conn:

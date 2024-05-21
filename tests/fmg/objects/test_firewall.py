@@ -10,6 +10,7 @@ from tests.conftest import AsyncTestCase
 
 
 @pytest.mark.usefixtures("fmg")
+@pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
     def test_firewall_address(self, fmg):
         to_add = fmg.get_obj(Address(name="test-firewall-address", subnet="10.0.0.0/24", allow_routing="disable"))

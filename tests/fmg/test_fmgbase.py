@@ -52,19 +52,20 @@ class TestFMGSettings:
 
 
 @need_lab
+@pytest.mark.filterwarnings("ignore:Unverified")
 class TestLab:
     """Lab tests"""
 
     config = pytest.lab_config.get("fmg")  # configured in conftest.py
 
     @pytest.mark.dependency()
-    def test_fmg_lab_connect(self, prepare_lab):
+    def test_fmg_lab_connect(self):
         settings = FMGSettings(**self.config)
         with FMGBase(settings) as conn:
             ver = conn.get_version()
         assert "-build" in ver
 
-    def test_fmg_lab_connect_wrong_creds(self, prepare_lab):
+    def test_fmg_lab_connect_wrong_creds(self):
         config = deepcopy(self.config)
         config["password"] = "badpassword"  # pragma: allowlist secret
         settings = FMGSettings(**config)
@@ -82,14 +83,14 @@ class TestLab:
             conn.open()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_expired_session(self, prepare_lab):
+    def test_fmg_lab_expired_session(self):
         settings = FMGSettings(**self.config)
         with FMGBase(settings) as conn:
             conn._token = SecretStr("bad_token")
             conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_expired_session_and_wrong_creds(self, prepare_lab):
+    def test_fmg_lab_expired_session_and_wrong_creds(self):
         """Simulate expired token and changed credentials"""
         settings = FMGSettings(**self.config)
         with FMGBase(settings) as conn:
@@ -99,7 +100,7 @@ class TestLab:
                 conn.get_version()
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_fail_logout_with_expired_token(self, prepare_lab, caplog):
+    def test_fmg_lab_fail_logout_with_expired_token(self, caplog):
         """Simulate expired token by logout"""
         settings = FMGSettings(**self.config)
         with FMGBase(settings) as conn:
@@ -107,7 +108,7 @@ class TestLab:
         assert "Logout failed" in caplog.text
 
     @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_fail_logout_with_disconnect(self, prepare_lab, caplog):
+    def test_fmg_lab_fail_logout_with_disconnect(self, caplog):
         """Simulate disconnection by logout"""
         settings = FMGSettings(**self.config)
         with FMGBase(settings) as conn:
@@ -117,6 +118,7 @@ class TestLab:
 
 
 @pytest.mark.usefixtures("fmg_base")
+@pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
     def test_address_add_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
@@ -150,8 +152,17 @@ class TestObjectsOnLab:
         ]
         result = fmg_base.add(address_request)
         assert result.success
+        # iterate over the result
         for res in result:
             assert "test-address" in res.get("data").get("name")
+        # using correct master_key gives back that specific result dict
+        res = result["test-address10", "name"]
+        assert res["data"]["name"] == "test-address10"
+        # wrong master_key gives None
+        assert result["test-address10", "qweqwe"] is None
+        # master_key would be mandatory by dict data
+        with pytest.raises(ValueError):
+            res = result["test-address10"]
 
     def test_address_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"

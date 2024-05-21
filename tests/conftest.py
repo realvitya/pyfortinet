@@ -27,18 +27,10 @@ def pytest_configure(config):
         pytest.lab_config = lab_config
 
 
-@pytest.fixture
-def prepare_lab():
-    """Prepare global lab settings"""
-    # disable SSL warnings for testing
-    requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
-
-
 @pytest.fixture(scope="class")
 def fmg_base(request):
     # Create FMGBase object
     try:
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
         fmg = FMGBase(FMGSettings(**pytest.lab_config.get("fmg")))
     except AttributeError as err:
         raise FMGConfigurationException("FMG settings are missing") from err
@@ -57,7 +49,6 @@ def fmg_base(request):
 def fmg(request):
     # Create FMG object
     try:
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
         fmg = FMG(FMGSettings(**pytest.lab_config.get("fmg")))
     except AttributeError as err:
         raise FMGConfigurationException("FMG settings are missing") from err
@@ -72,21 +63,22 @@ def fmg(request):
     fmg.close(discard_changes=True)
 
 
+@pytest.mark.asyncio(scope="class")
 class AsyncTestCase:
     """Base class for async test cases."""
 
-    @pytest.fixture(scope="session")
-    def event_loop(self):
-        """Override default event loop
-
-        This fixture overrides event_loop for the class and allows to run everything in a single loop. We get context
-        manager errors otherwise.
-        """
-        # give some time for previous test to correctly logout and clean up
-        time.sleep(2)
-        loop = asyncio.get_event_loop()
-        yield loop
-        loop.close()
+    # @pytest.fixture(scope="session")
+    # def event_loop(self):
+    #     """Override default event loop
+    #
+    #     This fixture overrides event_loop for the class and allows to run everything in a single loop. We get context
+    #     manager errors otherwise.
+    #     """
+    #     # give some time for previous test to correctly logout and clean up
+    #     time.sleep(2)
+    #     loop = asyncio.get_event_loop()
+    #     yield loop
+    #     loop.close()
 
     @pytest.fixture(autouse=True, scope="class")
     async def fmg_base(self):
@@ -106,6 +98,7 @@ class AsyncTestCase:
             fmg_base = AsyncFMGBase(FMGSettings(**pytest.lab_config.get("fmg")))
         except AttributeError as err:
             raise FMGConfigurationException("FMG settings are missing") from err
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
         # Create connection to FMG
         await fmg_base.open()
@@ -134,6 +127,7 @@ class AsyncTestCase:
             fmg = AsyncFMG(FMGSettings(**pytest.lab_config.get("fmg")))
         except AttributeError as err:
             raise FMGConfigurationException("FMG settings are missing") from err
+        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
         # Create connection to FMG
         await fmg.open()

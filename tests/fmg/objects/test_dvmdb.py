@@ -7,6 +7,7 @@ from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceTask
 
 
 @pytest.mark.usefixtures("fmg")
+@pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
     def test_dvmdb_device(self, fmg):
         device = ModelDevice(name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)

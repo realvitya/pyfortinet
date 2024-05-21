@@ -12,6 +12,7 @@ from pyfortinet.fmg_api.securityconsole import InstallDeviceTask
 
 
 @pytest.mark.usefixtures("fmg")
+@pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
     def test_install_device(self, fmg):
         test_device: Device = fmg.get(Device).first()
