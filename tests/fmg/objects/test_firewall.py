@@ -234,6 +234,6 @@ class TestAsynchObjectsOnLab(AsyncTestCase):
             quake = services["QUAKE", "qweqweqwe"]
         assert services
 
-    async def test_firewall_custom_service(self, fmg: AsyncFMG):
+    async def test_firewall_custom_service_group(self, fmg: AsyncFMG):
         services = await fmg.get(ServiceCustom)
         assert services

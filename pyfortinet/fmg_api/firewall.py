@@ -499,7 +499,7 @@ class ServiceCustom(FMGObject):
         validation_alias=AliasChoices("tcp-halfopen-timer", "tcp_halfopen_timer"),
         serialization_alias="tcp-halfopen-timer",
     )
-    tcp_portrange: Optional[List[str]] = Field(
+    tcp_portrange: Optional[List[Union[str, PortRange]]] = Field(
         None,
         validation_alias=AliasChoices("tcp-portrange", "tcp_portrange"),
         serialization_alias="tcp-portrange",
@@ -515,7 +515,7 @@ class ServiceCustom(FMGObject):
     udp_idle_timer: Optional[int] = Field(
         None, validation_alias=AliasChoices("udp-idle-timer", "udp_idle_timer"), serialization_alias="udp-idle-timer"
     )
-    udp_portrange: Optional[List[str]] = Field(
+    udp_portrange: Optional[List[Union[str, PortRange]]] = Field(
         None, validation_alias=AliasChoices("udp-portrange", "udp_portrange"), serialization_alias="udp-portrange"
     )
     visibility: Optional[ENABLE_DISABLE] = None
@@ -524,6 +524,8 @@ class ServiceCustom(FMGObject):
     def member_names_only(self, categories: List[Union[str, ServiceCategory]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
+        if not categories:
+            return []
         for category in categories:
             if isinstance(category, str):
                 serialized.append(category)
@@ -542,6 +544,8 @@ class ServiceCustom(FMGObject):
             513:512-1023 means: dst 500 and source range of 512-1023
         """
         serialized = []
+        if not ranges:
+            return []
         for rng in ranges:
             src = ""
             dst = ""
@@ -574,12 +578,12 @@ class ServiceCustom(FMGObject):
             v = [v]
         if v and isinstance(v[0], PortRange):
             return v
-        for range in v:
+        for rng in v:
             "dst_st-dst_end:src_st-src_end"
             match = re.match(
                 r"^(?P<dst>(?P<destination_start>\d+)(?:-(?P<destination_end>\d+))?)"
                 r"(?::(?P<src>(?P<source_start>\d+)(?:-(?P<source_end>\d+))?))?$",
-                range,
+                rng,
             )
             if match:
                 data = match.groupdict()
