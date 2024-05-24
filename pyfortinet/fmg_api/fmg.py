@@ -441,10 +441,10 @@ class FMG(FMGBase):
         Returns:
             (AnyFMGObject): New object, tied to this FMG
         """
-        if isinstance(obj, Union[FMGObject, FMGExecObject]):
+        if isinstance(obj, (FMGObject, FMGExecObject)):
             obj._fmg = self
             return obj
-        elif isclass(obj) and issubclass(obj, Union[FMGObject, FMGExecObject]):
+        elif isclass(obj) and issubclass(obj, (FMGObject, FMGExecObject)):
             return obj(fmg=self, **kwargs)
 
         raise TypeError(f"Argument {obj} is not an FMGObject or FMGExecObject type")

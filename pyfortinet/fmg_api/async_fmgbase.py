@@ -7,10 +7,8 @@ import re
 import time
 from copy import copy
 from random import randint
-from typing import Any, Callable, Optional, Union, List, Coroutine, Iterator
-from dataclasses import dataclass, field
-
-from more_itertools import first
+from typing import Any, Callable, Optional, Union, List, Coroutine
+from dataclasses import dataclass
 
 from pyfortinet.fmg_api.fmgbase import FMGResponse
 
@@ -126,7 +124,7 @@ class AsyncFMGResponse(FMGResponse):
     fmg: "AsyncFMGBase" = None
 
     async def wait_for_task(
-        self, callback: Callable[[int, str], Union[None | Coroutine]] = None, timeout: int = 60, loop_interval: int = 2
+        self, callback: Callable[[int, str], Optional[Coroutine]] = None, timeout: int = 60, loop_interval: int = 2
     ):
         if not self.success or not self.fmg:
             return
