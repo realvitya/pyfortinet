@@ -395,17 +395,30 @@ class PortRange(BaseModel):
     passed.
     """
 
-    source_start: Optional[int] = None
-    source_end: Optional[int] = None
-    destination_start: Optional[int] = None
-    destination_end: Optional[int] = None
+    source_start: Optional[str] = None
+    source_end: Optional[str] = None
+    destination_start: Optional[str] = None
+    destination_end: Optional[str] = None
 
     @model_validator(mode="after")
     def standardize_port_handling(self):
         """Ensure start and end are either None or the same if not different"""
+        try:
+            if int(self.source_start) > int(self.source_end):
+                raise ValueError("Start port must be equal or less than end port!")
+        except TypeError:
+            pass
+        try:
+            if int(self.destination_start) > int(self.destination_end):
+                raise ValueError("Start port must be equal or less than end port!")
+        except TypeError:
+            pass
+
         self.source_start = self.source_start or self.source_end
         self.destination_start = self.destination_start or self.destination_end
 
+
+PORT_RANGE_TYPE = Union[Union[str, PortRange], List[Union[str, PortRange]]]
 
 class ServiceCustom(FMGObject):
     """Custom service class
@@ -479,7 +492,7 @@ class ServiceCustom(FMGObject):
         serialization_alias="protocol-number",
     )
     proxy: Optional[ENABLE_DISABLE] = None
-    sctp_portrange: Optional[List[Union[PortRange, str]]] = Field(
+    sctp_portrange: Optional[PORT_RANGE_TYPE] = Field(
         None,
         validation_alias=AliasChoices("sctp-portrange", "sctp_portrange"),
         serialization_alias="sctp-portrange",
@@ -499,7 +512,7 @@ class ServiceCustom(FMGObject):
         validation_alias=AliasChoices("tcp-halfopen-timer", "tcp_halfopen_timer"),
         serialization_alias="tcp-halfopen-timer",
     )
-    tcp_portrange: Optional[List[Union[str, PortRange]]] = Field(
+    tcp_portrange: Optional[PORT_RANGE_TYPE] = Field(
         None,
         validation_alias=AliasChoices("tcp-portrange", "tcp_portrange"),
         serialization_alias="tcp-portrange",
@@ -515,7 +528,7 @@ class ServiceCustom(FMGObject):
     udp_idle_timer: Optional[int] = Field(
         None, validation_alias=AliasChoices("udp-idle-timer", "udp_idle_timer"), serialization_alias="udp-idle-timer"
     )
-    udp_portrange: Optional[List[Union[str, PortRange]]] = Field(
+    udp_portrange: Optional[PORT_RANGE_TYPE] = Field(
         None, validation_alias=AliasChoices("udp-portrange", "udp_portrange"), serialization_alias="udp-portrange"
     )
     visibility: Optional[ENABLE_DISABLE] = None
@@ -570,16 +583,17 @@ class ServiceCustom(FMGObject):
                 serialized.append(dst)
         return serialized
 
-    @field_validator("udp_portrange", "tcp_portrange", "sctp_portrange")
+    @field_validator("udp_portrange", "tcp_portrange", "sctp_portrange", mode="plain")
     def ensure_port_ranges(cls, v) -> List[PortRange]:
         """Create PortRange object from string to standardize portrange handling"""
         ranges = []
-        if isinstance(v, str):
+        if not isinstance(v, list):
             v = [v]
         if v and isinstance(v[0], PortRange):
             return v
         for rng in v:
-            "dst_st-dst_end:src_st-src_end"
+            # assuming string
+            # format: "dst_st-dst_end:src_st-src_end"
             match = re.match(
                 r"^(?P<dst>(?P<destination_start>\d+)(?:-(?P<destination_end>\d+))?)"
                 r"(?::(?P<src>(?P<source_start>\d+)(?:-(?P<source_end>\d+))?))?$",
