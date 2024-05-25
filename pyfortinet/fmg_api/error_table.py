@@ -1,4 +1,5 @@
 """FMG API Error Table"""
+
 from copy import copy
 from typing import Union, Optional, Type
 import re
@@ -235,7 +236,6 @@ API_ERRORS = {
     10177: "value cannot be explicitly set",
     10178: "setting cannot be modified on FortiGate-CNF device",
     10179: "Invalid vdom context",
-
     20000: "OK",
     20001: "Internal error",
     20002: "Invalid argument",
@@ -291,7 +291,7 @@ API_ERRORS = {
     20052: "Unable to perform the requested action. The session might have been discarded or removed.",
     20053: "Unknown DVM error",
     20054: "Internal error for workspace action",
-    20055: FMGLockException, # "Workspace is locked by other user",
+    20055: FMGLockException,  # "Workspace is locked by other user",
     20056: "SQLITE error for workspace action",
     20057: "Open database failed for workspace action",
     20058: "invalid session for workspace action",

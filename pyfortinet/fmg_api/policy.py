@@ -20,49 +20,49 @@ class PackageSettings(BaseModel):
     Attributes:
 
     """
+
     central_nat: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("central-nat", "central_nat"),
-        serialization_alias="central-nat"
+        None, validation_alias=AliasChoices("central-nat", "central_nat"), serialization_alias="central-nat"
     )
     consolidated_firewall_mode: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("consolidated-firewall-mode", "consolidated_firewall_mode"),
-        serialization_alias="consolidated-firewall-mode"
+        serialization_alias="consolidated-firewall-mode",
     )
     firewall_mode: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("firewall-mode", "firewall_mode"),
-        serialization_alias="firewall-mode"
+        None, validation_alias=AliasChoices("firewall-mode", "firewall_mode"), serialization_alias="firewall-mode"
     )
     fwpolicy_implicit_log: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("fwpolicy-implicit-log", "fwpolicy_implicit_log"),
-        serialization_alias="fwpolicy-implicit-log"
+        serialization_alias="fwpolicy-implicit-log",
     )
     fwpolicy6_implicit_log: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("fwpolicy6-implicit-log", "fwpolicy6_implicit_log"),
-        serialization_alias="fwpolicy6-implicit-log"
+        serialization_alias="fwpolicy6-implicit-log",
     )
     inspection_mode: Optional[INSPECTION_MODE] = Field(
-        None,
-        validation_alias=AliasChoices("inspection-mode", "inspection_mode"),
-        serialization_alias="inspection_mode"
+        None, validation_alias=AliasChoices("inspection-mode", "inspection_mode"), serialization_alias="inspection_mode"
     )
     ngfw_mode: Optional[NGFW_MODE] = Field(
-        None,
-        validation_alias=AliasChoices("ngfw-mode", "ngfw_mode"),
-        serialization_alias="ngfw-mode"
+        None, validation_alias=AliasChoices("ngfw-mode", "ngfw_mode"), serialization_alias="ngfw-mode"
     )
     policy_offload_level: Optional[POLICY_OFFLOAD_LEVEL] = Field(
         None,
         validation_alias=AliasChoices("policy-offload-level", "policy_offload_level"),
-        serialization_alias="policy-offload-level"
+        serialization_alias="policy-offload-level",
     )
     ssl_ssh_profile: Optional[str] = None  # TODO: implement SSLSSHProfile
 
-    @field_validator("central_nat", "consolidated_firewall_mode", "firewall_mode", "fwpolicy_implicit_log", "fwpolicy6_implicit_log", mode="before")
+    @field_validator(
+        "central_nat",
+        "consolidated_firewall_mode",
+        "firewall_mode",
+        "fwpolicy_implicit_log",
+        "fwpolicy6_implicit_log",
+        mode="before",
+    )
     def standardize_enabled_disabled(cls, v):
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
@@ -84,6 +84,7 @@ class PolicyPackage(FMGObject):
 
     In the URL, {name} is optional and get_url function takes care of it.
     """
+
     _url = "/pm/pkg/{scope}"
 
 

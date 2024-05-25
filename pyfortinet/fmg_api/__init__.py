@@ -97,6 +97,7 @@ class FMGObject(FMGBaseObject, ABC):
         _fmg (FMG): FMG instance
         _master_keys (str): name of attributes which represents unique key in FMG DB for this API class
     """
+
     _master_keys: Optional[List[str]] = None
 
     @property

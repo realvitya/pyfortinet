@@ -1,4 +1,5 @@
 """Firewall object types"""
+
 import re
 from ipaddress import IPv4Interface, IPv4Address
 from typing import Literal, Optional, Union, List
@@ -419,6 +420,7 @@ class PortRange(BaseModel):
 
 
 PORT_RANGE_TYPE = Union[Union[str, PortRange], List[Union[str, PortRange]]]
+
 
 class ServiceCustom(FMGObject):
     """Custom service class

@@ -401,6 +401,7 @@ class ADOM(FMGObject):
         uuid:
         workspace_mode:
     """
+
     _url = "/dvmdb/adom"
     _master_keys = ["name"]
 
