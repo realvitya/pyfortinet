@@ -63,6 +63,22 @@ class TestFilters:
             [["status", "==", 1], ["status", "==", 2]],
         ]
 
+    def test_filter_with_separator(self):
+        f = F(allow_routing="enable", _sep="-").generate()
+        assert f == ["allow-routing", "==", "enable"]
+
+    def test_filter_without_separator(self):
+        f = F(allow_routing="enable").generate()
+        assert f == ["allow_routing", "==", "enable"]
+
+    def test_filter_with_sep_keep_first_(self):
+        f = F(_image_base64="qweqweqwe", _sep="-").generate()
+        assert f == ["_image-base64", "==", "qweqweqwe"]
+
+    def test_filter_with_multiple_separator(self):
+        f = F(_allow_routing_test="enable", _sep="-").generate()
+        assert f == ["_allow-routing-test", "==", "enable"]
+
     def test_first_good(self):
         response = FMGResponse(data={"data": ["response1", "response2"]})
         assert response.first() == "response1"
@@ -87,3 +103,6 @@ class TestFilters:
             "&&",
             ["conf_status", "==", "insync"],
         ]
+        # `-` and ` ` also works
+        assert text_to_filter("_image-base64 like test%").generate() == ["_image-base64", "like", "test%"]
+        assert text_to_filter("scope member in fw1").generate() == ["scope member", "in", "fw1"]

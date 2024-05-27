@@ -63,6 +63,7 @@ class F:
     """Filter class that allows us to define a single filter for an object
 
     Argument format is {field}={value} or {field}__{operator}={value}
+    Special argument `_sep` can be passed to indicate the search field separator character, if it's not the `_`.
     Only one argument can be passed!
 
     Filter object can be used at ``FMG.get`` method
@@ -79,7 +80,7 @@ class F:
     op: str = ""
     targets: Union[List[Union[int, str]], Union[int, str]]
 
-    def __init__(self, **kwargs):
+    def __init__(self, *, _sep="_", **kwargs):
         """Filter initialization"""
         if len(kwargs) > 1:
             raise ValueError(f"F only accepts one filter condition at a time!")
@@ -92,6 +93,7 @@ class F:
             else:
                 self.source = key
                 self.op = "=="
+            self.source = re.sub(r"(?!^)_", _sep, self.source)
             self.targets = value
 
     def generate(self) -> List[str]:
@@ -189,6 +191,7 @@ def text_to_filter(text: str) -> FILTER_TYPE:
     This is a simple text to filter object converter. It does not support more complex logic.
     Simple field comparisons with `and/or and ,` operators are supported. `,` means a simple `or` between same
     type fields.
+    Field name can contain `-` and ` ` characters, refer to API docs for available field names.
 
     structure::
 
@@ -230,7 +233,7 @@ def text_to_filter(text: str) -> FILTER_TYPE:
     while text:
         # search F tokens
         f_match = re.match(
-            rf'(?P<negate>~)?\s*(?P<fname>\w+)\s+(?P<fop>{"|".join(OP.keys())})\s+(?P<fvalue>\S+)(?<![,|&])', text
+            rf'(?P<negate>~)?\s*(?P<fname>[\w -]+?)\s+(?P<fop>{"|".join(OP.keys())})\s+(?P<fvalue>\S+)(?<![,|&])', text
         )
         if f_match:
             kwargs = {f"{f_match.group('fname')}__{f_match.group('fop')}": f_match.group("fvalue")}
