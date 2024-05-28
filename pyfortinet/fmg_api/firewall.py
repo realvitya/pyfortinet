@@ -638,7 +638,7 @@ class ServiceGroup(FMGObject):
 
     """
 
-    _url = "/pm/config/{scope}/firewall/service/group"
+    _url = "/pm/config/{scope}/obj/firewall/service/group"
     _master_keys = ["name"]
     color: Optional[int] = None
     comment: Optional[str] = None
