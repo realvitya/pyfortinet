@@ -5,7 +5,7 @@ import pytest
 from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, PortRange
+from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, PortRange, ServiceGroup
 from tests.conftest import AsyncTestCase
 
 
@@ -109,6 +109,17 @@ class TestObjectsOnLab:
         group1.refresh()
         # check if members still match from FMG loaded object
         assert group1.member == ["test-address1", "test-address2", "test-address3"]
+        # test membership filtering
+        check_grp = fmg.get(AddressGroup, F(member__contain="test-address1")).first()
+        assert check_grp.name == "test-group1"
+        check_grp = fmg.get(AddressGroup,
+                            F(member__contain="test-address1") & F(member__contain="test-address2")
+                            ).first()
+        assert check_grp.name == "test-group1"
+        check_grp = fmg.get(AddressGroup,
+                            F(member__contain="test-address1") & F(member__contain="test-group1")
+                            ).first()
+        assert check_grp.name == "test-group2"
         # deleting objects must follow dependency tree else FMG error out by deleting object used
         group2.delete()
         group1.delete()
@@ -271,5 +282,5 @@ class TestAsynchObjectsOnLab(AsyncTestCase):
         assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
 
     async def test_firewall_custom_service_group(self, fmg: AsyncFMG):
-        services = await fmg.get(ServiceCustom)
+        services = await fmg.get(ServiceGroup)
         assert services

@@ -647,12 +647,12 @@ class ServiceGroup(FMGObject):
         validation_alias=AliasChoices("fabric-object", "fabric_object"),
         serialization_alias="fabric-object",
     )
-    member: Optional[List[Union[str, ServiceCustom]]] = Field(None, max_length=5000)
+    member: Optional[List[Union[str, ServiceCustom, "ServiceGroup"]]] = Field(None, max_length=5000)
     name: Optional[str] = None
     proxy: Optional[ENABLE_DISABLE] = None
 
     @field_serializer("member")
-    def member_names_only(self, members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
+    def member_names_only(self, members: List[Union[str, ServiceCustom, "ServiceGroup"]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
         for member in members:
