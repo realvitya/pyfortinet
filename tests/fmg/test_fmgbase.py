@@ -163,6 +163,9 @@ class TestObjectsOnLab:
         # master_key would be mandatory by dict data
         with pytest.raises(ValueError):
             res = result["test-address10"]
+        # test sequence get
+        res = result[0]
+        assert res["data"]["name"] == "test-address10"
 
     def test_address_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
@@ -201,7 +204,7 @@ class TestObjectsOnLab:
             "filter": [["name", "==", "test-address"]],
         }
         result = fmg_base.get(address_request)
-        assert result.success and result.data["data"][0].get("name") == "test-address"
+        assert result.success and result.data[0]["data"][0].get("name") == "test-address"
 
     def test_address_del_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"

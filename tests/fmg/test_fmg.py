@@ -33,6 +33,10 @@ class TestObjectsOnLab:
         addr2 = fmg.get_obj(Address(name="test-addr2", subnet="10.0.0.2/32"))
         result = fmg.add([addr1, addr2])
         assert result
+        # addr1, addr2 = fmg.get(Address, F(name="test-addr1") + F(name="test-addr2"))
+        addr1, addr2 = fmg.get(Address, "name eq test-addr1, name eq test-addr2")
+        assert addr1.name == "test-addr1"
+        assert addr2.name == "test-addr2"
         addr1.subnet = "10.0.0.11/32"
         addr2.subnet = "10.0.0.12/32"
         result = fmg.update([addr1, addr2])

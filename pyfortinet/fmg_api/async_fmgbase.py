@@ -91,9 +91,11 @@ def lock(func: Callable) -> Callable:
                 for arg in args_to_check:
                     if isinstance(arg, dict):
                         url = arg.get("url")
-                        adom_match = re.search(r"/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
+                        adom_match = re.search(r"^(?:/\w+){,3}/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
                         if adom_match:
                             adom = adom_match.group("adom")
+                        elif self.adom:
+                            adom = self.adom
                         else:
                             raise FMGException(f"No ADOM found to lock in url '{url}'") from err
                     elif isinstance(arg, FMGObject):
@@ -160,7 +162,7 @@ class AsyncFMGLockContext:
         """Get workspace-mode from config"""
         url = "/cli/global/system/global"
         result = await self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = result.data["data"].get("workspace-mode") != 0
+        self._uses_workspace = result.data[0]["data"].get("workspace-mode") != 0
         # self.uses_adoms = result.data["data"].get("adom-status") == 1
 
     async def lock_adoms(self, *adoms: str) -> AsyncFMGResponse:
@@ -517,7 +519,7 @@ class AsyncFMGBase:
             result.data = {"data": []}
             return result
         # processing result list
-        result.data = api_result
+        result.data = api_result if isinstance(api_result, list) else [api_result]
         result.success = True
         result.status = api_result.get("status", {}).get("code", 400)
 

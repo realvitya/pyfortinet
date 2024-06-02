@@ -153,7 +153,7 @@ class TestObjectsOnLab(AsyncTestCase):
             "filter": [["name", "==", "test-address"]],
         }
         result = await fmg_base.get(address_request)
-        assert result.success and result.data["data"][0].get("name") == "test-address"
+        assert result.success and result.data[0]["data"][0].get("name") == "test-address"
 
     async def test_address_del_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
