@@ -298,6 +298,10 @@ class Policy(FMGObject):
 
     """
     _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy"
+    # URL fields
+    adom: Optional[str] = Field(None, exclude=True)
+    pkg: Optional[str] = Field(None, exclude=True)
+    # API fields
     policy_block: Optional[int] = Field(
         None,
         validation_alias=AliasChoices("_policy_block", "policy_block"),
@@ -446,7 +450,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("fec", "fec"),
         serialization_alias="fec",
     )
-    file_filter_profile: Optional[str] = Field(  # TODO: add FileFilterProfile later when implemented
+    file_filter_profile: Optional[List[str]] = Field(  # TODO: add FileFilterProfile later when implemented
         None,
         validation_alias=AliasChoices("file-filter-profile", "file_filter_profile"),
         serialization_alias="file-filter-profile",
@@ -457,7 +461,7 @@ class Policy(FMGObject):
         serialization_alias="firewall-session-dirty",
     )
     fixedport: Optional[ENABLE_DISABLE] = None
-    fsso_agent_for_ntlm: Optional[str] = Field(  # TODO: add SSOAgent later when implemented
+    fsso_agent_for_ntlm: Optional[List[str]] = Field(  # TODO: add SSOAgent later when implemented
         None,
         validation_alias=AliasChoices("fsso-agent-for-ntlm", "fsso_agent_for_ntlm"),
         serialization_alias="fsso-agent-for-ntlm",
@@ -651,7 +655,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("ips-sensor", "ips_sensor"),
         serialization_alias="ips-sensor",
     )
-    ips_voip_filter: Optional[str] = Field(  # TODO: Define the VoIPProfile class and use it here instead of str
+    ips_voip_filter: Optional[List[str]] = Field(  # TODO: Define the VoIPProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("ips-voip-filter", "ips_voip_filter"),
         serialization_alias="ips-voip-filter",
@@ -679,7 +683,7 @@ class Policy(FMGObject):
     nat46: Optional[ENABLE_DISABLE] = None
     nat64: Optional[ENABLE_DISABLE] = None
     natinbound: Optional[ENABLE_DISABLE] = None
-    natip: Optional[Union[str, Address]] = None
+    natip: Optional[List[Union[str, Address]]] = None
     natoutbound: Optional[ENABLE_DISABLE] = None
     # TODO: Define NetworkServiceDynamic class and use it here instead of List[str]
     network_service_dynamic: Optional[List[str]] = None
@@ -719,8 +723,9 @@ class Policy(FMGObject):
         serialization_alias="pcp-poolname",
     )
 
-    per_ip_shaper: Optional[str] = Field(
+    per_ip_shaper: Optional[List[str]] = Field(
         # TODO: Define the PerIPShaper class and use it here instead of str
+        None,
         validation_alias=AliasChoices("per-ip-shaper", "per_ip_shaper"),
         serialization_alias="per-ip-shaper",
     )
@@ -763,7 +768,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("profile-group", "profile_group"),
         serialization_alias="profile-group",
     )
-    profile_protocol_options: Optional[str] = Field(
+    profile_protocol_options: Optional[List[str]] = Field(
         # TODO: Define the ProtocolOptionsProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("profile-protocol-options", "profile_protocol_options"),
@@ -785,7 +790,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("redirect-url", "redirect_url"),
         serialization_alias="redirect-url",
     )
-    replacemsg_override_group: Optional[str] = Field(
+    replacemsg_override_group: Optional[List[str]] = Field(
         # TODO: Define ReplacemsgOverrideGroup class and use it here instead of str
         None,
         validation_alias=AliasChoices("replacemsg-override-group", "replacemsg_override_group"),
@@ -821,13 +826,14 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("rtp-nat", "rtp_nat"),
         serialization_alias="rtp-nat",
     )
-    schedule: Optional[str] = None  # TODO: Define Schedule class and use it here instead of str
+    schedule: Optional[List[str]] = None  # TODO: Define Schedule class and use it here instead of str
     schedule_timeout: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("schedule-timeout", "schedule_timeout"),
         serialization_alias="schedule-timeout",
     )
-    sctp_filter_profile: Optional[str] = Field(  # TODO: Define SctpFilterProfile class and use it here instead of str
+    # TODO: Define SctpFilterProfile class and use it here instead of str
+    sctp_filter_profile: Optional[List[str]] = Field(
         None,
         validation_alias=AliasChoices("sctp-filter-profile", "sctp_filter_profile"),
         serialization_alias="sctp-filter-profile",
@@ -837,7 +843,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("send-deny-packet", "send_deny_packet"),
         serialization_alias="send-deny-packet",
     )
-    service: Optional[List[Union[ServiceCustom, ServiceGroup]]] = None
+    service: Optional[List[Union[str, ServiceCustom, ServiceGroup]]] = None
     service_negate: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("service-negate", "service_negate"),
@@ -881,7 +887,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("ssh-policy-redirect", "ssh_policy_redirect"),
         serialization_alias="ssh-policy-redirect",
     )
-    ssl_ssh_profile: Optional[str] = Field(
+    ssl_ssh_profile: Optional[List[str]] = Field(
         # TODO: Define the SSLSSHProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("ssl-ssh-profile", "ssl_ssh_profile"),
@@ -919,13 +925,13 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("tos-negate", "tos_negate"),
         serialization_alias="tos-negate",
     )
-    traffic_shaper: Optional[str] = Field(
+    traffic_shaper: Optional[List[str]] = Field(
         # TODO: Define the TrafficShaper class and use it here instead of str
         None,
         validation_alias=AliasChoices("traffic-shaper", "traffic_shaper"),
         serialization_alias="traffic-shaper",
     )
-    traffic_shaper_reverse: Optional[str] = Field(
+    traffic_shaper_reverse: Optional[List[str]] = Field(
         # TODO: Define the TrafficShaperReverse class and use it here instead of str
         None,
         validation_alias=AliasChoices("traffic-shaper-reverse", "traffic_shaper_reverse"),
@@ -938,7 +944,7 @@ class Policy(FMGObject):
         serialization_alias="utm-status",
     )
     uuid: Optional[str] = None
-    videofilter_profile: Optional[str] = Field(
+    videofilter_profile: Optional[List[str]] = Field(
         # TODO: Define the VideoFilterProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("videofilter-profile", "videofilter_profile"),
@@ -979,7 +985,7 @@ class Policy(FMGObject):
         serialization_alias="waf-profile",
     )
     wccp: Optional[ENABLE_DISABLE] = None
-    webfilter_profile: Optional[str] = Field(
+    webfilter_profile: Optional[List[str]] = Field(
         # TODO: Define the WebFilterProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("webfilter-profile", "webfilter_profile"),
@@ -1035,3 +1041,87 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("ztna-tags-match-logic", "ztna_tags_match_logic"),
         serialization_alias="ztna-tags-match-logic",
     )
+
+    @property
+    def get_url(self) -> str:
+        """Construct API URL based on adom and pkg fields
+
+        Notes:
+            ADOM can come from FMG object
+            PKG must be specified
+        """
+        adom = self.adom or self.fmg_scope.replace("adom/", "").replace("global", "")
+        pkg = self.pkg
+        if not adom:
+            raise ValueError("Please specify `adom` field or assign object to FMG!")
+        if pkg is None:
+            raise ValueError("Please specify `pkg` field!")
+        return self._url.replace("{adom}", adom).replace("{pkg}", pkg)
+
+    @field_validator(
+        "anti_replay",
+        "auth_path",
+        "block_notification",
+        "captive_portal_exempt",
+        "capture_packet",
+        "delay_tcp_npu_session",
+        "diffserv_copy",
+        "diffserv_forward",
+        "diffserv_reverse",
+        "dsri",
+        "dstaddr_negate",
+        "dstaddr6_negate",
+        "dynamic_shaping",
+        "email_collect",
+        "fec",
+        "fixedport",
+        "geoip_anycast",
+        "http_policy_redirect",
+        "inbound",
+        "internet_service",
+        "internet_service_negate",
+        "internet_service_src",
+        "internet_service_src_negate",
+        "internet_service6",
+        "internet_service6_negate",
+        "internet_service6_src",
+        "internet_service6_src_negate",
+        "ippool",
+        "logtraffic_start",
+        "match_vip",
+        "match_vip_only",
+        "nat",
+        "nat46",
+        "nat64",
+        "natinbound",
+        "natoutbound",
+        "ntlm",
+        "ntlm_guest",
+        "outbound",
+        "passive_wan_health_measurement",
+        "pcp_inbound",
+        "pcp_outbound",
+        "permit_any_host",
+        "permit_stun_host",
+        "policy_expiry",
+        "radius_mac_auth_bypass",
+        "rtp_nat",
+        "schedule_timeout",
+        "send_deny_packet",
+        "service_negate",
+        "sgt_check",
+        "srcaddr_negate",
+        "srcaddr6_negate",
+        "ssh_policy_redirect",
+        "status",
+        "timeout_send_rst",
+        "tos_negate",
+        "utm_status",
+        "wccp",
+        "ztna_device_ownership",
+        "ztna_policy_redirect",
+        "ztna_status",
+        mode="before",
+    )
+    def standardize_enabled_disabled(cls, v):
+        return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
