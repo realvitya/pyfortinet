@@ -33,7 +33,7 @@ class AsyncFMG(AsyncFMGBase):
             settings (Settings): FortiManager settings
 
         Keyword Args:
-            base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
+            base_url (str): Base URL to access FMG (e.g.: https://myfmg)
             username (str): User to authenticate
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
