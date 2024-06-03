@@ -27,19 +27,98 @@ class TestFilters:
         f = (F(name="test_address") | F(name="prod_address")).generate()
         assert f == [["name", "==", "test_address"], "||", ["name", "==", "prod_address"]]
 
+    def test_explicit_and_filters(self):
+        f = (F(name="test_address") & F(name="prod_address")).generate()
+        assert f == [["name", "==", "test_address"], "&&", ["name", "==", "prod_address"]]
+
     def test_multiple_filters(self):
         f = (F(name="acceptance_address") | F(name="test_address") | F(name="prod_address")).generate()
         assert f == [
-            [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+            ["name", "==", "acceptance_address"],
+            "||",
+            ["name", "==", "test_address"],
             "||",
             ["name", "==", "prod_address"],
         ]
 
-    def test_filters_with_parentheses(self):
+    def test_multiple_filters2(self):
         f = (F(name="acceptance_address") | (F(name="test_address") | F(name="prod_address"))).generate()
         assert f == [
             ["name", "==", "acceptance_address"],
             "||",
+            ["name", "==", "test_address"],
+            "||",
+            ["name", "==", "prod_address"],
+        ]
+
+    def test_multiple_filters3(self):
+        f = (F(name="acceptance_address") & (F(name="test_address") & F(name="prod_address"))).generate()
+        assert f == [
+            ["name", "==", "acceptance_address"],
+            "&&",
+            ["name", "==", "test_address"],
+            "&&",
+            ["name", "==", "prod_address"],
+        ]
+
+    def test_filterlist_add(self):
+        f = (
+            (F(name="acceptance_address") + F(name="test_address") + F(name="prod_address"))
+            + (F(name="acceptance_address") + F(name="test_address") + F(name="prod_address"))
+        ).generate()
+        assert f == [
+            ["name", "==", "acceptance_address"],
+            ["name", "==", "test_address"],
+            ["name", "==", "prod_address"],
+            ["name", "==", "acceptance_address"],
+            ["name", "==", "test_address"],
+            ["name", "==", "prod_address"],
+        ]
+
+    def test_f_to_complex(self):
+        f = (
+            F(name="test_address")
+            + ((F(name="acceptance_address") | (F(name="test_address"))) & F(name="prod_address"))
+        ).generate()
+        assert f == [
+            ["name", "==", "test_address"],
+            [
+                [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+                "&&",
+                ["name", "==", "prod_address"],
+            ],
+        ]
+
+    def test_filterlist_add_with_complex(self):
+        f = (
+            (F(name="acceptance_address") + F(name="test_address") + F(name="prod_address"))
+            + (F(name="acceptance_address") | F(name="test_address") + F(name="prod_address"))
+        ).generate()
+        assert f == [
+            [["name", "==", "acceptance_address"], ["name", "==", "test_address"], ["name", "==", "prod_address"]],
+            [
+                ["name", "==", "acceptance_address"],
+                "||",
+                [["name", "==", "test_address"], ["name", "==", "prod_address"]],
+            ],
+        ]
+
+    def test_filterlist_to_complex(self):
+        f = (
+            (F(name="acceptance_address") + F(name="test_address") + F(name="prod_address"))
+            | (F(name="acceptance_address") + F(name="test_address") + F(name="prod_address"))
+        ).generate()
+        assert f == [
+            [["name", "==", "acceptance_address"], ["name", "==", "test_address"], ["name", "==", "prod_address"]],
+            "||",
+            [["name", "==", "acceptance_address"], ["name", "==", "test_address"], ["name", "==", "prod_address"]],
+        ]
+
+    def test_filters_with_parentheses(self):
+        f = (F(name="acceptance_address") & (F(name="test_address") | F(name="prod_address"))).generate()
+        assert f == [
+            ["name", "==", "acceptance_address"],
+            "&&",
             [["name", "==", "test_address"], "||", ["name", "==", "prod_address"]],
         ]
 
@@ -49,6 +128,52 @@ class TestFilters:
             [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
             "&&",
             ["state", "==", 1],
+        ]
+
+    def test_filters_with_parentheses3(self):
+        f = ((F(name="acceptance_address") | F(name="test_address")) & (F(state=1) | F(state=2))).generate()
+        assert f == [
+            [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+            "&&",
+            [["state", "==", 1], "||", ["state", "==", 2]],
+        ]
+
+    def test_filters_with_parentheses4(self):
+        f = (
+            (F(name="acceptance_address") | F(name="test_address")) & (F(state=1) | F(state=2))
+            | (F(name="acceptance_address") | F(name="test_address")) & (F(state=1) | F(state=2))
+        ).generate()
+        assert f == [
+            [
+                [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+                "&&",
+                [["state", "==", 1], "||", ["state", "==", 2]],
+            ],
+            "||",
+            [
+                [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+                "&&",
+                [["state", "==", 1], "||", ["state", "==", 2]],
+            ],
+        ]
+
+    def test_filters_with_parentheses5(self):
+        f = (
+            ((F(name="acceptance_address") | F(name="test_address")) & (F(state=1) | F(state=2)))
+            & ((F(name="acceptance_address") | F(name="test_address")) & (F(state=1) | F(state=2)))
+        ).generate()
+        assert f == [
+            [
+                [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+                "&&",
+                [["state", "==", 1], "||", ["state", "==", 2]],
+            ],
+            "&&",
+            [
+                [["name", "==", "acceptance_address"], "||", ["name", "==", "test_address"]],
+                "&&",
+                [["state", "==", 1], "||", ["state", "==", 2]],
+            ],
         ]
 
     def test_and_filters(self):
@@ -106,3 +231,47 @@ class TestFilters:
         # `-` and ` ` also works
         assert text_to_filter("_image-base64 like test%").generate() == ["_image-base64", "like", "test%"]
         assert text_to_filter("scope member in fw1").generate() == ["scope member", "in", "fw1"]
+        assert text_to_filter("name eq test-addr1, name eq test-addr2").generate() == [
+            ["name", "==", "test-addr1"],
+            ["name", "==", "test-addr2"],
+        ]
+        assert text_to_filter("name eq host_1 or conf_status eq insync or conf_status eq modified").generate() == [
+            ["name", "==", "host_1"],
+            "||",
+            ["conf_status", "==", "insync"],
+            "||",
+            ["conf_status", "==", "modified"],
+        ]
+        assert text_to_filter("name eq host_1 or conf_status eq insync and conf_status eq modified").generate() == [
+            ["name", "==", "host_1"],
+            "||",
+            [["conf_status", "==", "insync"], "&&", ["conf_status", "==", "modified"]],
+        ]
+        assert text_to_filter("(name eq host_1 or conf_status eq insync) and conf_status eq modified").generate() == [
+            [
+                ["name", "==", "host_1"],
+                "||",
+                ["conf_status", "==", "insync"],
+            ],
+            "&&",
+            ["conf_status", "==", "modified"],
+        ]
+        assert text_to_filter("(name eq host_1 or conf_status eq insync)").generate() == [
+            ["name", "==", "host_1"],
+            "||",
+            ["conf_status", "==", "insync"],
+        ]
+        assert text_to_filter("(name eq host_1 or conf_status eq insync) and conf_status eq modified").generate() == [
+            [
+                ["name", "==", "host_1"],
+                "||",
+                ["conf_status", "==", "insync"],
+            ],
+            "&&",
+            ["conf_status", "==", "modified"],
+        ]
+        assert text_to_filter("(name eq host_1 and (conf_status eq insync or conf_status eq modified))").generate() == [
+            ["name", "==", "host_1"],
+            "&&",
+            [["conf_status", "==", "insync"], "||", ["conf_status", "==", "modified"]],
+        ]
