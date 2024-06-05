@@ -443,7 +443,7 @@ class FMG(FMGBase):
             return result
 
     def get_obj(
-        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Dict[str, Any]
+        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Any
     ) -> AnyFMGObject:
         """Get an object and tie it to this FMG
 
