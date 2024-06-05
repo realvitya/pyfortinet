@@ -2,7 +2,7 @@
 
 from typing import Literal, Union, Optional, List, Any
 
-from pydantic import BaseModel, AliasChoices, Field, field_validator
+from pydantic import BaseModel, AliasChoices, Field, field_validator, field_serializer
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
@@ -300,6 +300,7 @@ class Policy(FMGObject):
 
     """
     _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy"
+    _master_keys = ["policyid"]
     # URL fields
     adom: Optional[str] = Field(None, exclude=True)
     pkg: Optional[str] = Field(None, exclude=True)
@@ -1127,3 +1128,14 @@ class Policy(FMGObject):
     )
     def standardize_enabled_disabled(cls, v):
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_serializer("srcaddr", "dstaddr", "service")
+    def member_names_only(self, members: List[Union[str, Address, AddressGroup, ServiceCustom, ServiceGroup]]) -> List[str]:
+        """Ensure member names are passed to API as it is expected"""
+        serialized = []
+        for member in members:
+            if isinstance(member, str):
+                serialized.append(member)
+                continue
+            serialized.append(member.name)
+        return serialized
