@@ -1,6 +1,7 @@
 """Common objects"""
 
 import re
+from copy import deepcopy
 from typing import Literal, List, Union, Optional
 
 from pydantic.dataclasses import dataclass
@@ -114,8 +115,9 @@ class F:
             return FilterList(self, other, op="&&")
         if isinstance(other, FilterList):
             if other.op == "&&":
-                other.members.insert(0, self)
-                return other
+                out = deepcopy(other)
+                out.members.insert(0, self)
+                return out
         return ComplexFilter(self, "&&", other)
 
     def __or__(self, other):
@@ -123,13 +125,15 @@ class F:
             return FilterList(self, other, op="||")
         if isinstance(other, FilterList):
             if other.op == "||":
-                other.members.insert(0, self)
-                return other
+                out = deepcopy(other)
+                out.members.insert(0, self)
+                return out
         return ComplexFilter(self, "||", other)
 
     def __invert__(self):
-        self.negate = not self.negate
-        return self
+        out = deepcopy(self)
+        out.negate = not self.negate
+        return out
 
     def __add__(self, other: Union["F", "FilterList", "ComplexFilter"]):
         if isinstance(other, ComplexFilter):
@@ -156,29 +160,33 @@ class FilterList:
     def __add__(self, other: Union[F, "FilterList"]):
         if self.op == ",":
             if isinstance(other, F):
-                self.members.append(other)
-                return self
+                out = deepcopy(self)
+                out.members.append(other)
+                return out
             if isinstance(other, FilterList):
-                self.members.extend(other.members)
-                return self
+                out = deepcopy(self)
+                out.members.extend(other.members)
+                return out
         return ComplexFilter(self, ",", other)
 
     def __and__(self, other):
         if self.op == "&&":
+            out = deepcopy(self)
             if isinstance(other, F):
-                self.members.append(other)
+                out.members.append(other)
             elif isinstance(other, FilterList):
-                self.members.extend(other.members)
-            return self
+                out.members.extend(other.members)
+            return out
         return ComplexFilter(self, "&&", other)
 
     def __or__(self, other):
         if self.op == "||":
+            out = deepcopy(self)
             if isinstance(other, F):
-                self.members.append(other)
+                out.members.append(other)
             elif isinstance(other, FilterList):
-                self.members.extend(other.members)
-            return self
+                out.members.extend(other.members)
+            return out
         return ComplexFilter(self, "||", other)
 
     def __len__(self):
