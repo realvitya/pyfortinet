@@ -406,7 +406,9 @@ class FMGBase:
         )
         results = req.json().get("result", [])
         for result in results:
-            status = result["status"]
+            status = result.get("status")
+            if not status:  # no status in reply, return empty result
+                return {"data": ""}
             if status["code"] == 0:
                 continue
             error = get_fmg_error(error_code=status["code"])
