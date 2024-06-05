@@ -5,7 +5,7 @@ import asyncio
 from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.dvmcmd import ModelDevice, DeviceTask
+from pyfortinet.fmg_api.dvmcmd import DeviceTask
 from pyfortinet.fmg_api.firewall import Address
 from tests.conftest import AsyncTestCase
 
@@ -17,7 +17,7 @@ class TestObjectsOnLab(AsyncTestCase):
         await asyncio.sleep(0.1)
 
     async def test_dvmdb_device(self, fmg: AsyncFMG):
-        device = fmg.get_obj(ModelDevice, name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
+        device = fmg.get_obj(Device, name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
         job = DeviceTask(adom=fmg.adom, device=device)
         result = await fmg.exec(job)
         await result.wait_for_task(callback=self.async_callback)
