@@ -133,6 +133,8 @@ class Policy(FMGObject):
     When configuring policy for a policy block, use (/pm/config/adom/pblock/).
 
     Attributes:
+        adom (str): adom to use (default is specfied by fmg object)
+        pkg (str): PolicyPackage selection
         policy_block (int):
             Assigned policy block. When this attribute is set, the policy represent a policy block,
             and all other attributes are ignored.
