@@ -127,9 +127,9 @@ class FMG(FMGBase):
             url = request.get_url
             for field in request.model_dump(by_alias=True, exclude_none=True):
                 if filters:
-                    filters &= F(**{field: getattr(request, field)})
+                    filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
                 else:
-                    filters = F(**{field: getattr(request, field)})
+                    filters = F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
         elif issubclass(request, FMGObject):
             # pydantic model default value
             url = request._url.default
