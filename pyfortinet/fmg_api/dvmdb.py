@@ -118,14 +118,14 @@ class VDOM(FMGObject):
     _master_keys = ["name"]
     # API attributes
     device: str = Field("", exclude=True, description="Assigned device (optional)")
-    name: Optional[str]
-    comments: Optional[str]
+    name: Optional[str] = None
+    comments: Optional[str] = None
     meta_fields: Optional[dict[str, str]] = Field(
         None, validation_alias=AliasChoices("meta fields", "meta_fields"), serialization_alias="meta fields"
     )
-    opmode: Optional[OP_MODE]
-    status: Optional[str]
-    vdom_type: Optional[VDOM_TYPE]
+    opmode: Optional[OP_MODE] = None
+    status: Optional[str] = None
+    vdom_type: Optional[VDOM_TYPE] = None
     # extra attributes
     assignment_info: Optional[List[Dict[str, str]]] = Field(
         None,

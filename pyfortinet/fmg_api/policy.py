@@ -316,7 +316,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("anti-replay", "anti_replay"),
         serialization_alias="anti-replay",
     )
-    application_list: Optional[str] = Field(  # TODO: add ApplicationList later when implemented
+    application_list: Optional[Union[str, list]] = Field(  # TODO: add ApplicationList later when implemented
         None,
         validation_alias=AliasChoices("application-list", "application_list"),
         serialization_alias="application-list",
@@ -336,7 +336,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("auth-redirect-addr", "auth_redirect_addr"),
         serialization_alias="auth-redirect-addr",
     )
-    av_profile: Optional[str] = Field(  # TODO: add AVProfile later when implemented
+    av_profile: Optional[Union[str, list]] = Field(  # TODO: add AVProfile later when implemented
         None,
         validation_alias=AliasChoices("av-profile", "av_profile"),
         serialization_alias="av-profile",
@@ -409,12 +409,12 @@ class Policy(FMGObject):
         serialization_alias="diffservcode-rev",
     )
     disclaimer: Optional[POLICY_DISCLAIMER] = None
-    dlp_profile: Optional[str] = Field(  # TODO: add DLPProfile later when implemented
+    dlp_profile: Optional[Union[str, list]] = Field(  # TODO: add DLPProfile later when implemented
         None,
         validation_alias=AliasChoices("dlp-profile", "dlp_profile"),
         serialization_alias="dlp-profile",
     )
-    dnsfilter_profile: Optional[str] = Field(  # TODO: add DNSProfile later when implemented
+    dnsfilter_profile: Optional[Union[str, list]] = Field(  # TODO: add DNSProfile later when implemented
         None,
         validation_alias=AliasChoices("dnsfilter-profile", "dnsfilter_profile"),
         serialization_alias="dnsfilter-profile",
@@ -443,7 +443,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("email-collect", "email_collect"),
         serialization_alias="email-collect",
     )
-    emailfilter_profile: Optional[str] = Field(  # TODO: add EmailFilterProfile later when implemented
+    emailfilter_profile: Optional[Union[str, list]] = Field(  # TODO: add EmailFilterProfile later when implemented
         None,
         validation_alias=AliasChoices("emailfilter-profile", "emailfilter_profile"),
         serialization_alias="emailfilter-profile",
@@ -653,7 +653,7 @@ class Policy(FMGObject):
         serialization_alias="ip-version-type",
     )
     ippool: Optional[ENABLE_DISABLE] = None
-    ips_sensor: Optional[str] = Field(  # TODO: Define the IPSSensor class and use it here instead of str
+    ips_sensor: Optional[Union[str, list]] = Field(  # TODO: Define the IPSSensor class and use it here instead of str
         None,
         validation_alias=AliasChoices("ips-sensor", "ips_sensor"),
         serialization_alias="ips-sensor",
@@ -663,7 +663,6 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("ips-voip-filter", "ips_voip_filter"),
         serialization_alias="ips-voip-filter",
     )
-    ##############
     label: Optional[str] = None
     logtraffic: Optional[LOG_TRAFFIC_TYPE] = None
     logtraffic_start: Optional[ENABLE_DISABLE] = Field(
@@ -974,7 +973,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("vlan-filter", "vlan_filter"),
         serialization_alias="vlan-filter",
     )
-    voip_profile: Optional[str] = Field(
+    voip_profile: Optional[Union[str, list]] = Field(
         # TODO: Define the VoipProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("voip-profile", "voip_profile"),
