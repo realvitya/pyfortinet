@@ -5,6 +5,7 @@ import functools
 import logging
 import re
 import time
+from contextlib import contextmanager
 from copy import copy
 from random import randint
 from typing import Any, Callable, Optional, Union, List, Coroutine
@@ -139,8 +140,8 @@ class AsyncFMGLockContext:
     def __init__(self, fmg: "AsyncFMGBase"):
         self._fmg = fmg
         self._locked_adoms = set()
-        self._uses_workspace = False
-        self._uses_adoms = False
+        self._uses_workspace = None
+        self._uses_adoms = None
 
     @property
     def uses_workspace(self) -> bool:
@@ -327,6 +328,39 @@ class AsyncFMGBase:
     @raise_on_error.setter
     def raise_on_error(self, value: bool):
         self._raise_on_error = bool(value)
+
+    @contextmanager
+    async def lock_adom(self, adom: Optional[str] = None, keep_locked: bool = False):
+        """Locks specified ADOM explicitly
+
+        The usual error based locking not always work. For example FMG replies authentication error while running
+        a job to create new Device in device database. This makes error handling unusable and therefore this
+        context manager can be used to lock ADOM for the job run duration.
+
+        If adom was already locked, this function won't lock it again and won't unlock it either.
+
+        Args:
+            adom: ADOM to be locked as string. If not specified, currently used ADOM will be used.
+            keep_locked: If True, the lock is not released after operation. (default: False)
+
+        Yields:
+            adom name (not used normally)
+        """
+        if not adom:
+            adom = self.adom
+        if not adom:
+            raise ValueError("ADOM must be specified!")
+        if self.lock.uses_workspace is None:
+            await self.lock.check_mode()
+        did_lock = False
+        if self.lock.uses_workspace and adom not in self.lock.locked_adoms:
+            await self.lock.lock_adoms(adom)
+            did_lock = True
+        try:
+            yield adom
+        finally:
+            if did_lock and not keep_locked:
+                await self.lock.unlock_adoms(adom)
 
     async def open(self) -> "AsyncFMGBase":
         """open connection"""
