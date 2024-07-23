@@ -549,7 +549,7 @@ class ServiceCustom(FMGObject):
         return serialized
 
     @field_serializer("udp_portrange", "tcp_portrange", "sctp_portrange")
-    def portranges_to_string(self, ranges: List[PortRange]) -> List[str]:
+    def portranges_to_string(ranges: List[PortRange]) -> List[str]:
         """Ensure portranges are passed to API as it is expected
 
             input format is string as follows:
