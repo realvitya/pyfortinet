@@ -111,6 +111,8 @@ class F:
         return out
 
     def __and__(self, other):
+        if not self.op:
+            return other
         if isinstance(other, F):
             return FilterList(self, other, op="&&")
         if isinstance(other, FilterList):
@@ -121,6 +123,8 @@ class F:
         return ComplexFilter(self, "&&", other)
 
     def __or__(self, other):
+        if not self.op:
+            return other
         if isinstance(other, F):
             return FilterList(self, other, op="||")
         if isinstance(other, FilterList):
@@ -136,6 +140,8 @@ class F:
         return out
 
     def __add__(self, other: Union["F", "FilterList", "ComplexFilter"]):
+        if not self.op:
+            return other
         if isinstance(other, ComplexFilter):
             return ComplexFilter(self, ",", other)
         return FilterList(self, other, op=",")

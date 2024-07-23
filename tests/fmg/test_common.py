@@ -61,6 +61,19 @@ class TestFilters:
             ["name", "==", "prod_address"],
         ]
 
+    def test_empty_filter_handling(self):
+        hosts = ["host1", "host2", "host3"]
+        filters = F()  # initialize filters without any data
+        for host in hosts:
+            filters |= F(name=host)  # use the initialized filters object
+        assert filters.generate() == [
+            ["name", "==", "host1"],
+            "||",
+            ["name", "==", "host2"],
+            "||",
+            ["name", "==", "host3"],
+        ]
+
     def test_filterlist_add(self):
         f = (
             (F(name="acceptance_address") + F(name="test_address") + F(name="prod_address"))
