@@ -11,6 +11,7 @@ from random import randint
 from typing import Any, Callable, Optional, Union, List, Iterator
 
 import requests
+from requests.adapters import HTTPAdapter, Retry
 from more_itertools import first
 from pydantic import SecretStr
 
@@ -389,6 +390,9 @@ class FMGBase:
         # https://how-to-fortimanager-api.readthedocs.io/en/latest/001_fmg_json_api_introduction.html#token-based-authentication
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
+        retries = Retry(total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+        self._session.mount("https://", HTTPAdapter(max_retries=retries))
+        self._session.mount("http://", HTTPAdapter(max_retries=retries))
         self._token = self._get_token()
         return self
 
