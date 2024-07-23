@@ -21,6 +21,11 @@ class TestInterface:
 @pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
     def test_interface_ops(self, fmg):
-        inside_iface = fmg.get_obj(DeviceInterface, name="port1")
-        ifaces = fmg.get(NormalizedInterface(name="port1")).data
+        ifaces = fmg.get(NormalizedInterface(name="port1", default_mapping="disable")).data
         assert ifaces
+        test = fmg.get(NormalizedInterface(name="TEST")).first()
+        if test:
+            test.delete()
+        test = fmg.get_obj(NormalizedInterface(name="TEST", default_mapping="enable", defmap_intf="TEST"))
+        res = test.add()
+        assert res
