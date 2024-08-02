@@ -55,7 +55,7 @@ class FMG(FMGBase):
             filters: F object or ComplexFilter (composite of F object results)
         """
         if filters:
-            if isinstance(filters, FILTER_TYPE):
+            if isinstance(filters, (F, FilterList, ComplexFilter)):
                 return filters.generate()
             elif isinstance(filters, str):
                 return text_to_filter(filters).generate()
