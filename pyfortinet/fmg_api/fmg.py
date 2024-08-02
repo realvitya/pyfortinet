@@ -3,7 +3,7 @@
 import logging
 import re
 from inspect import isclass
-from typing import Optional, Union, Any, Type, List, Dict
+from typing import Optional, Union, Any, Type, List
 
 from more_itertools import first
 
@@ -11,7 +11,7 @@ from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMis
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required
 from pyfortinet.settings import FMGSettings
-from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter
+from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
 
 logger = logging.getLogger(__name__)
 
