@@ -4,6 +4,7 @@ from typing import Literal, Optional, List, Dict, Union
 
 from pydantic import Field, field_validator, AliasChoices, BaseModel, IPvAnyAddress
 
+from pyfortinet.exceptions import FMGException
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
 
@@ -117,7 +118,7 @@ class VDOM(FMGObject):
     _url = "/dvmdb/{scope}/device/{device}/vdom"
     _master_keys = ["name"]
     # API attributes
-    device: str = Field("", exclude=True, description="Assigned device (optional)")
+    device: str = Field("", exclude=True, description="Assigned device")
     name: Optional[str] = None
     comments: Optional[str] = None
     meta_fields: Optional[dict[str, str]] = Field(
@@ -141,6 +142,14 @@ class VDOM(FMGObject):
     @field_validator("vdom_type", mode="before")
     def validate_vdom_type(cls, v) -> VDOM_TYPE:
         return VDOM_TYPE.__dict__.get("__args__")[v - 1] if isinstance(v, int) else v
+
+    @property
+    def get_url(self) -> str:
+        url = super().get_url
+        if self.device is None:
+            raise FMGException("device field is required!")
+        url = url.replace("{device}", self.device)
+        return url
 
 
 ROLE = Literal["slave", "master"]
@@ -187,6 +196,7 @@ class Device(FMGObject):
     """ADOM level Device object
 
     Attributes:
+        device (str): device name to target by API call
         name (str): object name
         adm_usr (str): admin user
         adm_pass (list[str]): admin password
@@ -217,7 +227,9 @@ class Device(FMGObject):
     """
 
     # internal attributes
-    _url = "/dvmdb/{scope}/device"
+    _url = "/dvmdb/{scope}/device/{device}"
+    # URL attributes
+    device: Optional[str] = Field(None, exclude=True, description="Assigned device")
     # api attributes
     adm_usr: Optional[str] = Field(None, max_length=36)
     adm_pass: Optional[Union[str, list[str]]] = Field(None, max_length=128)
@@ -294,6 +306,15 @@ class Device(FMGObject):
     def validate_conn_type(cls, v) -> CONN_STATUS:
         """ensure using text variant"""
         return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @property
+    def get_url(self) -> str:
+        url = super().get_url
+        if self.device is None:
+            url = url.replace("/{device}", "")
+        else:
+            url = url.replace("{device}", self.device)
+        return url
 
     def get_vdom_scope(self, vdom: str) -> Optional[Scope]:
         """Get Scope for a VDOM to be used by filters
