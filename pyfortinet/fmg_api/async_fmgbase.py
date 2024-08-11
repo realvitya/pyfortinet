@@ -5,12 +5,11 @@ import functools
 import logging
 import re
 import time
+from contextlib import contextmanager
 from copy import copy
 from random import randint
-from typing import Any, Callable, Optional, Union, List, Coroutine, Iterator
-from dataclasses import dataclass, field
-
-from more_itertools import first
+from typing import Any, Callable, Optional, Union, List, Coroutine
+from dataclasses import dataclass
 
 from pyfortinet.fmg_api.fmgbase import FMGResponse
 
@@ -93,9 +92,11 @@ def lock(func: Callable) -> Callable:
                 for arg in args_to_check:
                     if isinstance(arg, dict):
                         url = arg.get("url")
-                        adom_match = re.search(r"/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
+                        adom_match = re.search(r"^(?:/\w+){,3}/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
                         if adom_match:
                             adom = adom_match.group("adom")
+                        elif self.adom:
+                            adom = self.adom
                         else:
                             raise FMGException(f"No ADOM found to lock in url '{url}'") from err
                     elif isinstance(arg, FMGObject):
@@ -126,7 +127,7 @@ class AsyncFMGResponse(FMGResponse):
     fmg: "AsyncFMGBase" = None
 
     async def wait_for_task(
-        self, callback: Callable[[int, str], Union[None | Coroutine]] = None, timeout: int = 60, loop_interval: int = 2
+        self, callback: Callable[[int, str], Optional[Coroutine]] = None, timeout: int = 60, loop_interval: int = 2
     ):
         if not self.success or not self.fmg:
             return
@@ -139,8 +140,8 @@ class AsyncFMGLockContext:
     def __init__(self, fmg: "AsyncFMGBase"):
         self._fmg = fmg
         self._locked_adoms = set()
-        self._uses_workspace = False
-        self._uses_adoms = False
+        self._uses_workspace = None
+        self._uses_adoms = None
 
     @property
     def uses_workspace(self) -> bool:
@@ -162,7 +163,7 @@ class AsyncFMGLockContext:
         """Get workspace-mode from config"""
         url = "/cli/global/system/global"
         result = await self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = result.data["data"].get("workspace-mode") != 0
+        self._uses_workspace = result.data[0]["data"].get("workspace-mode") != 0
         # self.uses_adoms = result.data["data"].get("adom-status") == 1
 
     async def lock_adoms(self, *adoms: str) -> AsyncFMGResponse:
@@ -278,7 +279,7 @@ class AsyncFMGBase:
             settings (Settings): FortiManager settings
 
         Keyword Args:
-            base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
+            base_url (str): Base URL to access FMG (e.g.: https://myfmg)
             username (str): User to authenticate
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
@@ -327,6 +328,39 @@ class AsyncFMGBase:
     @raise_on_error.setter
     def raise_on_error(self, value: bool):
         self._raise_on_error = bool(value)
+
+    @contextmanager
+    async def lock_adom(self, adom: Optional[str] = None, keep_locked: bool = False):
+        """Locks specified ADOM explicitly
+
+        The usual error based locking not always work. For example FMG replies authentication error while running
+        a job to create new Device in device database. This makes error handling unusable and therefore this
+        context manager can be used to lock ADOM for the job run duration.
+
+        If adom was already locked, this function won't lock it again and won't unlock it either.
+
+        Args:
+            adom: ADOM to be locked as string. If not specified, currently used ADOM will be used.
+            keep_locked: If True, the lock is not released after operation. (default: False)
+
+        Yields:
+            adom name (not used normally)
+        """
+        if not adom:
+            adom = self.adom
+        if not adom:
+            raise ValueError("ADOM must be specified!")
+        if self.lock.uses_workspace is None:
+            await self.lock.check_mode()
+        did_lock = False
+        if self.lock.uses_workspace and adom not in self.lock.locked_adoms:
+            await self.lock.lock_adoms(adom)
+            did_lock = True
+        try:
+            yield adom
+        finally:
+            if did_lock and not keep_locked:
+                await self.lock.unlock_adoms(adom)
 
     async def open(self) -> "AsyncFMGBase":
         """open connection"""
@@ -519,7 +553,7 @@ class AsyncFMGBase:
             result.data = {"data": []}
             return result
         # processing result list
-        result.data = api_result
+        result.data = api_result if isinstance(api_result, list) else [api_result]
         result.success = True
         result.status = api_result.get("status", {}).get("code", 400)
 

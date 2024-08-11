@@ -2,7 +2,7 @@
 
 import shutil
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from invoke import task
 
@@ -41,6 +41,30 @@ def mkdocs(cmd, push_to_github=False):
     cmd.run("mkdocs build")
     if push_to_github:
         cmd.run("mkdocs gh-deploy")
+
+
+MODULES = Literal["async", "sync", "objects", "all"]
+
+
+@task(
+    help = {
+        "module": f"Test only on modules from this list: {MODULES.__args__}",
+        "verbose": "Print out all test function name",
+    }
+)
+def test(cmd, module: MODULES = "all", verbose=False):
+    """Run tests
+
+    This function assumes that testing environment is configued in `private/lab-config.yml` and there is at least
+    one firewall connected to the FMG.
+    """
+    dirs = {
+        "async": "tests/fmg/async",
+        "sync": "tests/fmg/test_*",
+        "objects": "tests/fmg/objects",
+    }
+    test_target = dirs.get(module, "tests")
+    cmd.run(f"pytest {'-vvv' if verbose else ''} --lab_config private/lab-config.yml {test_target}")
 
 
 @task()

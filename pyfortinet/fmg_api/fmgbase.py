@@ -4,12 +4,14 @@ import functools
 import logging
 import re
 import time
+from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
 from typing import Any, Callable, Optional, Union, List, Iterator
 
 import requests
+from requests.adapters import HTTPAdapter, Retry
 from more_itertools import first
 from pydantic import SecretStr
 
@@ -85,9 +87,11 @@ def lock(func: Callable) -> Callable:
                 for arg in args_to_check:
                     if isinstance(arg, dict):
                         url = arg.get("url")
-                        adom_match = re.search(r"/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
+                        adom_match = re.search(r"^(?:/\w+){,3}/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
                         if adom_match:
                             adom = adom_match.group("adom")
+                        elif self.adom:
+                            adom = self.adom
                         else:
                             raise FMGException(f"No ADOM found to lock in url '{url}'") from err
                     elif isinstance(arg, FMGObject):
@@ -137,9 +141,11 @@ class FMGResponse:
             if isinstance(self.data[0], dict) and master_key:  # need to use master_key arg to find desired key
                 return next((d for d in self.data if d.get("data", {}).get(master_key) == key), None)
             if isinstance(self.data[0], FMGObject):
-                return next((d for d in self.data if getattr(d, master_key or first(d.master_keys, None)) == key),
-                            None)
+                return next((d for d in self.data if getattr(d, master_key or first(d.master_keys, None)) == key), None)
             raise ValueError(f"Invalid key: '{key}'")
+
+    def __len__(self):
+        return len(self.data)
 
     def first(self) -> Optional[Union[FMGObject, dict]]:
         """Return first data or None if result is empty"""
@@ -164,8 +170,8 @@ class FMGLockContext:
     def __init__(self, fmg: "FMGBase"):
         self._fmg = fmg
         self._locked_adoms = set()
-        self._uses_workspace = False
-        self._uses_adoms = False
+        self._uses_workspace = None
+        self._uses_adoms = None
 
     @property
     def uses_workspace(self) -> bool:
@@ -187,7 +193,7 @@ class FMGLockContext:
         """Get workspace-mode from config"""
         url = "/cli/global/system/global"
         result = self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = result.data["data"].get("workspace-mode") != 0
+        self._uses_workspace = result.data[0]["data"].get("workspace-mode") != 0
         # self.uses_adoms = result.data["data"].get("adom-status") == 1
 
     def lock_adoms(self, *adoms: str) -> FMGResponse:
@@ -299,7 +305,7 @@ class FMGBase:
             settings (Settings): FortiManager settings
 
         Keyword Args:
-            base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
+            base_url (str): Base URL to access FMG (e.g.: https://myfmg)
             username (str): User to authenticate
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
@@ -345,12 +351,48 @@ class FMGBase:
     def raise_on_error(self, value: bool):
         self._raise_on_error = bool(value)
 
+    @contextmanager
+    def lock_adom(self, adom: Optional[str] = None, keep_locked: bool = False):
+        """Locks specified ADOM explicitly
+
+        The usual error based locking not always work. For example FMG replies authentication error while running
+        a job to create new Device in device database. This makes error handling unusable and therefore this
+        context manager can be used to lock ADOM for the job run duration.
+
+        If adom was already locked, this function won't lock it again and won't unlock it either.
+
+        Args:
+            adom: ADOM to be locked as string. If not specified, currently used ADOM will be used.
+            keep_locked: If True, the lock is not released after operation. (default: False)
+
+        Yields:
+            adom name (not used normally)
+        """
+        if not adom:
+            adom = self.adom
+        if not adom:
+            raise ValueError("ADOM must be specified!")
+        if self.lock.uses_workspace is None:
+            self.lock.check_mode()
+        did_lock = False
+        if self.lock.uses_workspace and adom not in self.lock.locked_adoms:
+            self.lock.lock_adoms(adom)
+            did_lock = True
+        try:
+            yield adom
+        finally:
+            if did_lock and not keep_locked:
+                self.lock.unlock_adoms(adom)
+
     def open(self) -> "FMGBase":
         """open connection"""
         # TODO: token and cloud auth
         # https://how-to-fortimanager-api.readthedocs.io/en/latest/001_fmg_json_api_introduction.html#token-based-authentication
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
+        retries = Retry(total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+        self._session.mount("https://", HTTPAdapter(max_retries=retries))
+        self._session.mount("http://", HTTPAdapter(max_retries=retries))
         self._token = self._get_token()
         return self
 
@@ -402,7 +444,9 @@ class FMGBase:
         )
         results = req.json().get("result", [])
         for result in results:
-            status = result["status"]
+            status = result.get("status")
+            if not status:  # no status in reply, return empty result
+                return {"data": ""}
             if status["code"] == 0:
                 continue
             error = get_fmg_error(error_code=status["code"])
@@ -482,8 +526,8 @@ class FMGBase:
             if isinstance(api_result, dict):
                 api_result = [api_result]
         except FMGException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in exec request: %s", api_result["error"])
+            api_result = [{"error": str(err)}]
+            logger.error("Error in exec request: %s", api_result[0]["error"])
         result = FMGResponse(fmg=self, data=api_result, success=api_result[0].get("status", {}).get("code") == 0)
         return result
 
@@ -535,7 +579,7 @@ class FMGBase:
             result.data = {"data": []}
             return result
         # processing result list
-        result.data = api_result
+        result.data = api_result if isinstance(api_result, list) else [api_result]
         result.success = True
         result.status = api_result.get("status", {}).get("code", 400)
 

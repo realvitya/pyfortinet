@@ -1,6 +1,7 @@
 """FMG API for humans"""
 
 import logging
+import re
 from inspect import isclass
 from typing import Optional, Union, Any, Type, List, Dict
 
@@ -10,7 +11,7 @@ from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, aut
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
-from pyfortinet.fmg_api.common import FILTER_TYPE, F
+from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class AsyncFMG(AsyncFMGBase):
             settings (Settings): FortiManager settings
 
         Keyword Args:
-            base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
+            base_url (str): Base URL to access FMG (e.g.: https://myfmg)
             username (str): User to authenticate
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
@@ -54,25 +55,31 @@ class AsyncFMG(AsyncFMGBase):
             filters: F object or ComplexFilter (composite of F object results)
         """
         if filters:
-            return filters.generate()
+            if isinstance(filters, FILTER_TYPE):
+                return filters.generate()
+            elif isinstance(filters, str):
+                return text_to_filter(filters).generate()
         return None
 
     @auth_required
     async def get(
         self,
-        request: Union[dict[str, Any], Type[FMGObject]],
-        filters: FILTER_TYPE = None,
+        request: Union[dict[str, Any], FMGObject, Type[FMGObject]],
+        filters: Union[str, FILTER_TYPE] = None,
         scope: Optional[str] = None,
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
         options: Optional[List[GetOption]] = None,
+        **kwargs: Optional[Dict[str, str]]
     ) -> AsyncFMGResponse:
         """Get info from FMG
+
+        If `request` is an `FMGObject` instance, it's initialized values will be considered as filters!
 
         Args:
             request: Get operation's data structure
             scope: Scope where the object is searched (defaults to FMG setting on connection)
-            filters: Filter expression
+            filters: Filter expression as text or using `F`
             fields: Fields to return (default: None means all fields)
             loadsub: Load sub objects
             options: API request options
@@ -101,12 +108,15 @@ class AsyncFMG(AsyncFMGBase):
 
             >>> import asyncio
             >>> from pyfortinet.fmg_api.firewall import Address
+            >>> from pyfortinet.fmg_api.dvmdb import Device
             >>> from pyfortinet.fmg_api.common import F
             >>> settings = {...}
-            >>> async def get_address():
+            >>> async def get_info():
             ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
-            >>> asyncio.run(get_address())
+            ...         addresses = await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet")).data
+            ...         devices_up = await fmg.get(Device(conn_status="up")).data
+            ...     return addresses, devices_up
+            >>> asyncio.run(get_info())
             ```
 
         Returns:
@@ -117,35 +127,34 @@ class AsyncFMG(AsyncFMGBase):
             return await super().get(request)
         # High level arguments
         result = AsyncFMGResponse(fmg=self)
-        if issubclass(request, FMGObject):
+        api_request = {
+            "loadsub": 1 if loadsub else 0,
+        }
+        if isinstance(request, FMGObject):
+            # derive url from current scope and adom
+            if not request.fmg_scope:  # assign local FMG scope to request as fallback
+                request.fmg_scope = scope or self.adom
+            url = request.get_url
+            for field in request.model_dump_for_filter():
+                if filters:
+                    filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
+                else:
+                    filters = F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
+        elif issubclass(request, FMGObject):
+            # pydantic model default value
+            url = request._url.default
+            # remove /{field} parts except scope
+            # reason: there are urls with specific parameters which we can't provide with using class
+            # this way, we can cover some cases where general list of objects will return when there is no specific
+            # parameter. Such a request is `dynamic.Interface`
+            # Use object instance instead, where URL processing is done by the object's `get_url` property!
+            url = re.sub(r"/{(?!scope).*?}", "", url)
             # derive url from current scope and adom
             if not scope:  # get adom from FMG settings
-                scope = "global" if self._settings.adom == "global" else f"adom/{self._settings.adom}"
+                scope = "global" if self.adom == "global" else f"adom/{self.adom}"
             else:  # user specified
                 scope = "global" if scope == "global" else f"adom/{scope}"
-            url = request._url.default.replace("{scope}", scope)
-            if self._settings.adom != "global":
-                url = url.replace("{adom}", f"/adom/{self._settings.adom}")
-            else:
-                url = url.replace("{adom}", "")
-
-            api_request = {
-                "loadsub": 1 if loadsub else 0,
-            }
-
-            if filters:
-                api_request["filter"] = self._get_filter_list(filters)
-
-            if options:
-                api_request["option"] = options
-
-            body = {
-                "method": "get",
-                "params": [{"url": url, **api_request}],
-                "verbose": 1,
-                "session": self._token.get_secret_value(),
-                "id": self._id,
-            }
+            url = url.replace("{scope}", scope)
         else:
             result.data = {"error": f"Wrong type of request received: {request}"}
             result.status = 400
@@ -153,6 +162,21 @@ class AsyncFMG(AsyncFMGBase):
             if self._raise_on_error:
                 raise FMGWrongRequestException(result)
             return result
+
+        if filters:
+            api_request["filter"] = self._get_filter_list(filters)
+
+        if options:
+            api_request["option"] = options
+
+        body = {
+            "method": "get",
+            "params": [{"url": url, **api_request}],
+            "verbose": 1,
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
+
         try:
             api_result = await self._post(request=body)
         except FMGException as err:
@@ -162,16 +186,11 @@ class AsyncFMG(AsyncFMGBase):
                 raise
             result.data = api_result
             return result
-        # No need for the following. Pydantic "alias" can be used to handle space or dash in keys!
-        # converting API names to object names (replace '-' and ' ' -> _)
-        # obj_model = [
-        #     {key.replace("-", "_").replace(" ", "_"): value for key, value in data.items()}
-        #     for data in api_result.get("data")
-        # ]
         # construct object list
         objects = []
+        obj_class = type(request) if isinstance(request, FMGObject) else request
         for value in api_result.get("data"):
-            objects.append(request(**value, scope=scope, fmg=self))
+            objects.append(obj_class(**value, fmg_scope=scope, fmg=self))
         result.data = objects
         result.success = True
         return result
@@ -442,8 +461,8 @@ class AsyncFMG(AsyncFMGBase):
             return await super().set(request=api_data)
 
         else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            logger.error(response.data["error"])
+            response.data = [{"error": f"Wrong type of request received: {request}"}]
+            logger.error(response.data[0]["error"])
             if self._raise_on_error:
                 raise FMGWrongRequestException(request)
             return response
@@ -457,14 +476,12 @@ class AsyncFMG(AsyncFMGBase):
             request.fmg_scope = request.fmg_scope or self._settings.adom
             return await super().exec({"url": request.get_url, "data": request.data})
         else:
-            result = AsyncFMGResponse(
-                fmg=self, data={"error": f"Wrong type of request received: {request}"}, status=400
-            )
-            logger.error(result.data["error"])
+            result = AsyncFMGResponse(fmg=self, data=[{"error": f"Wrong type of request received: {request}"}])
+            logger.error(result.data[0]["error"])
             return result
 
     def get_obj(
-        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Dict[str, Any]
+        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Any
     ) -> AnyFMGObject:
         """Get an object and tie it to this FMG
 
@@ -475,10 +492,10 @@ class AsyncFMG(AsyncFMGBase):
         Returns:
             (AnyFMGObject): New object, tied to this FMG
         """
-        if isinstance(obj, Union[FMGObject, FMGExecObject]):
+        if isinstance(obj, (FMGObject, FMGExecObject)):
             obj._fmg = self
             return obj
-        elif isclass(obj) and issubclass(obj, Union[FMGObject, FMGExecObject]):
+        elif isclass(obj) and issubclass(obj, (FMGObject, FMGExecObject)):
             return obj(fmg=self, **kwargs)
 
         raise TypeError(f"Argument {obj} is not an FMGObject or FMGExecObject type")
@@ -498,7 +515,7 @@ class AsyncFMG(AsyncFMGBase):
 
         response: AsyncFMGResponse = await self.get(request)
         if response.success:
-            return [adom.get("name") for adom in response.data.get("data")]
+            return [adom.get("name") for adom in response.data[0].get("data")]
         return None
 
     async def refresh(self, obj: FMGObject) -> FMGObject:
@@ -537,6 +554,7 @@ class AsyncFMG(AsyncFMGBase):
 
             ```pycon
 
+            >>> import asyncio
             >>> settings = {...}
             >>> clone_request = {
             ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object

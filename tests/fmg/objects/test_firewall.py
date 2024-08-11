@@ -5,7 +5,7 @@ import pytest
 from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom
+from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, PortRange, ServiceGroup
 from tests.conftest import AsyncTestCase
 
 
@@ -109,6 +109,17 @@ class TestObjectsOnLab:
         group1.refresh()
         # check if members still match from FMG loaded object
         assert group1.member == ["test-address1", "test-address2", "test-address3"]
+        # test membership filtering
+        check_grp = fmg.get(AddressGroup, F(member__contain="test-address1")).first()
+        assert check_grp.name == "test-group1"
+        check_grp = fmg.get(AddressGroup,
+                            F(member__contain="test-address1") & F(member__contain="test-address2")
+                            ).first()
+        assert check_grp.name == "test-group1"
+        check_grp = fmg.get(AddressGroup,
+                            F(member__contain="test-address1") & F(member__contain="test-group1")
+                            ).first()
+        assert check_grp.name == "test-group2"
         # deleting objects must follow dependency tree else FMG error out by deleting object used
         group2.delete()
         group1.delete()
@@ -116,11 +127,29 @@ class TestObjectsOnLab:
         member2.delete()
 
     def test_firewall_custom_service(self, fmg):
+        # get all services from FMG
         services = fmg.get(ServiceCustom)
+        # check .getitem finds with custom and built-in key
         assert services["QUAKE", "name"].name == "QUAKE" and services["QUAKE"].name == "QUAKE"
         with pytest.raises(AttributeError):
+            # invalid key should raise error
             quake = services["QUAKE", "qweqweqwe"]
-        assert services
+        # single tcp port using PortRange
+        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange=PortRange(destination_end="6666")))
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
+        # single tcp port using string (simple destination port)
+        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange="6666"))
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
+        # complex service with two ports, second has source port range and sinlge dst port
+        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange=["6666", "7777:1-1024"]))
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
+        # check adding new service to FMG
+        result = new_service.add()
+        assert result
+        # re-load service from FMG
+        new_service.refresh()
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
 
 
 class TestAsynchObjectsOnLab(AsyncTestCase):
@@ -228,12 +257,30 @@ class TestAsynchObjectsOnLab(AsyncTestCase):
         await member2.delete()
 
     async def test_firewall_custom_service(self, fmg: AsyncFMG):
+        # get all services from FMG
         services = await fmg.get(ServiceCustom)
+        # check .getitem finds with custom and built-in key
         assert services["QUAKE", "name"].name == "QUAKE" and services["QUAKE"].name == "QUAKE"
         with pytest.raises(AttributeError):
+            # invalid key should raise error
             quake = services["QUAKE", "qweqweqwe"]
-        assert services
+        # single tcp port using PortRange
+        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange=PortRange(destination_end="6666")))
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
+        # single tcp port using string (simple destination port)
+        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange="6666"))
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
+        # complex service with two ports, second has source port range and sinlge dst port
+        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange=["6666", "7777:1-1024"]))
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
+        # check adding new service to FMG
+        result = await new_service.add()
+        assert result
+        # re-load service from FMG
+        await new_service.refresh()
+        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
 
-    async def test_firewall_custom_service(self, fmg: AsyncFMG):
-        services = await fmg.get(ServiceCustom)
+    async def test_firewall_custom_service_group(self, fmg: AsyncFMG):
+        services = await fmg.get(ServiceGroup)
         assert services
