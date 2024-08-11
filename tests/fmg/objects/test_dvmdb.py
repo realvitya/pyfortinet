@@ -19,6 +19,9 @@ class TestObjectsOnLab:
         # test VDOM
         result = fmg.get(VDOM(device="TEST-DEVICE", name="root"))
         assert result
+        # test Device
+        result = fmg.get(Device(conn_status="UNKNOWN"))
+        assert result.data  # should be at least the previously created device
         # test removing device
         job = DeviceTask(adom=fmg.adom, device=device, action="del")
         result = fmg.exec(job)

@@ -103,10 +103,12 @@ class FMG(FMGBase):
             ```pycon
 
             >>> from pyfortinet.fmg_api.firewall import Address
+            >>> from pyfortinet.fmg_api.dvmdb import Device
             >>> from pyfortinet.fmg_api.common import F
             >>> settings = {...}
             >>> with FMG(**settings) as fmg:
-            ...    addresses = fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
+            ...    addresses = fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet")).data
+            ...    devices_up = fmg.get(Device(conn_status="up")).data
             ```
 
         Returns:
@@ -125,7 +127,7 @@ class FMG(FMGBase):
             if not request.fmg_scope:  # assign local FMG scope to request as fallback
                 request.fmg_scope = scope or self.adom
             url = request.get_url
-            for field in request.model_dump(by_alias=True, exclude_none=True):
+            for field in request.model_dump_for_filter():
                 if filters:
                     filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
                 else:

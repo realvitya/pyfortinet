@@ -108,12 +108,15 @@ class AsyncFMG(AsyncFMGBase):
 
             >>> import asyncio
             >>> from pyfortinet.fmg_api.firewall import Address
+            >>> from pyfortinet.fmg_api.dvmdb import Device
             >>> from pyfortinet.fmg_api.common import F
             >>> settings = {...}
-            >>> async def get_address():
+            >>> async def get_info():
             ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet"))
-            >>> asyncio.run(get_address())
+            ...         addresses = await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet")).data
+            ...         devices_up = await fmg.get(Device(conn_status="up")).data
+            ...     return addresses, devices_up
+            >>> asyncio.run(get_info())
             ```
 
         Returns:
@@ -132,7 +135,7 @@ class AsyncFMG(AsyncFMGBase):
             if not request.fmg_scope:  # assign local FMG scope to request as fallback
                 request.fmg_scope = scope or self.adom
             url = request.get_url
-            for field in request.model_dump(by_alias=True, exclude_none=True):
+            for field in request.model_dump_for_filter():
                 if filters:
                     filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
                 else:

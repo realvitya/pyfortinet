@@ -140,6 +140,25 @@ class FMGObject(FMGBaseObject, ABC):
             return self._fmg.refresh(self)
         raise FMGNotAssignedException
 
+    def model_dump_for_filter(self) -> dict:
+        """Modified pydantic model dump for FMG API
+
+        This method will include otherwise excluded fields to use them in FMG.get method filtering.
+        Special attention is made for URL fields which must not be included in the filters as they are not part of the
+        payload.
+        """
+        # get the normal dump first
+        dump = self.model_dump(by_alias=True, exclude_none=True)
+        # include excluded not-none fields
+        excluded_fields = {}
+        for field_name, field_model in self.model_fields.items():
+            # check only excluded vars which are not None and are not URL attributes (cannot be used as filter)
+            if field_model.exclude and getattr(self, field_name) is not None and f"{{{field_name}}}" not in self._url:
+                excluded_fields[field_model.serialization_alias or field_name] = getattr(self, field_name)
+
+        dump.update(excluded_fields)
+        return dump
+
 
 class FMGExecObject(FMGBaseObject, ABC):
     """FMG execute job type
