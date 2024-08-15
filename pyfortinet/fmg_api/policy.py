@@ -107,6 +107,7 @@ class PolicyPackage(FMGObject):
     """
 
     _url = "/pm/pkg/{scope}"
+    _master_keys = ["name"]
     name: Optional[str] = None
     obj_ver: Optional[int] = Field(
         None,
