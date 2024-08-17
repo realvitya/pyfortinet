@@ -205,7 +205,7 @@ API_ERRORS = {
     10146: "no central-management ip configured for this device",
     10147: FMGLockNeededException,  # "no write permission",
     10148: FMGLockNeededException,  # "lock local/global adom then try again",
-    10149: "datasrc duplicate",
+    10149: FMGDataSrcDuplicateException,  # "datasrc duplicate",
     10150: "vip overlap",
     10151: "there is no value in the entry, need to set value or dynamic mapping",
     10152: "dynamic-interface default mapping has been used",

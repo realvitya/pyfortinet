@@ -55,3 +55,6 @@ class FMGNotAssignedException(FMGException):
 
 class FMGMissingMasterKeyException(FMGException):
     """Master key is missing for this API class"""
+
+class FMGDataSrcDuplicateException(FMGException):
+    """Duplicate name found in data namespace"""
