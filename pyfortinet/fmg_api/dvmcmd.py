@@ -77,7 +77,7 @@ class DeviceTask(FMGExecObject):
     action: Literal["add", "del"] = Field("add", exclude=True, validate_default=True)
     # api attributes
     adom: str
-    device: Union[Device, DeviceCommand]
+    device: Union[Device, DeviceCommand, str]
     flags: list[FLAGS] = ["create_task", "non-blocking"]
     groups: Optional[list[Scope]] = None
 
