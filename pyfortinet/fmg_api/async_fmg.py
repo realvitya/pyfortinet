@@ -11,7 +11,7 @@ from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, aut
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
-from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter
+from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class AsyncFMG(AsyncFMGBase):
             filters: F object or ComplexFilter (composite of F object results)
         """
         if filters:
-            if isinstance(filters, FILTER_TYPE):
+            if isinstance(filters, (F, FilterList, ComplexFilter)):
                 return filters.generate()
             elif isinstance(filters, str):
                 return text_to_filter(filters).generate()
