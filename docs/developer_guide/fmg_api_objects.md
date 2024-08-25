@@ -113,16 +113,55 @@ class SomeAPICall(FMGObject):
 
 ### URL handling
 
+#### Scope handling
+
 The mandatory private attribute to implement is the ``_url``. This defines the API route. It can have dynamic path,
 which is derived by the ``get_url`` property. The built-in [`FMGObject.get_url`][fmg_api.FMGObject.get_url] will look
 for ``{scope}`` string in the URL and will replace it with the ``_scope`` attribute.
 
 This ``_scope`` attribute is uninitialized by default if the object is instantiated directly from the class. If it
 remains uninitialized, when the object is used by ``FMG`` high-level object, it will use its own set scope instead.
+It is accessible through ``fmg_scope`` property, but it is only used by internal functions, users should not set it.
 
 !!! note "object scope"
 
     If you set a scope for the object, it will use that scope only! Object level scope overrides FMG scope (adom).
+
+#### Writing custon ``get_url`` property
+
+Some API calls have URL attributes which requires more complex handling.
+
+Example:
+
+```python
+class Policy(FMGObject):
+    ...
+    _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy"
+    _master_keys = ["policyid"]
+    # URL fields
+    adom: Optional[str] = Field(None, exclude=True)
+    pkg: Optional[str] = Field(None, exclude=True)
+    ...
+
+    @property
+    def get_url(self) -> str:
+        """Construct API URL based on adom and pkg fields
+
+        Notes:
+            ADOM can come from FMG object
+            PKG must be specified
+        """
+        adom = self.adom or self.fmg_scope.replace("adom/", "").replace("global", "")
+        pkg = self.pkg
+        if not adom:
+            raise ValueError("Please specify `adom` field or assign object to FMG!")
+        if pkg is None:
+            raise ValueError("Please specify `pkg` field!")
+        return self._url.replace("{adom}", adom).replace("{pkg}", pkg)
+```
+
+``adom`` and ``pkg`` fields are not part of the API payload but are used when constructing the URL for the API call.
+It is possible to handle mandatory field cases or set some default value.
 
 ### Version handling
 
@@ -158,13 +197,6 @@ some: str
 ```python
 some_other: str = Field(..., validation_alias=AliasChoices("some other", "some_other"), serialization_alias="some other")
 ```
-
-### Class inheritance
-
-There are cases when two API data is very similar and only slight differences need to be defined. In that case it's
-easier to define a base and more general model and inherit from it the more specific ones. Such an example is
-[`BaseDevice`][fmg_api.dvmdb.BaseDevice] which is the parent of [`Device`][fmg_api.dvmdb.Device]. Differences are
-the default values and mandatory fields.
 
 ## 4. Writing tests for the new class
 

@@ -1,4 +1,4 @@
-# Quick Start Guide
+# Quickstart
 
 ## Installation
 
@@ -79,6 +79,20 @@ with FMG(**config) as fmg:
     server1_and_2 = fmg.get(Address, F(name="server1") + F(name="server2")).data
     # list devices with name dc-fw-* which connection status is not up
     firewalls = fmg.get(Device, F(name__like="dc-fw-%") & ~F(conn_status="up")).data
+```
+
+To ease finding using IDE code completion, it's possible to give an object which will be converted to a filter:
+
+```python title="Object as filter"
+with FMG(**config) as fmg:
+    active_firewalls = fmg.get(Device(conn_status="up")).data
+```
+
+To find specific object quickly, you can use it's master key which is unique in its namespace:
+
+```python title="Getting specific object"
+with FMG(**config) as fmg:
+    myfirewall = fmg.get(Device(name"myfirewall")).first()
 ```
 
 ## Task run

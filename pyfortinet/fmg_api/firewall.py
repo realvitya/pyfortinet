@@ -426,33 +426,33 @@ class ServiceCustom(FMGObject):
     """Custom service class
 
     Attributes:
-        app_category
-        app_service_type
-        application
-        category
-        check_reset_range
-        color
-        comment
-        fabric_object
-        fqdn
-        helper
-        icmpcode
-        icmptype
-        iprange
-        name
-        protocol
-        protocol_number
-        proxy
-        sctp_portrange
-        session_ttl
-        tcp_halfclose_timer
-        tcp_halfopen_timer
-        tcp_portrange
-        tcp_rst_timer
-        tcp_timewait_timer
-        udp_idle_timer
-        udp_portrange
-        visibility
+        app_category: Application category ID
+        app_service_type: Application service type
+        application: Application name ID
+        category: Service category
+        check_reset_range: Enable to reset session if service does not match
+        color: Color of icon on the GUI
+        comment: Comment
+        fabric_object: Security Fabric global object setting
+        fqdn: Fully Qualified Domain Name (FQDN)
+        helper: Name of helper
+        icmpcode: ICMP code
+        icmptype: ICMP type
+        iprange: Start and end IP addresses for the range
+        name: Service name
+        protocol: Protocol type: TCP/UDP/SCTP/ICMP/ICMP6
+        protocol_number: IP protocol number
+        proxy: Enable to use this service for proxy
+        sctp_portrange: SCTP port range
+        session_ttl: Session TTL (Timeout) in seconds
+        tcp_halfclose_timer: TCP half-close timer, in seconds
+        tcp_halfopen_timer: TCP half-open timer, in seconds
+        tcp_portrange: TCP port range
+        tcp_rst_timer: TCP RST timer, in seconds
+        tcp_timewait_timer: TCP time-wait timer, in seconds
+        udp_idle_timer: UDP idle timer, in seconds
+        udp_portrange: UDP port range
+        visibility: Enable/disable visibility on FortiGate GUI
     """
 
     _url = "/pm/config/{scope}/obj/firewall/service/custom"

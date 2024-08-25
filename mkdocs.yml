@@ -48,6 +48,7 @@ nav:
       - Quick Start Guide: user_guide/quickstart.md
       - Installation: user_guide/installation.md
       - Howto: user_guide/howto.md
+      - Advanced Usage: user_guide/advanced_usage.md
   - Developer Guide:
       - General guide: developer_guide/index.md
       - Lab setup: developer_guide/lab_setup.md
@@ -94,6 +95,7 @@ plugins:
 
 watch:
     - pyfortinet
+    - README.md
 
 markdown_extensions:
   - toc:

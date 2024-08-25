@@ -97,13 +97,13 @@ class PolicyPackage(FMGObject):
     """Policy Package class
 
     Attributes:
-        name:
-        obj_ver:
-        oid:
-        package_settings:
-        scope_member:
-        subobj:
-        type:
+        name: Package name (Does not include any parent folders)
+        obj_ver: Package version
+        oid: Internal package ID
+        package_settings: Package settings
+        scope_member: Assigned VDOMs
+        subobj: Available if object type is folder, includes all policy packages and sub-folders under the folder object.
+        type: Package type. Default is pkg.
     """
 
     _url = "/pm/pkg/{scope}"
@@ -782,7 +782,6 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("profile-type", "profile_type"),
         serialization_alias="profile-type",
     )
-    #######
     radius_mac_auth_bypass: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("radius-mac-auth-bypass", "radius_mac_auth_bypass"),
@@ -852,7 +851,6 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("service-negate", "service_negate"),
         serialization_alias="service-negate",
     )
-    ####
     session_ttl: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("session-ttl", "session_ttl"),

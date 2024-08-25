@@ -1,4 +1,4 @@
-# Howto Do ...
+# Howto
 
 In the following examples it is assumed that the fmg connection object is already opened:
 

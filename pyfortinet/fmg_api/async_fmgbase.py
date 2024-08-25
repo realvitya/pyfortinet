@@ -344,7 +344,7 @@ class AsyncFMGBase:
             keep_locked: If True, the lock is not released after operation. (default: False)
 
         Yields:
-            adom name (not used normally)
+            (str): adom name (not used normally)
         """
         if not adom:
             adom = self.adom

@@ -8,22 +8,22 @@ extensions for various products are planned. Current state is rather a Proof of 
 ## Features
 
 * FMG API
-  * Low level API access via passing dict to various calls (add, get, set, update, exec)
-  * Automatic login (Currently, only user/password authentication is supported)
-  * Automatic locking in workspace mode (Currently, only ADOM locking is supported)
-  * High level API using all kind of objects (see some examples below)
-    * Only couple of objects are supported yet (being POC project), but extension is planned for most used functions!
-    * Task handling with waiting and callback function (to support progress bar, logging, etc.)
-  * Async code is supported
+    * Low level API access via passing dict to various calls (add, get, set, update, exec)
+    * Automatic login (Currently, only user/password authentication is supported)
+    * Automatic locking in workspace mode (Currently, only ADOM locking is supported)
+    * High level API using all kind of objects (see some examples below)
+        * Only couple of objects are supported yet (being POC project), but extension is planned for most used functions!
+        * Task handling with waiting and callback function (to support progress bar, logging, etc.)
+    * Async code is supported
 
-Planned features
+### Planned features
 
 * FMG API
-  * Extended authentication capabilities (token, SAML)
-  * Extended locking capabilities to support object and package level locking and fallback feature to ADOM locking
-  * Proxy FortiOS API calls using objects of FortiOS API
+    * Extended authentication capabilities (token, SAML)
+    * Extended locking capabilities to support object and package level locking and fallback feature to ADOM locking
+    * Proxy FortiOS API calls using objects of FortiOS API
 * FortiOS API
-  * Similar capabilities to FMG API
+    * Similar capabilities to FMG API
 
 [//]: # (--8<-- [end:intro])
 
@@ -48,7 +48,7 @@ with FMG(**config) as fmg:
     server1 = fmg.get_obj(Address(name="server1", subnet="192.168.0.1/32"))
     server1.add()
     # get exact address object from FMG
-    server2 = fmg.get(Address, F(name="server2")).first()
+    server2 = fmg.get(Address(name="server2")).first()
     print(server2.name)
     # get list of address object from FMG
     servers = fmg.get(Address, F(name__like="server%"))

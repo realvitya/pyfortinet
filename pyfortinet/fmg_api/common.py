@@ -248,7 +248,7 @@ def find_matching_parenthesis(input_string):
         input_string (str): The string to be scanned for matching parentheses.
 
     Returns:
-        int: The index of the matching closing parenthesis if found, else returns None.
+        (int): The index of the matching closing parenthesis if found, else returns None.
     """
     count = 1
     pos = 1
