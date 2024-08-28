@@ -156,7 +156,9 @@ class Address(FMGObject):
     country: Optional[str] = None
     dirty: Optional[DIRTY] = None
     dynamic_mapping: Optional[Union[List["Address"], "Address"]] = None
-    end_ip: Optional[str] = None
+    end_ip: Optional[str] = Field(
+        None, validation_alias=AliasChoices("end-ip", "end_ip"), serialization_alias="end-ip"
+    )
     epg_name: Optional[str] = Field(
         None, validation_alias=AliasChoices("epg-name", "epg_name"), serialization_alias="epg-name"
     )
