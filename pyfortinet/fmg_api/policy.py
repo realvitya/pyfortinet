@@ -765,7 +765,7 @@ class Policy(FMGObject):
     policyid: Optional[int] = None
     poolname: Optional[List[str]] = None  # TODO: Define the PoolName class and use it here instead of List[str]
     poolname6: Optional[List[str]] = None  # TODO: Define the PoolName6 class and use it here instead of List[str]
-    profile_group: Optional[str] = Field(
+    profile_group: Optional[Union[str, List[str]]] = Field(
         # TODO: Define the ProfileGroup class and use it here instead of str
         None,
         validation_alias=AliasChoices("profile-group", "profile_group"),
