@@ -157,12 +157,6 @@ class FilterList:
         self.members = list(members)
         self.op = op
 
-        # for member in members:
-        #     if self.op == ",":
-        #         self + member
-        #     elif self.op == "||":
-        #         self.members.append(member)
-
     def __add__(self, other: Union[F, "FilterList"]):
         if self.op == ",":
             if isinstance(other, F):
@@ -176,7 +170,7 @@ class FilterList:
         return ComplexFilter(self, ",", other)
 
     def __and__(self, other):
-        if self.op == "&&":
+        if self.op == "&&" and not (isinstance(other, FilterList) and other.op != "&&"):
             out = deepcopy(self)
             if isinstance(other, F):
                 out.members.append(other)
@@ -186,7 +180,7 @@ class FilterList:
         return ComplexFilter(self, "&&", other)
 
     def __or__(self, other):
-        if self.op == "||":
+        if self.op == "||" and not (isinstance(other, FilterList) and other.op != "||"):
             out = deepcopy(self)
             if isinstance(other, F):
                 out.members.append(other)

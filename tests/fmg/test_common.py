@@ -191,6 +191,40 @@ class TestFilters:
             ],
         ]
 
+    def test_filters_with_parentheses6(self):
+        f = ((F(protocol="ICMP") & F(icmptype="8")) & (F(icmpcode=None)+F(icmpcode=0))).generate()
+        assert f == [
+            [["protocol", "==", "ICMP"], "&&", ["icmptype", "==", "8"]],
+            "&&",
+            [["icmpcode", "==", None], ["icmpcode", "==", 0]]
+        ]
+
+    def test_filters_with_parentheses7(self):
+        f = ((F(protocol="ICMP") | F(icmptype="8")) & (F(icmpcode=None)+F(icmpcode=0))).generate()
+        assert f == [
+            [["protocol", "==", "ICMP"], "||", ["icmptype", "==", "8"]],
+            "&&",
+            [["icmpcode", "==", None], ["icmpcode", "==", 0]]
+        ]
+
+    def test_filters_with_parentheses8(self):
+        """parentheses do not mean anything here"""
+        f = ((F(protocol="ICMP") & F(icmptype="8")) & (F(icmpcode=None) & F(icmpcode=0))).generate()
+        assert f == [
+            ["protocol", "==", "ICMP"], "&&", ["icmptype", "==", "8"],
+            "&&",
+            ["icmpcode", "==", None], "&&", ["icmpcode", "==", 0]
+        ]
+
+    def test_filters_with_parentheses9(self):
+        """parentheses do not mean anything here"""
+        f = ((F(protocol="ICMP") | F(icmptype="8")) | (F(icmpcode=None) | F(icmpcode=0))).generate()
+        assert f == [
+            ["protocol", "==", "ICMP"], "||", ["icmptype", "==", "8"],
+            "||",
+            ["icmpcode", "==", None], "||", ["icmpcode", "==", 0]
+        ]
+
     def test_and_filters(self):
         f = (F(name__like="test%") & F(interface="port1")).generate()
         assert f == [["name", "like", "test%"], "&&", ["interface", "==", "port1"]]
