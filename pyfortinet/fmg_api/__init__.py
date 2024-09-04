@@ -57,6 +57,9 @@ class FMGBaseObject(BaseModel, ABC):
         self.fmg_scope = kwargs.get("fmg_scope")
         self._fmg: "AnyFMG" = kwargs.get("fmg")
 
+    def __hash__(self):
+        return hash(self.model_dump_json(by_alias=True, exclude_none=True, exclude_unset=True, exclude_defaults=True))
+
     @property
     def get_url(self) -> str:
         """General API URL assembly
