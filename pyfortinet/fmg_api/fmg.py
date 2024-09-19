@@ -150,9 +150,7 @@ class FMG(FMGBase):
         else:
             result.data = {"error": f"Wrong type of request received: {request}"}
             result.status = 400
-            logger.error(result.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(result)
+            self.error(result.data["error"], exception=FMGWrongRequestException)
             return result
 
         if filters:
@@ -173,9 +171,7 @@ class FMG(FMGBase):
             api_result = self._post(request=body)
         except FMGException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in get request: {api_result['error']}")
             result.data = api_result
             return result
         # construct object list
@@ -244,9 +240,7 @@ class FMG(FMGBase):
             return super().add(request=api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+            self.error(response.data["error"], exception=FMGWrongRequestException)
             return response
 
     def delete(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
@@ -300,9 +294,7 @@ class FMG(FMGBase):
             return super().delete(api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+            self.error(response.data["error"], exception=FMGWrongRequestException)
             return response
 
     def update(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
@@ -363,9 +355,7 @@ class FMG(FMGBase):
 
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            logger.error(response.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+            self.error(response.data["error"], exception=FMGWrongRequestException)
             return response
 
     def set(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
@@ -426,9 +416,7 @@ class FMG(FMGBase):
 
         else:
             response.data = [{"error": f"Wrong type of request received: {request}"}]
-            logger.error(response.data[0]["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+            self.error(response.data[0]["error"], exception=FMGWrongRequestException)
             return response
 
     def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> FMGResponse:
@@ -441,7 +429,7 @@ class FMG(FMGBase):
             return super().exec({"url": request.get_url, "data": request.data})
         else:
             result = FMGResponse(fmg=self, data=[{"error": f"Wrong type of request received: {request}"}])
-            logger.error(result.data[0]["error"])
+            self.error(result.data[0]["error"])
             return result
 
     def get_obj(

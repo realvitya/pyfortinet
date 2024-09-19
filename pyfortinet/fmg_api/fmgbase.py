@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
-from typing import Any, Callable, Optional, Union, List, Iterator
+from typing import Any, Callable, Optional, Union, List, Iterator, Type
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -527,7 +527,7 @@ class FMGBase:
                 api_result = [api_result]
         except FMGException as err:
             api_result = [{"error": str(err)}]
-            logger.error("Error in exec request: %s", api_result[0]["error"])
+            self.error(f"Error in request: {api_result[0]['error']}")
         result = FMGResponse(fmg=self, data=api_result, success=api_result[0].get("status", {}).get("code") == 0)
         return result
 
@@ -569,9 +569,7 @@ class FMGBase:
             api_result = self._post(request=body)
         except FMGException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in request: {api_result['error']}")
             result.data = api_result
             return result
         # handling empty result list
@@ -639,9 +637,7 @@ class FMGBase:
             response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in add request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in request: {api_result['error']}")
         response.data = api_result
         return response
 
@@ -699,9 +695,7 @@ class FMGBase:
             response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in update request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in request: {api_result['error']}")
         response.data = api_result
         return response
 
@@ -759,9 +753,7 @@ class FMGBase:
             response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in update request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in request: {api_result['error']}")
         response.data = api_result
         return response
 
@@ -811,9 +803,7 @@ class FMGBase:
             response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in request: {api_result['error']}")
         response.data = api_result
         return response
 
@@ -875,9 +865,7 @@ class FMGBase:
             response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         except FMGUnhandledException as err:
             api_result = {"error": str(err)}
-            logger.error("Error in request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+            self.error(f"Error in request: {api_result['error']}")
         response.data = api_result
         return response
 
@@ -927,10 +915,16 @@ class FMGBase:
             if not task:
                 return
             if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+                self.error(f"Timed out waiting {timeout} seconds for the task {task.id}!", exception=TimeoutError)
             if callable(callback):
                 callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
             if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
                 return task.state
             time.sleep(loop_interval)
+
+    def error(self, msg: str = "Unknown error!", level: int = logging.ERROR, exception: Type[Exception] = FMGException):
+        """Log and raise exception"""
+        logger.log(level=level, msg=msg)
+        if self.raise_on_error and exception:
+            raise exception(msg)
