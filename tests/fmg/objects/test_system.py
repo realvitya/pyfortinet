@@ -1,14 +1,9 @@
 """Test of human API"""
 
 import pytest
-from pyfortinet.fmg_api.system import DeviceInterface, DeviceZone
 
-from pyfortinet import AsyncFMG
-from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.system import DeviceInterface, DeviceZone, SystemAdmin
 from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, PortRange
-from pyfortinet.fmg_api.policy import Policy, PolicyPackage
-from tests.conftest import AsyncTestCase
 
 
 class TestInterface:
@@ -31,3 +26,14 @@ class TestObjectsOnLab:
         response = new_zone.add()
         zones = fmg.get(DeviceZone(device="FG01"))
         assert zones
+
+    def test_sysadmin_ops(self, fmg):
+        my_fw = fmg.get(Device).first()
+        test_user = fmg.get_obj(SystemAdmin(device=my_fw.name, name="test-admin", password="verysecret", accprofile="super_admin"))
+        test_user.set()
+        test_user.refresh()
+        old_profile = test_user.accprofile
+        test_user.accprofile = "prof_admin"
+        test_user.update()
+        test_user.refresh()
+        assert old_profile != test_user.accprofile
