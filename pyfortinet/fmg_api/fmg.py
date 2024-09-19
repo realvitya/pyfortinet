@@ -476,16 +476,20 @@ class FMG(FMGBase):
         """Re-load data from FMG"""
         if not obj.master_keys:
             raise FMGMissingMasterKeyException
-        # Build filter
-        filter_complex = F(**{obj.master_keys[0]: getattr(obj, obj.master_keys[0])})
-        for f in obj.master_keys[1:]:
-            filter_complex = filter_complex & F(**{f: getattr(obj, f)})
-        # Get object data, assume only one because we use master keys (primary key in sql)
-        new = self.get(type(obj), filter_complex).first()
+        # Use master key fields only to identify this object, filters are not appropriate as there might be URL
+        # fields amongst master keys
+        new = self.get(type(obj)(**{key: getattr(obj, key) for key in obj.master_keys}))
+        if len(new.data) != 1:
+            self.error(
+                f"{obj} need to load from FMG first in order to call .refresh()!",
+                exception=FMGWrongRequestException
+            )
+        new = new.first()
         if new:
             # overwrite our object fields with data from FMG
             for att in vars(obj):
-                setattr(obj, att, getattr(new, att))
+                if not obj.model_fields[att].exclude:  # excluded fields should not be overwritten (e.g. URL fields)
+                    setattr(obj, att, getattr(new, att))
         return obj
 
     def clone(self, request: REQUEST_ARG, *, create_task: bool = False, **new: str) -> FMGResponse:
