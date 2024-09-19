@@ -94,6 +94,8 @@ class DeviceInterface(FMGObject):
     # 'client-options',
     # 'color',
     # 'dedicated-to',
+    # defaultgw: Optional[ENABLE_DISABLE] = None,
+    description: Optional[str] = None
     # 'detected-peer-mtu',
     # 'device-identification',
     devindex: Optional[int] = None
@@ -190,6 +192,7 @@ class DeviceInterface(FMGObject):
     )
     # 'measured-downstream-bandwidth',
     # 'measured-upstream-bandwidth',
+    member: Optional[List[str]] = None
     # 'min-links',
     # 'min-links-down',
     mode: Optional[INTERFACE_MODE_TYPE] = None
@@ -227,7 +230,7 @@ class DeviceInterface(FMGObject):
         validation_alias=AliasChoices("secondary-IP", "secondary_IP"),
         serialization_alias="secondary-IP"
     )
-    secondaryip: Optional[str] = None
+    secondaryip: Optional[Union[str, List[str]]] = None
     # 'security-exempt-list',
     # 'security-mac-auth-bypass',
     # 'security-mode',
