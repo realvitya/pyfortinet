@@ -33,6 +33,10 @@ class FMGUnhandledException(FMGException):
     """Unhandled error"""
 
 
+class FMGObjectNotExistException(FMGException):
+    """Object does not exist"""
+
+
 class FMGInvalidDataException(FMGException):
     """The data is invalid for selected url"""
 

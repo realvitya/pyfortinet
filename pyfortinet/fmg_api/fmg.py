@@ -7,9 +7,10 @@ from typing import Optional, Union, Any, Type, List
 
 from more_itertools import first
 
-from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException
+from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException, \
+    FMGObjectNotExistException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
-from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required
+from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required, error_handling
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
 
@@ -61,6 +62,7 @@ class FMG(FMGBase):
                 return text_to_filter(filters).generate()
         return None
 
+    @error_handling
     @auth_required
     def get(
         self,
@@ -148,10 +150,7 @@ class FMG(FMGBase):
                 scope = "global" if scope == "global" else f"adom/{scope}"
             url = url.replace("{scope}", scope)
         else:
-            result.data = {"error": f"Wrong type of request received: {request}"}
-            result.status = 400
-            self.error(result.data["error"], exception=FMGWrongRequestException)
-            return result
+            raise FMGWrongRequestException("Wrong type of request received: {request}")
 
         if filters:
             api_request["filter"] = self._get_filter_list(filters)
@@ -169,14 +168,14 @@ class FMG(FMGBase):
 
         try:
             api_result = self._post(request=body)
-        except FMGException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in get request: {api_result['error']}")
-            result.data = api_result
-            return result
+        except FMGObjectNotExistException as err:
+            api_result = {"data": []}
+
         # construct object list
         objects = []
         obj_class = type(request) if isinstance(request, FMGObject) else request
+        if not isinstance(api_result.get("data"), list):
+            api_result["data"] = [api_result["data"]]
         for value in api_result.get("data"):
             objects.append(obj_class(**value, fmg_scope=scope, fmg=self))
         result.data = objects
@@ -480,9 +479,8 @@ class FMG(FMGBase):
         # fields amongst master keys
         new = self.get(type(obj)(**{key: getattr(obj, key) for key in obj.master_keys}))
         if len(new.data) != 1:
-            self.error(
+            raise FMGWrongRequestException(
                 f"{obj} need to load from FMG first in order to call .refresh()!",
-                exception=FMGWrongRequestException
             )
         new = new.first()
         if new:

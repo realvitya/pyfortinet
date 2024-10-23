@@ -7,8 +7,9 @@ from typing import Optional, Union, Any, Type, List, Dict
 
 from more_itertools import first
 
-from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required
-from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException
+from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required, error_handling
+from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException, \
+    FMGObjectNotExistException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
@@ -61,6 +62,7 @@ class AsyncFMG(AsyncFMGBase):
                 return text_to_filter(filters).generate()
         return None
 
+    @error_handling
     @auth_required
     async def get(
         self,
@@ -156,12 +158,7 @@ class AsyncFMG(AsyncFMGBase):
                 scope = "global" if scope == "global" else f"adom/{scope}"
             url = url.replace("{scope}", scope)
         else:
-            result.data = {"error": f"Wrong type of request received: {request}"}
-            result.status = 400
-            logger.error(result.data["error"])
-            if self._raise_on_error:
-                raise FMGWrongRequestException(result)
-            return result
+            raise FMGWrongRequestException("Wrong type of request received: {request}")
 
         if filters:
             api_request["filter"] = self._get_filter_list(filters)
@@ -179,13 +176,9 @@ class AsyncFMG(AsyncFMGBase):
 
         try:
             api_result = await self._post(request=body)
-        except FMGException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
-            result.data = api_result
-            return result
+        except FMGObjectNotExistException:
+            api_result = {"data": []}
+
         # construct object list
         objects = []
         obj_class = type(request) if isinstance(request, FMGObject) else request

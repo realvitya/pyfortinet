@@ -21,7 +21,7 @@ from pyfortinet.exceptions import (
     FMGLockException,
     FMGLockNeededException,
     FMGTokenException,
-    FMGUnhandledException,
+    FMGUnhandledException, FMGObjectNotExistException,
 )
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
@@ -57,6 +57,21 @@ def auth_required(func: Callable) -> Callable:
                 raise err2 from err
 
     return auth_decorated
+
+
+def error_handling(func: Callable) -> Callable:
+    """Decorator to provide error handling for the methods"""
+    @functools.wraps(func)
+    def error_decorated(self: "FMGBase", *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except FMGException as err:
+            if self.raise_on_error:
+                raise
+            result = FMGResponse(data=[{"error": str(err)}], success=False)
+            return result
+
+    return error_decorated
 
 
 def lock(func: Callable) -> Callable:
@@ -491,6 +506,7 @@ class FMGBase:
         token = req.json().get("session", "")
         return SecretStr(token)
 
+    @error_handling
     @auth_required
     def get_version(self) -> str:
         """Gather FMG version"""
@@ -521,17 +537,14 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            if isinstance(api_result, dict):
-                api_result = [api_result]
-        except FMGException as err:
-            api_result = [{"error": str(err)}]
-            self.error(f"Error in request: {api_result[0]['error']}")
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
         result = FMGResponse(fmg=self, data=api_result, success=api_result[0].get("status", {}).get("code") == 0)
         return result
 
     # noqa: PLR0912 - Too many branches
+    @error_handling
     @auth_required
     def get(self, request: dict[str, Any]) -> FMGResponse:  # noqa: PLR0912 - Too many branches
         """Get info from FMG
@@ -567,22 +580,25 @@ class FMGBase:
         result = FMGResponse(fmg=self)
         try:
             api_result = self._post(request=body)
-        except FMGException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in request: {api_result['error']}")
-            result.data = api_result
+        except FMGObjectNotExistException:
+            # handling when specific requested object doesn't exist
+            # we don't error out, but give an empty list
+            result.data = {"data": [], "status": {"code": 0}}
             return result
+
         # handling empty result list
-        if not api_result.get("data"):
-            result.data = {"data": []}
+        if not api_result:
+            result.data = {"data": [], "status": {"code": 0}}
             return result
+
         # processing result list
         result.data = api_result if isinstance(api_result, list) else [api_result]
         result.success = True
-        result.status = api_result.get("status", {}).get("code", 400)
+        # result.status = api_result.get("status", {}).get("code", 400)
 
         return result
 
+    @error_handling
     @auth_required
     @lock
     def add(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
@@ -630,17 +646,14 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            if isinstance(api_result, dict):
-                api_result = [api_result]
-            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in request: {api_result['error']}")
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
     def update(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
@@ -688,17 +701,14 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            if isinstance(api_result, dict):
-                api_result = [api_result]
-            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in request: {api_result['error']}")
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
     def set(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
@@ -746,17 +756,14 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            if isinstance(api_result, dict):
-                api_result = [api_result]
-            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in request: {api_result['error']}")
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
     def delete(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
@@ -796,17 +803,14 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            if isinstance(api_result, dict):
-                api_result = [api_result]
-            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in request: {api_result['error']}")
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
     def clone(self, request: Union[dict[str, Any], List[dict[str, Any]]], create_task: bool = False) -> FMGResponse:
@@ -858,14 +862,10 @@ class FMGBase:
                 # name task after this request object
                 "name": f"cloning task of {', '.join(req.get('url').split('/')[-1] for req in request)}",
             }
-        try:
-            api_result = self._post(request=body)
-            if isinstance(api_result, dict):
-                api_result = [api_result]
-            response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            self.error(f"Error in request: {api_result['error']}")
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
@@ -922,9 +922,3 @@ class FMGBase:
             if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
                 return task.state
             time.sleep(loop_interval)
-
-    def error(self, msg: str = "Unknown error!", level: int = logging.ERROR, exception: Type[Exception] = FMGException):
-        """Log and raise exception"""
-        logger.log(level=level, msg=msg)
-        if self.raise_on_error and exception:
-            raise exception(msg)

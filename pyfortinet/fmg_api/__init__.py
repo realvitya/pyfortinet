@@ -1,7 +1,7 @@
 """FMG API library"""
 
 from abc import ABC
-from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union, List
+from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
 
 from pydantic import BaseModel
 

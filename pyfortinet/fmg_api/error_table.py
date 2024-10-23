@@ -31,7 +31,7 @@ API_ERRORS = {
     0: "OK",
     1: "Unknown error",
     2: FMGObjectAlreadyExistsException,  # "Object already exists",
-    3: "Object does not exist",
+    3: FMGObjectNotExistException,  # "Object does not exist",
     4: "Could not resolve reference",
     5: "No such command",
     6: FMGInvalidURL,  # "Invalid url",

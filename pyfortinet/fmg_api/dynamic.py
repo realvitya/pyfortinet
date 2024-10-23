@@ -179,12 +179,3 @@ class NormalizedInterface(FMGObject):
         validation_alias=AliasChoices("only-wildcard-intf-zone", "wildcard_intf_zone_only"),
         serialization_alias="wildcard-intf-zone-only"
     )
-
-    @property
-    def get_url(self) -> str:
-        url = super().get_url
-        if self.interface is None:
-            url = url.replace("/{interface}", "")
-        else:
-            url = url.replace("{interface}", self.interface)
-        return url
