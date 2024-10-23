@@ -882,10 +882,10 @@ class AsyncFMGBase:
 
             >>> import asyncio
             >>> from pyfortinet.fmg_api.dvmcmd import DeviceTask
-            >>> from pyfortinet.fmg_api.dvmdb import RealDevice
+            >>> from pyfortinet.fmg_api.dvmdb import Device
             >>> from rich.progress import Progress
             >>> settings = {...}
-            >>> test_device = RealDevice(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
+            >>> test_device = Device(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
             >>> async def add_device(device: Device):
             ...     async with AsyncFMGBase(**settings) as fmg:
             ...         task = DeviceTask(adom=fmg.adom, device=device)
@@ -893,7 +893,7 @@ class AsyncFMGBase:
             ...         with Progress() as progress:
             ...             prog_task = progress.add_task(f"Adding device {device.name}", total=100)
             ...             update_progress = lambda percent, log: progress.update(prog_task, percent)
-            ...             await result.wait_for_task(task, callback=update_progress)
+            ...             await result.wait_for_task(callback=update_progress)
             >>> asyncio.run(add_device(test_device))
             ```
         """
