@@ -128,7 +128,7 @@ class FMG(FMGBase):
             # derive url from current scope and adom
             if not request.fmg_scope:  # assign local FMG scope to request as fallback
                 request.fmg_scope = scope or self.adom
-            url = request.get_url
+            url = request.get_url()
             for field in request.model_dump_for_filter():
                 if filters:
                     filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
@@ -141,7 +141,7 @@ class FMG(FMGBase):
             # reason: there are urls with specific parameters which we can't provide with using class
             # this way, we can cover some cases where general list of objects will return when there is no specific
             # parameter. Such a request is `dynamic.Interface`
-            # Use object instance instead, where URL processing is done by the object's `get_url` property!
+            # Use object instance instead, where URL processing is done by the object's `get_url` method!
             url = re.sub(r"/{(?!scope).*?}", "", url)
             # derive url from current scope and adom
             if not scope:  # get adom from FMG settings
@@ -235,7 +235,7 @@ class FMG(FMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append({"url": req.get_url(method="add"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return super().add(request=api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
@@ -285,11 +285,12 @@ class FMG(FMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                if not req.master_keys:
-                    raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
-                master_key = first(req.master_keys)  # assume one master_key, like `name`
-                master_value = getattr(req, master_key)
-                api_data.append({"url": f"{req.get_url}/{master_value}"})
+                # if not req.master_keys:
+                #     raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
+                # master_key = first(req.master_keys)  # assume one master_key, like `name`
+                # master_value = getattr(req, master_key)
+                # api_data.append({"url": f"{req.get_url}/{master_value}"})
+                api_data.append({"url": req.get_url(method="delete")})
             return super().delete(api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
@@ -349,7 +350,7 @@ class FMG(FMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append({"url": req.get_url(method="update"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return super().update(request=api_data)
 
         else:
@@ -410,7 +411,7 @@ class FMG(FMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append({"url": req.get_url(method="set"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return super().set(request=api_data)
 
         else:
@@ -423,9 +424,9 @@ class FMG(FMGBase):
         if isinstance(request, dict):  # low-level operation
             return super().exec(request)
         elif isinstance(request, FMGExecObject):
-            logger.info("requesting exec with high-level op to %s", request.get_url)
+            logger.info("requesting exec with high-level op to %s", request.get_url())
             request.fmg_scope = request.fmg_scope or self._settings.adom
-            return super().exec({"url": request.get_url, "data": request.data})
+            return super().exec({"url": request.get_url(), "data": request.data})
         else:
             result = FMGResponse(fmg=self, data=[{"error": f"Wrong type of request received: {request}"}])
             self.error(result.data[0]["error"])
@@ -477,7 +478,7 @@ class FMG(FMGBase):
             raise FMGMissingMasterKeyException
         # Use master key fields only to identify this object, filters are not appropriate as there might be URL
         # fields amongst master keys
-        new = self.get(type(obj)(**{key: getattr(obj, key) for key in obj.master_keys}))
+        new = self.get(type(obj)(**{key: getattr(obj, key) for key in obj.master_keys.values()}))
         if len(new.data) != 1:
             raise FMGWrongRequestException(
                 f"{obj} need to load from FMG first in order to call .refresh()!",
@@ -538,12 +539,12 @@ class FMG(FMGBase):
         elif isinstance(request, FMGObject):  # high-level operation
             if not request.master_keys:
                 raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
-            master_key = first(request.master_keys)  # assume one master_key, like `name`
-            master_value = getattr(request, master_key)
+            # master_key = first(request.master_keys.values())  # assume one master_key, like `name`
+            # master_value = getattr(request, master_key)
             request.fmg_scope = request.fmg_scope or self._settings.adom
             return super().clone(
                 {
-                    "url": f"{request.get_url}/{master_value}",
+                    "url": request.get_url(method="clone"),
                     "data": new,
                 },
                 create_task=create_task,

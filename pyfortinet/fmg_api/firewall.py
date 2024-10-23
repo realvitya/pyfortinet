@@ -134,8 +134,8 @@ class Address(FMGObject):
             None, validation_alias=AliasChoices("obj-id", "obj_id"), serialization_alias="obj-id"
         )
 
-    _url: str = "/pm/config/{scope}/obj/firewall/address"
-    _master_keys: list = ["name"]
+    _url: str = "/pm/config/{scope}/obj/firewall/address/{address}"
+    _master_keys = {"address": "name"}
     name: Optional[str] = Field(None, max_length=128)
     allow_routing: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
@@ -311,8 +311,8 @@ class Address(FMGObject):
 
 
 class AddressGroup(FMGObject):
-    _url: str = "/pm/config/{scope}/obj/firewall/addrgrp"
-    _master_keys: list = ["name"]
+    _url: str = "/pm/config/{scope}/obj/firewall/addrgrp/{addrgrp}"
+    _master_keys: list = {"addrgrp": "name"}
     allow_routing: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
     )
@@ -375,8 +375,8 @@ class AddressGroup(FMGObject):
 
 
 class ServiceCategory(FMGObject):
-    _url = "/pm/config/{scope}/obj/firewall/service/category"
-    _master_keys = ["name"]
+    _url = "/pm/config/{scope}/obj/firewall/service/category/{category}"
+    _master_keys = {"category": "name"}
     comment: Optional[str] = None
     fabric_object: Optional[ENABLE_DISABLE] = Field(
         None,
@@ -457,8 +457,8 @@ class ServiceCustom(FMGObject):
         visibility: Enable/disable visibility on FortiGate GUI
     """
 
-    _url = "/pm/config/{scope}/obj/firewall/service/custom"
-    _master_keys = ["name"]
+    _url = "/pm/config/{scope}/obj/firewall/service/custom/{custom}"
+    _master_keys = {"custom": "name"}
     app_category: Optional[List[int]] = Field(
         None,
         validation_alias=AliasChoices("app-category", "app_category"),
@@ -640,8 +640,8 @@ class ServiceGroup(FMGObject):
 
     """
 
-    _url = "/pm/config/{scope}/obj/firewall/service/group"
-    _master_keys = ["name"]
+    _url = "/pm/config/{scope}/obj/firewall/service/group/{group}"
+    _master_keys = {"group": "name"}
     color: Optional[int] = None
     comment: Optional[str] = None
     fabric_object: Optional[ENABLE_DISABLE] = Field(
@@ -693,8 +693,8 @@ class ProfileGroup(FMGObject):
         webfilter_profile: Name of an existing Web filter profile.
     """
 
-    _url = "/pm/config/{scope}/obj/firewall/profile-group"
-    _master_keys = ["name"]
+    _url = "/pm/config/{scope}/obj/firewall/profile-group/{profile_group}"
+    _master_keys = {"profile_group": "name"}
     application_list: Optional[str] = Field(
         None,
         validation_alias=AliasChoices("application-list", "application_list"),

@@ -128,9 +128,8 @@ class NormalizedInterface(FMGObject):
         local_intf:
     """
     _url = "/pm/config/{scope}/obj/dynamic/interface/{interface}"
-    _master_keys = ["name"]
+    _master_keys = {"interface": "name"}
     # URL fields
-    interface: Optional[str] = Field(None, exclude=True)
     # API fields
     color: Optional[int] = None
     default_mapping: Optional[ENABLE_DISABLE] = Field(

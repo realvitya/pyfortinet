@@ -136,7 +136,7 @@ class AsyncFMG(AsyncFMGBase):
             # derive url from current scope and adom
             if not request.fmg_scope:  # assign local FMG scope to request as fallback
                 request.fmg_scope = scope or self.adom
-            url = request.get_url
+            url = request.get_url()
             for field in request.model_dump_for_filter():
                 if filters:
                     filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
@@ -149,7 +149,7 @@ class AsyncFMG(AsyncFMGBase):
             # reason: there are urls with specific parameters which we can't provide with using class
             # this way, we can cover some cases where general list of objects will return when there is no specific
             # parameter. Such a request is `dynamic.Interface`
-            # Use object instance instead, where URL processing is done by the object's `get_url` property!
+            # Use object instance instead, where URL processing is done by the object's `get_url` method!
             url = re.sub(r"/{(?!scope).*?}", "", url)
             # derive url from current scope and adom
             if not scope:  # get adom from FMG settings
@@ -182,6 +182,8 @@ class AsyncFMG(AsyncFMGBase):
         # construct object list
         objects = []
         obj_class = type(request) if isinstance(request, FMGObject) else request
+        if not isinstance(api_result.get("data"), list):
+            api_result["data"] = [api_result["data"]]
         for value in api_result.get("data"):
             objects.append(obj_class(**value, fmg_scope=scope, fmg=self))
         result.data = objects
@@ -247,7 +249,7 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append({"url": req.get_url(method="add"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return await super().add(request=api_data)
 
         else:
@@ -308,11 +310,12 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                if not req.master_keys:
-                    raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
-                master_key = first(req.master_keys)  # assume one master_key, like `name`
-                master_value = getattr(req, master_key)
-                api_data.append({"url": f"{req.get_url}/{master_value}"})
+                # if not req.master_keys:
+                #     raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
+                # master_key = first(req.master_keys)  # assume one master_key, like `name`
+                # master_value = getattr(req, master_key)
+                # api_data.append({"url": f"{req.get_url}/{master_value}"})
+                api_data.append({"url": req.get_url(method="delete")})
             return await super().delete(api_data)
 
         else:
@@ -381,7 +384,7 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append({"url": req.get_url(method="update"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return await super().update(request=api_data)
 
         else:
@@ -450,7 +453,7 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url, "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append({"url": req.get_url(method="set"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return await super().set(request=api_data)
 
         else:
@@ -465,9 +468,9 @@ class AsyncFMG(AsyncFMGBase):
         if isinstance(request, dict):  # low-level operation
             return await super().exec(request)
         elif isinstance(request, FMGExecObject):
-            logger.info("requesting exec with high-level op to %s", request.get_url)
+            logger.info("requesting exec with high-level op to %s", request.get_url())
             request.fmg_scope = request.fmg_scope or self._settings.adom
-            return await super().exec({"url": request.get_url, "data": request.data})
+            return await super().exec({"url": request.get_url(), "data": request.data})
         else:
             result = AsyncFMGResponse(fmg=self, data=[{"error": f"Wrong type of request received: {request}"}])
             logger.error(result.data[0]["error"])
@@ -515,16 +518,19 @@ class AsyncFMG(AsyncFMGBase):
         """Re-load data from FMG"""
         if not obj.master_keys:
             raise FMGMissingMasterKeyException
-        # Build filter
-        filter_complex = F(**{obj.master_keys[0]: getattr(obj, obj.master_keys[0])})
-        for f in obj.master_keys[1:]:
-            filter_complex = filter_complex & F(**{f: getattr(obj, f)})
-        # Get object data, assume only one because we use master keys (primary key in sql)
-        new = (await self.get(type(obj), filter_complex)).first()
+        # Use master key fields only to identify this object, filters are not appropriate as there might be URL
+        # fields amongst master keys
+        new = await self.get(type(obj)(**{key: getattr(obj, key) for key in obj.master_keys.values()}))
+        if len(new.data) != 1:
+            raise FMGWrongRequestException(
+                f"{obj} need to load from FMG first in order to call .refresh()!",
+            )
+        new = new.first()
         if new:
             # overwrite our object fields with data from FMG
             for att in vars(obj):
-                setattr(obj, att, getattr(new, att))
+                if not obj.model_fields[att].exclude:  # excluded fields should not be overwritten (e.g. URL fields)
+                    setattr(obj, att, getattr(new, att))
         return obj
 
     async def clone(self, request: REQUEST_ARG, *, create_task: bool = False, **new: str) -> AsyncFMGResponse:
@@ -581,12 +587,12 @@ class AsyncFMG(AsyncFMGBase):
         elif isinstance(request, FMGObject):  # high-level operation
             if not request.master_keys:
                 raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
-            master_key = first(request.master_keys)  # assume one master_key, like `name`
-            master_value = getattr(request, master_key)
+            # master_key = first(request.master_keys.values())  # assume one master_key, like `name`
+            # master_value = getattr(request, master_key)
             request.fmg_scope = request.fmg_scope or self._settings.adom
             return await super().clone(
                 {
-                    "url": f"{request.get_url}/{master_value}",
+                    "url": request.get_url(method="clone"),
                     "data": new,
                 },
                 create_task=create_task,

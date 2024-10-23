@@ -89,7 +89,7 @@ def lock(func: Callable) -> Callable:
         """method which needs locking"""
         try:
             return func(self, *args, **kwargs)
-        except FMGLockNeededException as err:
+        except (FMGLockNeededException, FMGAuthenticationException) as err:
             try:  # try again after locking
                 if not args:  # in case we got kwargs request
                     args = [kwargs.get("request")]
@@ -156,7 +156,7 @@ class FMGResponse:
             if isinstance(self.data[0], dict) and master_key:  # need to use master_key arg to find desired key
                 return next((d for d in self.data if d.get("data", {}).get(master_key) == key), None)
             if isinstance(self.data[0], FMGObject):
-                return next((d for d in self.data if getattr(d, master_key or first(d.master_keys, None)) == key), None)
+                return next((d for d in self.data if getattr(d, master_key or first(d.master_keys.values(), None)) == key), None)
             raise ValueError(f"Invalid key: '{key}'")
 
     def __len__(self):
@@ -519,7 +519,9 @@ class FMGBase:
         req = self._post(request)
         return req["data"]["Version"]
 
+    @error_handling
     @auth_required
+    @lock
     def exec(self, request: dict[str, str]) -> FMGResponse:
         """Execute on FMG
 
@@ -773,7 +775,7 @@ class FMGBase:
             Multiple requests in one call is supported
 
         Args:
-            request: Update operation's data structure
+            request: Delete operation's data structure
 
         Examples:
             ```pycon

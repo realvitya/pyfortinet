@@ -115,10 +115,11 @@ class VDOM(FMGObject):
     """Device Virtual Domain"""
 
     # internal attributes
-    _url = "/dvmdb/{scope}/device/{device}/vdom"
-    _master_keys = ["name"]
-    # API attributes
+    _url = "/dvmdb/{scope}/device/{device}/vdom/{vdom}"
+    _master_keys = {"vdom": "name"}
+    # URL attributes
     device: str = Field("", exclude=True, description="Assigned device")
+    # API attributes
     name: Optional[str] = None
     comments: Optional[str] = None
     meta_fields: Optional[dict[str, str]] = Field(
@@ -143,13 +144,13 @@ class VDOM(FMGObject):
     def validate_vdom_type(cls, v) -> VDOM_TYPE:
         return VDOM_TYPE.__dict__.get("__args__")[v - 1] if isinstance(v, int) else v
 
-    @property
-    def get_url(self) -> str:
-        url = super().get_url
-        if self.device is None:
-            raise FMGException("device field is required!")
-        url = url.replace("{device}", self.device)
-        return url
+    # @property
+    # def get_url(self) -> str:
+    #     url = super().get_url
+    #     if self.device is None:
+    #         raise FMGException("device field is required!")
+    #     url = url.replace("{device}", self.device)
+    #     return url
 
 
 ROLE = Literal["slave", "master"]
@@ -228,8 +229,9 @@ class Device(FMGObject):
 
     # internal attributes
     _url = "/dvmdb/{scope}/device/{device}"
+    _master_keys = {"device": "name"}
     # URL attributes
-    device: Optional[str] = Field(None, exclude=True, description="Assigned device")
+    # device: Optional[str] = Field(None, exclude=True, description="Assigned device")
     # api attributes
     adm_usr: Optional[str] = Field(None, max_length=36)
     adm_pass: Optional[Union[str, list[str]]] = Field(None, max_length=128)
@@ -307,14 +309,14 @@ class Device(FMGObject):
         """ensure using text variant"""
         return CONN_STATUS.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
-    @property
-    def get_url(self) -> str:
-        url = super().get_url
-        if self.device is None:
-            url = url.replace("/{device}", "")
-        else:
-            url = url.replace("{device}", self.device)
-        return url
+    # @property
+    # def get_url(self) -> str:
+    #     url = super().get_url
+    #     if self.device is None:
+    #         url = url.replace("/{device}", "")
+    #     else:
+    #         url = url.replace("{device}", self.device)
+    #     return url
 
     def get_vdom_scope(self, vdom: str) -> Optional[Scope]:
         """Get Scope for a VDOM to be used by filters
@@ -351,10 +353,10 @@ class ADOM(FMGObject):
         uuid:
         workspace_mode:
     """
-
-    _url = "/dvmdb/adom"
-    _master_keys = ["name"]
-
+    # internal attributes
+    _url = "/dvmdb/adom/{adom}"
+    _master_keys = {"adom": "name"}
+    # API attributes
     create_time: Optional[int] = None
     desc: Optional[str] = None
     flags: Optional[Union[ADOM_FLAGS, List[ADOM_FLAGS]]] = None

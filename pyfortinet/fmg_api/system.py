@@ -1,11 +1,10 @@
 """System objects"""
 from ipaddress import IPv4Interface
-from typing import Literal, Optional, List, Dict, Union
+from typing import Literal, Optional, List, Union
 
-from pydantic import Field, field_validator, AliasChoices, BaseModel
+from pydantic import Field, field_validator, AliasChoices
 
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.common import Scope
 from pyfortinet.fmg_api.dvmdb import VDOM, Device
 
 ALLOW_ACCESS_TYPE = Literal["https", "ping", "ssh", "snmp", "http", "telnet", "fgfm", "auto-ipsec", "radius-acct", "probe-response", "capwap", "dnp", "ftm", "fabric", "speed-test"]
@@ -59,7 +58,7 @@ class DeviceInterface(FMGObject):
         color:
     """
     _url = "/pm/config/device/{device}/global/system/interface/{fmg_interface}"
-    _master_keys = ["name"]
+    _master_keys = {"fmg_interface": "interface"}
     # URL fields
     device: Optional[str] = Field(None, exclude=True)
     fmg_interface: Optional[str] = Field(None, exclude=True)
@@ -287,17 +286,11 @@ class DeviceInterface(FMGObject):
     # 'wifi-networks',
     # 'wins-ip'
 
-    @property
-    def get_url(self) -> str:
-        # url = super().get_url
+    def get_url(self, method = "get") -> str:
         if self.device is None:
             raise ValueError("Device parameter must be set!")
-        url = self._url.replace("{device}", str(self.device))
-        if self.fmg_interface is None:
-            url = url.replace("/{fmg_interface}", "")
-        else:
-            url = url.replace("{fmg_interface}", self.interface)
-        return url
+        return super().get_url(method)
+
 
     @field_validator("arpforward", "broadcast_forward", "icmp_accept_redirect", "icmp_send_redirect", "ipmac",
                      "lacp_ha_secondary", "mtu_override", "secondary_IP", "src_check", "stpforward", "vrrp_virtual_mac",
@@ -353,11 +346,11 @@ class DeviceZone(FMGObject):
     """Device zone
 
     """
-    _url = "/pm/config/device/{device}/{scope}/system/zone/{zone}"
-    _master_keys = ["name"]
+    _url = "/pm/config/device/{device}/vdom/{vdom}/system/zone/{zone}"
+    _master_keys = {"zone": "name"}
     # URL fields
     device: Optional[Union[str, Device]] = Field(None, exclude=True)
-    scope: Optional[Union[str, VDOM]] = Field("root", exclude=True)
+    vdom: Optional[Union[str, VDOM]] = Field("root", exclude=True)
     zone: Optional[Union[str, "DeviceZone"]] = Field(None, exclude=True)
     # API fields
     oid: Optional[int] = None
@@ -367,20 +360,10 @@ class DeviceZone(FMGObject):
     interface: Optional[List[Union[str, DeviceInterface]]] = None
     description: Optional[str] = None
 
-    @property
-    def get_url(self) -> str:
+    def get_url(self, method = "get") -> str:
         if not self.device:
             raise ValueError("Device parameter must be set!")
-        scope = str(self.scope) if self.scope else None
-        if scope != "global":
-            scope = f"vdom/{scope}"
-        url = self._url.replace("{device}", str(self.device))
-        url = url.replace("{scope}", scope)
-        if self.zone is None:
-            url = url.replace("/{zone}", "")
-        else:
-            url = url.replace("{zone}", str(self.zone))
-        return url
+        return super().get_url(method)
 
     @field_validator("interface", mode="before")
     def validate_interface(cls, v) -> List[str]:
@@ -486,7 +469,7 @@ class SystemAdmin(FMGObject):
         wildcard: Enable/disable wildcard RADIUS authentication.
     """
     _url = "/pm/config/device/{device}/global/system/admin/{admin}"
-    _master_keys = ["name", "device"]
+    _master_keys = {"admin": "name", "device": "device"}
     # URL fields
     device: Optional[str] = Field(None, exclude=True)
     admin: Optional[str] = Field(None, exclude=True)
@@ -698,11 +681,7 @@ class SystemAdmin(FMGObject):
     )
     wildcard: Optional[ENABLE_DISABLE] = None
 
-    @property
-    def get_url(self):
+    def get_url(self, method = "get"):
         if not self.device:
             raise ValueError("Please specify `device` field or assign object to FMG!")
-        url = self._url.replace("{device}", self.device)
-        if not self.admin:  # specifying existing user is optional and required to rename and delete only
-            return url.replace("/{admin}", "")
-        return url.replace("{admin}", self.admin)
+        return super().get_url(method)

@@ -300,8 +300,8 @@ class Policy(FMGObject):
 
 
     """
-    _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy"
-    _master_keys = ["policyid"]
+    _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy/{policy}"
+    _master_keys = {"policy": "policyid", "pkg": "pkg", "adom": "adom"}
     # URL fields
     adom: Optional[str] = Field(None, exclude=True)
     pkg: Optional[str] = Field(None, exclude=True)
@@ -1043,21 +1043,10 @@ class Policy(FMGObject):
         serialization_alias="ztna-tags-match-logic",
     )
 
-    @property
-    def get_url(self) -> str:
-        """Construct API URL based on adom and pkg fields
-
-        Notes:
-            ADOM can come from FMG object
-            PKG must be specified
-        """
-        adom = self.adom or self.fmg_scope.replace("adom/", "").replace("global", "")
-        pkg = self.pkg
-        if not adom:
-            raise ValueError("Please specify `adom` field or assign object to FMG!")
-        if pkg is None:
-            raise ValueError("Please specify `pkg` field!")
-        return self._url.replace("{adom}", adom).replace("{pkg}", pkg)
+    def get_url(self, method: Literal["get", "add", "set", "update", "delete", "clone", "exec"] = "get") -> str:
+        """Construct API URL based on adom and pkg fields"""
+        self.adom = self.adom or self.fmg_scope.replace("adom/", "").replace("global", "")
+        return super().get_url(method)
 
     @field_validator(
         "anti_replay",

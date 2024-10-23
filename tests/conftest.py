@@ -64,6 +64,7 @@ def fmg(request):
 
 
 @pytest.mark.asyncio(scope="class")
+@pytest.mark.filterwarnings("ignore:Unverified")
 class AsyncTestCase:
     """Base class for async test cases."""
 

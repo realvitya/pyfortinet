@@ -1,5 +1,5 @@
 """FMG API library"""
-
+import re
 from abc import ABC
 from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
 
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from pyfortinet import FMG, AsyncFMG
 
     AnyFMG = Union[FMG, AsyncFMG]
-from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException, FMGMissingMasterKeyException
+from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException, FMGInvalidURL
 
 GetOption = Literal[
     "extra info",  # returns more info (e.g. timestamps of changes)
@@ -60,8 +60,7 @@ class FMGBaseObject(BaseModel, ABC):
     def __hash__(self):
         return hash(self.model_dump_json(by_alias=True, exclude_none=True, exclude_unset=True, exclude_defaults=True))
 
-    @property
-    def get_url(self) -> str:
+    def get_url(self, method: Literal["get", "add", "set", "update", "delete", "clone", "exec"] = "exec") -> str:
         """General API URL assembly
 
         To be overridden by more complex API URLs in different classes
@@ -98,14 +97,51 @@ class FMGObject(FMGBaseObject, ABC):
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance
-        _master_keys (str): name of attributes which represents unique key in FMG DB for this API class
+        _master_keys (str): attributes which represents unique key in FMG DB for this API class
     """
 
-    _master_keys: Optional[List[str]] = None
+    _master_keys: Optional[dict[str, str]] = None
 
     @property
-    def master_keys(self) -> List[str]:
+    def master_keys(self) -> dict[str, str]:
+        """Dict of fields where key is URL attribute and value is model field
+
+        Example of master_keys definition:
+        URL: /pm/config/{scope}/obj/firewall/addrgrp/{addrgrp}
+        master_keys = {"addrgrp": "name"}
+
+        Here "addrgrp" is the URL field to be replaced by the model field "name"
+        """
         return self._master_keys
+
+    def get_url(self, method: Literal["get", "add", "set", "update", "delete", "clone", "exec"] = "get") -> str:
+        """General API URL assembly
+
+        To be overridden by more complex API URLs in different classes
+        """
+        variables = re.findall(r"{(.*?)}", self._url)
+        if not self.fmg_scope:
+            if "scope" in variables:
+                raise FMGMissingScopeException(f"Missing scope for {self}")
+        url = self._url
+        for field in variables:
+            if field == "scope":
+                url = url.replace(f"{{{field}}}", self.fmg_scope)
+            else:
+                if hasattr(self, field) and getattr(self, field) is not None:
+                    url = url.replace(f"{{{field}}}", getattr(self, field))
+                elif (
+                        method in ("get", "set", "update", "delete", "clone")
+                        and field in self.master_keys
+                        and getattr(self, self.master_keys[field], None) is not None
+                ):  # certain methods require master key (like policyid)
+                    url = url.replace(f"{{{field}}}", getattr(self, self.master_keys[field]))
+                # delete field from URL if no data found (can lead to errors)
+                elif method in ("get", "add", "set", "update") and url.endswith(f"{{{field}}}"):
+                    url = url.replace(f"/{{{field}}}", "")
+                else:
+                    raise FMGInvalidURL(f"Missing field '{field}' for ({self._url})")
+        return url
 
     def add(self):
         """Add this object to FMG"""
