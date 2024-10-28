@@ -208,8 +208,8 @@ class FMGLockContext:
         """Get workspace-mode from config"""
         url = "/cli/global/system/global"
         result = self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = result.data[0]["data"].get("workspace-mode") != 0
-        # self.uses_adoms = result.data["data"].get("adom-status") == 1
+        self._uses_workspace = result.data[0]["data"].get("workspace-mode") not in (0, "0", "disabled")
+        # self.uses_adoms = (result.data["data"].get("adom-status") in (1, "1", "enable")
 
     def lock_adoms(self, *adoms: str) -> FMGResponse:
         """Lock adom list
