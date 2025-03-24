@@ -23,7 +23,7 @@ dependencies = [
     "pydantic-settings",
     "typer",
     "requests~=2.32",
-    "ruamel.yaml==0.17.20",
+    "ruamel.yaml~=0.18",
     "more-itertools",
 ]
 
