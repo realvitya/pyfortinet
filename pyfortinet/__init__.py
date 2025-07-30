@@ -1,6 +1,6 @@
 """Fortinet Python library"""
 
-__version__ = "0.1.0"
+__version__ = "0.0.2-pre3"
 
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse
 from pyfortinet.fmg_api.fmg import FMG
