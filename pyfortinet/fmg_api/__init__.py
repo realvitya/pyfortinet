@@ -129,13 +129,13 @@ class FMGObject(FMGBaseObject, ABC):
                 url = url.replace(f"{{{field}}}", self.fmg_scope)
             else:
                 if hasattr(self, field) and getattr(self, field) is not None:
-                    url = url.replace(f"{{{field}}}", getattr(self, field))
+                    url = url.replace(f"{{{field}}}", str(getattr(self, field)))
                 elif (
                         method in ("get", "set", "update", "delete", "clone")
                         and field in self.master_keys
                         and getattr(self, self.master_keys[field], None) is not None
                 ):  # certain methods require master key (like policyid)
-                    url = url.replace(f"{{{field}}}", getattr(self, self.master_keys[field]))
+                    url = url.replace(f"{{{field}}}", str(getattr(self, self.master_keys[field])))
                 # delete field from URL if no data found (can lead to errors)
                 elif method in ("get", "add", "set", "update") and url.endswith(f"{{{field}}}"):
                     url = url.replace(f"/{{{field}}}", "")
