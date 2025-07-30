@@ -157,7 +157,7 @@ class FMGResponse:
                 return next((d for d in self.data if d.get("data", {}).get(master_key) == key), None)
             if isinstance(self.data[0], FMGObject):
                 return next((d for d in self.data if getattr(d, master_key or first(d.master_keys.values(), None)) == key), None)
-            raise ValueError(f"Invalid key: '{key}'")
+        raise ValueError(f"Invalid key: '{key}'")
 
     def __len__(self):
         return len(self.data)
