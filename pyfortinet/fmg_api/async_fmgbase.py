@@ -316,6 +316,15 @@ class AsyncFMGBase:
         self._raise_on_error: bool = settings.raise_on_error
         self._id: int = randint(1, 256)  # pick a random id for this session (check logs for a particular session)
 
+    @contextmanager
+    def timeout(self, timeout: float = 120.0):
+        original_timeout = self._settings.timeout
+        self._settings.timeout = timeout
+        try:
+            yield
+        finally:
+            self._settings.timeout = original_timeout
+
     @property
     def adom(self) -> str:
         """Returns current selected adom"""
