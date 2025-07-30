@@ -135,6 +135,20 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg_base.add(address_request)
         assert result.success
 
+    async def test_address_add_dict_bad_subnet(self, fmg_base):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        address_request = {
+            "url": f"/pm/config/{scope}/obj/firewall/address",
+            "data": {
+                "name": "test-address",
+                "subnet": "badvalue",
+            },
+        }
+        fmg_base.raise_on_error = False
+        result = await fmg_base.add(address_request)
+        assert not result.success and "data is invalid" in result.data[0]["error"]
+        fmg_base.raise_on_error = True
+
     async def test_address_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
