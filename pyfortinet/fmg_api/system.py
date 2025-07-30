@@ -351,7 +351,6 @@ class DeviceZone(FMGObject):
     # URL fields
     device: Optional[Union[str, Device]] = Field(None, exclude=True)
     vdom: Optional[Union[str, VDOM]] = Field("root", exclude=True)
-    zone: Optional[Union[str, "DeviceZone"]] = Field(None, exclude=True)
     # API fields
     oid: Optional[int] = None
     tagging: Optional[Union[str, List[str]]] = None
