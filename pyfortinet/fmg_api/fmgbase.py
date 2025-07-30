@@ -8,9 +8,10 @@ from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
-from typing import Any, Callable, Optional, Union, List, Iterator, Type
+from typing import Any, Callable, Optional, Union, List, Iterator, Type, Dict
 
 import requests
+from requests.exceptions import ConnectionError
 from requests.adapters import HTTPAdapter, Retry
 from more_itertools import first
 from pydantic import SecretStr
@@ -134,7 +135,7 @@ class FMGResponse:
         fmg (FMGBase): FMG object tied to this response
     """
 
-    data: Union[List[dict], List[FMGObject]] = field(default_factory=dict)  # data got from FMG
+    data: Union[Dict[str, str], List[dict], List[FMGObject]] = field(default_factory=dict)  # data got from FMG
     success: bool = False  # True on successful request
     fmg: "FMGBase" = None
 
@@ -922,11 +923,17 @@ class FMGBase:
             return
         start_time = time.time()
         while True:
-            task: Task = self.get(Task, F(id=task_id)).first()
+            try:
+                task: Task = self.get(Task, F(id=task_id)).first()
+            except ConnectionError as err:  # avoid error out, let requests retry
+                time.sleep(loop_interval)
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+                continue
             if not task:
                 return
             if time.time() - start_time > timeout:
-                self.error(f"Timed out waiting {timeout} seconds for the task {task.id}!", exception=TimeoutError)
+                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
             if callable(callback):
                 callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
