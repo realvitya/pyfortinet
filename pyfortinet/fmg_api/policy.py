@@ -106,8 +106,8 @@ class PolicyPackage(FMGObject):
         type: Package type. Default is pkg.
     """
 
-    _url = "/pm/pkg/{scope}"
-    _master_keys = ["name"]
+    _url = "/pm/pkg/{scope}/{fmg_name}"
+    _master_keys = {"fmg_name": "name"}
     name: Optional[str] = None
     obj_ver: Optional[int] = Field(
         None,
@@ -306,7 +306,7 @@ class Policy(FMGObject):
     adom: Optional[str] = Field(None, exclude=True)
     pkg: Optional[str] = Field(None, exclude=True)
     # API fields
-    policy_block: Optional[int] = Field(
+    policy_block: Optional[Union[int, str]] = Field(
         None,
         validation_alias=AliasChoices("_policy_block", "policy_block"),
         serialization_alias="_policy_block",
