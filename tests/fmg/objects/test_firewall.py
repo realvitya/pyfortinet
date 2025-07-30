@@ -3,7 +3,7 @@
 import pytest
 
 from pyfortinet import AsyncFMG
-from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.common import F, Scope
 from pyfortinet.fmg_api.dvmdb import Device
 from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, PortRange, ServiceGroup
 from tests.conftest import AsyncTestCase
@@ -62,7 +62,7 @@ class TestObjectsOnLab:
         server.add()
         # create a mapping to server object with the fw device and different IP
         # server.dynamic_mapping = [Address(mapping__scope=[{"name": fw.name, "vdom": "root"}], subnet="2.2.2.2")]
-        server.dynamic_mapping = [Address(mapping__scope=fw.get_vdom_scope("root"), subnet="2.2.2.2")]
+        server.dynamic_mapping = [Address(mapping__scope=Scope(fw.name, "root"), subnet="2.2.2.2")]
         # update server object in FMG
         result = server.update()
         assert result
