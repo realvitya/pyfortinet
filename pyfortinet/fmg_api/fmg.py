@@ -239,7 +239,8 @@ class FMG(FMGBase):
             return super().add(request=api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            self.error(response.data["error"], exception=FMGWrongRequestException)
+            if self._raise_on_error:
+                raise FMGWrongRequestException(response.data["error"])
             return response
 
     def delete(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
@@ -294,7 +295,8 @@ class FMG(FMGBase):
             return super().delete(api_data)
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            self.error(response.data["error"], exception=FMGWrongRequestException)
+            if self._raise_on_error:
+                raise FMGWrongRequestException(response.data["error"])
             return response
 
     def update(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
@@ -355,7 +357,8 @@ class FMG(FMGBase):
 
         else:
             response.data = {"error": f"Wrong type of request received: {request}"}
-            self.error(response.data["error"], exception=FMGWrongRequestException)
+            if self._raise_on_error:
+                raise FMGWrongRequestException(response.data["error"])
             return response
 
     def set(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
@@ -416,7 +419,8 @@ class FMG(FMGBase):
 
         else:
             response.data = [{"error": f"Wrong type of request received: {request}"}]
-            self.error(response.data[0]["error"], exception=FMGWrongRequestException)
+            if self._raise_on_error:
+                raise FMGWrongRequestException(response.data[0]["error"])
             return response
 
     def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> FMGResponse:
@@ -429,7 +433,8 @@ class FMG(FMGBase):
             return super().exec({"url": request.get_url(), "data": request.data})
         else:
             result = FMGResponse(fmg=self, data=[{"error": f"Wrong type of request received: {request}"}])
-            self.error(result.data[0]["error"])
+            if self._raise_on_error:
+                raise FMGWrongRequestException(result.data[0]["error"])
             return result
 
     def get_obj(
