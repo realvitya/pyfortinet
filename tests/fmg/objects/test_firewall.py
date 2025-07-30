@@ -9,6 +9,17 @@ from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, Po
 from tests.conftest import AsyncTestCase
 
 
+class TestObjects:
+    def test_portrange(self):
+        with pytest.raises(ValueError, match="Start port must be equal or less than end port"):
+            PortRange(source_start="6666", source_end="5555")
+        with pytest.raises(ValueError, match="Start port must be equal or less than end port"):
+            PortRange(destination_start="6666", destination_end="5555")
+
+        portrange = PortRange(source_end="5555", destination_end="6666")
+        assert portrange.source_start == "5555" and portrange.destination_start == "6666"
+
+
 @pytest.mark.usefixtures("fmg")
 @pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:

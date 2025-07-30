@@ -3,6 +3,7 @@
 import re
 from ipaddress import IPv4Interface, IPv4Address
 from typing import Literal, Optional, Union, List
+from typing_extensions import Self
 from uuid import UUID
 
 from more_itertools import first
@@ -394,7 +395,7 @@ class PortRange(BaseModel):
     """Port range class
 
     This dataclass is to hold source_start:source_end and destination_start:destination_end port data.
-    While creating new instance, only _end source or destination is required if only a single port would be
+    While creating a new instance, only _end source or destination is required if only a single port would be
     passed.
     """
 
@@ -404,7 +405,7 @@ class PortRange(BaseModel):
     destination_end: Optional[str] = None
 
     @model_validator(mode="after")
-    def standardize_port_handling(self):
+    def standardize_port_handling(self) -> Self:
         """Ensure start and end are either None or the same if not different"""
         try:
             if int(self.source_start) > int(self.source_end):
@@ -419,6 +420,7 @@ class PortRange(BaseModel):
 
         self.source_start = self.source_start or self.source_end
         self.destination_start = self.destination_start or self.destination_end
+        return self
 
 
 PORT_RANGE_TYPE = Union[Union[str, PortRange], List[Union[str, PortRange]]]
