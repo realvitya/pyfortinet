@@ -469,7 +469,9 @@ class AsyncFMGBase:
             ],
         }
         try:
-            req = await self._session.post(str(self._settings.base_url), json=request, ssl=self._settings.verify)
+            req = await self._session.post(
+                str(self._settings.base_url), json=request, ssl=self._settings.verify, timeout=self._settings.timeout
+            )
             status = (await req.json()).get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 if "No permission for resource" in status.get("message"):

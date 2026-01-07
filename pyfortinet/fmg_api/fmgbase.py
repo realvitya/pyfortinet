@@ -440,7 +440,7 @@ class FMGBase:
             except FMGException:  # go ahead and ensure logout regardless we could unlock
                 pass
             req = self._session.post(
-                self._settings.base_url, json=request, verify=self._settings.verify, timeout=self._settings.timeout
+                str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
             )
             status = req.json().get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
@@ -465,7 +465,7 @@ class FMGBase:
     def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
         req = self._session.post(
-            self._settings.base_url, json=request, verify=self._settings.verify, timeout=self._settings.timeout
+            str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
         )
         results = req.json().get("result", [])
         for result in results:
@@ -500,7 +500,9 @@ class FMGBase:
             ],
         }
         try:
-            req = self._session.post(self._settings.base_url, json=request, verify=self._settings.verify)
+            req = self._session.post(
+                str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
+            )
             status = req.json().get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 if "No permission for resource" in status.get("message"):
@@ -901,10 +903,9 @@ class FMGBase:
             ```pycon
 
             >>> from pyfortinet.fmg_api.dvmcmd import DeviceTask
-            >>> from pyfortinet.fmg_api.dvmdb import RealDevice
             >>> from rich.progress import Progress
             >>> settings = {...}
-            >>> device = RealDevice(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
+            >>> device = Device(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
             >>> with FMGBase(**settings) as fmg:
             ...     task = DeviceTask(adom=fmg.adom, device=device)
             ...     result = fmg.exec(task)
