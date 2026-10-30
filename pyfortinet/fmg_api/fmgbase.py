@@ -150,16 +150,23 @@ class FMGResponse:
         return iter(self.data)
 
     def __getitem__(self, key: Union[int, str, tuple]) -> Union[dict, FMGObject]:
+        items = [self.data] if isinstance(self.data, dict) else self.data
         if isinstance(key, int):
-            return self.data[key]
+            return items[key]
         master_key = ""
         if isinstance(key, tuple):  # master_key is also passed as result["myhost", "hostname"]
+            if len(key) != 2 or not isinstance(key[1], str):
+                raise ValueError(f"Invalid key: '{key}'")
             key, master_key = key
-        if isinstance(key, str) and self.data:
-            if isinstance(self.data[0], dict) and master_key:  # need to use master_key arg to find desired key
-                return next((d for d in self.data if d.get("data", {}).get(master_key) == key), None)
-            if isinstance(self.data[0], FMGObject):
-                return next((d for d in self.data if getattr(d, master_key or first(d.master_keys.values(), None)) == key), None)
+        if isinstance(key, str) and items:
+            if isinstance(items[0], dict) and master_key:
+                return next(
+                    (d for d in items if isinstance(d.get("data"), dict) and d["data"].get(master_key) == key), None
+                )
+            if isinstance(items[0], FMGObject):
+                field_name = master_key or first((items[0].master_keys or {}).values(), None)
+                if field_name:
+                    return next((d for d in items if getattr(d, field_name, None) == key), None)
         raise ValueError(f"Invalid key: '{key}'")
 
     def __len__(self):

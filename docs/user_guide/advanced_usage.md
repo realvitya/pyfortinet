@@ -152,3 +152,9 @@ a Pydantic `ValidationError` instead of being silently omitted. Explicit `None` 
 
 Optional member, category, and port-range collections preserve `None` during model serialization.
 Explicit empty lists remain empty lists, allowing them to clear an existing collection.
+
+## Response lookup
+
+A low-level response containing one dictionary supports `response[0]` and
+`response["object-name", "name"]`, like a response containing a list of result dictionaries.
+For API objects without declared master keys, supply the lookup field explicitly.
