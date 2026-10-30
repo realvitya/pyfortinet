@@ -2,6 +2,7 @@
 
 import pytest
 
+from pyfortinet.exceptions import FMGObjectNotExistException, FMGUnhandledException, FMGWrongRequestException
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.firewall import Address
 from pyfortinet.fmg_api.policy import Policy
@@ -40,3 +41,15 @@ def test_refresh_ignores_extra_response_attributes(client, post):
     assert resolve(client.refresh(obj)) is obj
     assert obj.comment == "after"
     assert isinstance(obj, FMGObject)
+
+
+@pytest.mark.parametrize("error", [FMGUnhandledException, FMGObjectNotExistException])
+def test_refresh_failed_lookup_leaves_object_unchanged(client, post, error):
+    client.raise_on_error = False
+    obj = Address(name="example", comment="keep this", fmg_scope="other")
+    post.side_effect = error("lookup failed")
+    original = obj.model_dump()
+    with pytest.raises(FMGWrongRequestException):
+        resolve(client.refresh(obj))
+    assert obj.model_dump() == original
+    assert obj.fmg_scope == "adom/other"

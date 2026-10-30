@@ -158,3 +158,9 @@ Explicit empty lists remain empty lists, allowing them to clear an existing coll
 A low-level response containing one dictionary supports `response[0]` and
 `response["object-name", "name"]`, like a response containing a list of result dictionaries.
 For API objects without declared master keys, supply the lookup field explicitly.
+
+## Refresh failures
+
+`refresh()` requires a successful lookup of exactly one object. A failed lookup leaves the object
+unchanged and raises a library exception, including when `raise_on_error=False`; no refreshed object
+can be returned in that case.

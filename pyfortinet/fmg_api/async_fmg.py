@@ -461,6 +461,8 @@ class AsyncFMG(AsyncFMGBase):
         # Use master key fields only to identify this object, filters are not appropriate as there might be URL
         # fields amongst master keys
         new = await self.get(prepare_refresh(obj))
+        if not new.success:
+            raise FMGWrongRequestException("Cannot refresh object because the lookup failed")
         if len(new.data) != 1:
             raise FMGWrongRequestException(
                 f"{obj} need to load from FMG first in order to call .refresh()!",
