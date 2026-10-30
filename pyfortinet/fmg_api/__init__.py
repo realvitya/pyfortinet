@@ -190,7 +190,7 @@ class FMGObject(FMGBaseObject, ABC):
         dump = self.model_dump(by_alias=True, exclude_none=True)
         # include excluded not-none fields
         excluded_fields = {}
-        for field_name, field_model in self.model_fields.items():
+        for field_name, field_model in type(self).model_fields.items():
             # check only excluded vars which are not None and are not URL attributes (cannot be used as filter)
             if field_model.exclude and getattr(self, field_name) is not None and f"{{{field_name}}}" not in self._url:
                 excluded_fields[field_model.serialization_alias or field_name] = getattr(self, field_name)
