@@ -506,7 +506,7 @@ class AsyncFMGBase:
         request = {
             "method": "get",
             "params": [{"url": "/sys/status"}],
-            "id": 1,
+            "id": self._id,
             "session": self._token.get_secret_value(),
         }
         req = await self._post(request)
