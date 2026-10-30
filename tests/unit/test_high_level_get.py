@@ -1,5 +1,7 @@
 """High-level request and object scope regression tests."""
 
+from copy import deepcopy
+
 import pytest
 
 from pyfortinet.fmg_api.firewall import Address
@@ -34,3 +36,15 @@ def test_instance_scope_takes_precedence(client, post):
     result = resolve(client.get(address, scope="other", filters='name like "ex%"'))
     assert result.first().fmg_scope == "adom/original"
     assert post.call_args.kwargs["request"]["params"][0]["filter"]
+
+
+@pytest.mark.parametrize("payload", [{"data": None}, {}, {"data": []}, {"data": {"name": "example"}}])
+def test_get_handles_optional_data_without_mutating_response(client, post, payload):
+    """Successful empty replies yield no objects; single objects are wrapped."""
+    payload = {"status": {"code": 0}, **payload}
+    original = deepcopy(payload)
+    post.return_value = payload
+    result = resolve(client.get(Address))
+    assert result.success
+    assert [address.name for address in result.data] == (["example"] if payload.get("data") else [])
+    assert payload == original

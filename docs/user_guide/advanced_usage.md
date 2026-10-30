@@ -99,6 +99,7 @@ preserves a newly acquired lock.
 High-level `get` calls accept `fields=["name", ...]` to request selected fields. Returned objects retain
 the scope used by the request, so their later operations continue to target that scope even when the
 client's selected ADOM changes. An object's explicit scope takes precedence over the request's scope.
+Successful high-level GET replies with absent or null data return an empty object list.
 
 ## Waiting for tasks
 
