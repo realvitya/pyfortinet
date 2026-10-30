@@ -934,7 +934,10 @@ class FMGBase:
         start_time = time.monotonic()
         while True:
             try:
-                task: Task = self.get(Task, F(id=task_id)).first()
+                response = self.get(Task, F(id=task_id))
+                if not response.success:
+                    return
+                task: Task = response.first()
             except ConnectionError:  # avoid error out, let requests retry
                 time.sleep(loop_interval)
                 if time.monotonic() - start_time > timeout:

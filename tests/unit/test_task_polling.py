@@ -75,3 +75,11 @@ def test_failed_task_creation_response_is_not_polled(client, polling):
     response = FMGResponse(data=[{"data": {"taskid": 12}}], success=False)
     assert resolve(client.wait_for_task(response)) is None
     polling.assert_not_called()
+
+
+def test_failed_status_read_does_not_invoke_progress_callback(client, polling):
+    polling.return_value = FMGResponse(data=[{"error": "permission denied"}], success=False)
+    callback = Mock()
+    assert resolve(client.wait_for_task(12, callback=callback)) is None
+    polling.assert_called_once()
+    callback.assert_not_called()

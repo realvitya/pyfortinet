@@ -921,7 +921,10 @@ class AsyncFMGBase:
         start_time = time.monotonic()
         while True:
             try:
-                task: Task = (await self.get(Task, F(id=task_id))).first()
+                response = await self.get(Task, F(id=task_id))
+                if not response.success:
+                    return
+                task: Task = response.first()
             except aiohttp.ClientConnectionError:
                 await asyncio.sleep(loop_interval)
                 if time.monotonic() - start_time > timeout:
