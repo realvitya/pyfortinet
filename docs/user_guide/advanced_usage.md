@@ -139,3 +139,8 @@ GET results may still contain absent or null data; the result envelope must incl
 
 Filter combinations preserve nested expressions when using `&`, `|`, and `+`. Only adjacent filter
 lists with the same operator are flattened, so explicit grouping is retained.
+
+## Custom service port ranges
+
+For a single port, `PortRange` accepts either the start or end endpoint. For example,
+`PortRange(destination_start="443")` and `PortRange(destination_end="443")` both serialize to `443`.

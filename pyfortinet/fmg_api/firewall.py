@@ -395,8 +395,8 @@ class PortRange(BaseModel):
     """Port range class
 
     This dataclass is to hold source_start:source_end and destination_start:destination_end port data.
-    While creating a new instance, only _end source or destination is required if only a single port would be
-    passed.
+    For a single source or destination port, either the start or end endpoint can be supplied.
+    The missing endpoint is normalized to the supplied value.
     """
 
     source_start: Optional[str] = None
@@ -419,7 +419,9 @@ class PortRange(BaseModel):
             pass
 
         self.source_start = self.source_start or self.source_end
+        self.source_end = self.source_end or self.source_start
         self.destination_start = self.destination_start or self.destination_end
+        self.destination_end = self.destination_end or self.destination_start
         return self
 
 
