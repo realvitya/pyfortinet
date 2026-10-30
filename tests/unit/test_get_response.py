@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from pyfortinet import AsyncFMG, AsyncFMGBase, FMGBase
-from pyfortinet.exceptions import FMGObjectNotExistException
+from pyfortinet.exceptions import FMGObjectNotExistException, FMGUnhandledException
 
 from .conftest import resolve
 
@@ -32,12 +32,12 @@ def test_low_level_get_missing_object(client, post):
 
 @pytest.mark.parametrize("payload", [{"result": []}, {"result": [{"data": ""}]}])
 def test_transport_empty_response(client, monkeypatch, payload):
-    """Both transports tolerate the same empty and status-less replies."""
+    """Malformed result envelopes raise a library exception in both clients."""
     asynchronous = isinstance(client, AsyncFMG)
     response = Mock()
     response.json = AsyncMock(return_value=payload) if asynchronous else Mock(return_value=payload)
     client._session = Mock()
     client._session.post = AsyncMock(return_value=response) if asynchronous else Mock(return_value=response)
     base = AsyncFMGBase if asynchronous else FMGBase
-    result = resolve(base._post(client, {"method": "get"}))
-    assert result == ([] if not payload["result"] else {"data": ""})
+    with pytest.raises(FMGUnhandledException, match="Malformed JSON-RPC response"):
+        resolve(base._post(client, {"method": "get"}))

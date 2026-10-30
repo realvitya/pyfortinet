@@ -3,6 +3,24 @@
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import FMGTokenException, FMGUnhandledException
+from pyfortinet.fmg_api.error_table import get_fmg_error
+
+
+def rpc_result(payload):
+    """Validate result envelopes before interpreting API status codes."""
+    results = payload.get("result") if isinstance(payload, dict) else None
+    if not isinstance(results, list) or not results:
+        raise FMGUnhandledException("Malformed JSON-RPC response: expected a nonempty result list")
+    for result in results:
+        status = result.get("status") if isinstance(result, dict) else None
+        if not isinstance(status, dict) or not isinstance(status.get("code"), int):
+            raise FMGUnhandledException("Malformed JSON-RPC response: missing or invalid status code")
+        if status["code"] != 0:
+            error = get_fmg_error(error_code=status["code"])
+            if error is not None and not isinstance(error, str):
+                raise error(status)
+            raise FMGUnhandledException(status)
+    return results[0] if len(results) == 1 else results
 
 
 def login_token(payload):

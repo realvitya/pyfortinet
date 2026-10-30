@@ -27,11 +27,10 @@ from pyfortinet.exceptions import (
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api._requests import prepare_batch
-from pyfortinet.fmg_api._responses import login_token
+from pyfortinet.fmg_api._responses import login_token, rpc_result
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
 from pyfortinet.settings import FMGSettings
-from pyfortinet.fmg_api.error_table import get_fmg_error
 
 logger = logging.getLogger(__name__)
 
@@ -493,20 +492,11 @@ class FMGBase:
         req = self._session.post(
             str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
         )
-        results = req.json().get("result", [])
-        for result in results:
-            status = result.get("status")
-            if not status:  # no status in reply, return empty result
-                return {"data": ""}
-            if status["code"] == 0:
-                continue
-            error = get_fmg_error(error_code=status["code"])
-            if error is not None:  # found error code
-                if isinstance(error, str):  # it's a string, not handled
-                    raise FMGUnhandledException(status)
-                raise error(status)  # raise handled exception
-            raise FMGUnhandledException(status)
-        return results[0] if len(results) == 1 else results
+        try:
+            payload = req.json()
+        except ValueError as err:
+            raise FMGUnhandledException("Invalid JSON-RPC response: expected JSON") from err
+        return rpc_result(payload)
 
     def _get_token(self) -> SecretStr:
         """Get authentication token

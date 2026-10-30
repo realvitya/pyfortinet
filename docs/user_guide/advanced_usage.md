@@ -127,3 +127,9 @@ clients, await `close()`.
 Write batches must be nonempty and contain either only request dictionaries or only API objects.
 Low-level clients accept dictionaries only. Invalid batches raise `FMGWrongRequestException`, or return
 a failed response when `raise_on_error=False`, before contacting FortiManager.
+
+## Invalid API replies
+
+Malformed JSON-RPC replies, including empty result lists and missing status codes, raise
+`FMGUnhandledException`. With `raise_on_error=False`, calls return a failed response instead. Successful
+GET results may still contain absent or null data; the result envelope must include a valid status code.
