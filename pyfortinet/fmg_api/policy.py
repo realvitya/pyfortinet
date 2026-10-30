@@ -1116,7 +1116,7 @@ class Policy(FMGObject):
     def standardize_enabled_disabled(cls, v):
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
-    @field_serializer("srcaddr", "dstaddr", "service")
+    @field_serializer("srcaddr", "dstaddr", "service", when_used="unless-none")
     def member_names_only(self, members: List[Union[str, Address, AddressGroup, ServiceCustom, ServiceGroup]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []

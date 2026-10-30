@@ -99,13 +99,14 @@ class SomeAPICall(FMGObject):
     # If you define this in a class which you reference inside this function, put the name into ""
     # Like "AddressGroup" here.
     # As a result, model dump will contain list of strings with reference to other member names only
-    @field_serializer("members", "exclude_members")
+    @field_serializer("members", "exclude_members", when_used="unless-none")
     def member_names_only(members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
         for member in members:
             if isinstance(member, str):
                 serialized.append(member)
+                continue
             serialized.append(member.name)
         return serialized
 

@@ -346,7 +346,7 @@ class AddressGroup(FMGObject):
         None, validation_alias=AliasChoices("_scope", "mapping__scope"), serialization_alias="_scope"
     )
 
-    @field_serializer("member", "exclude_member")
+    @field_serializer("member", "exclude_member", when_used="unless-none")
     def member_names_only(self, members: List[Union[str, Address, "AddressGroup"]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
@@ -541,7 +541,7 @@ class ServiceCustom(FMGObject):
     )
     visibility: Optional[ENABLE_DISABLE] = None
 
-    @field_serializer("category")
+    @field_serializer("category", when_used="unless-none")
     def member_names_only(self, categories: List[Union[str, ServiceCategory]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
@@ -554,7 +554,7 @@ class ServiceCustom(FMGObject):
             serialized.append(category.name)
         return serialized
 
-    @field_serializer("udp_portrange", "tcp_portrange", "sctp_portrange")
+    @field_serializer("udp_portrange", "tcp_portrange", "sctp_portrange", when_used="unless-none")
     def portranges_to_string(ranges: List[PortRange]) -> List[str]:
         """Ensure portranges are passed to API as it is expected
 
@@ -663,7 +663,7 @@ class ServiceGroup(FMGObject):
     name: Optional[str] = None
     proxy: Optional[ENABLE_DISABLE] = None
 
-    @field_serializer("member")
+    @field_serializer("member", when_used="unless-none")
     def member_names_only(self, members: List[Union[str, ServiceCustom, "ServiceGroup"]]) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []

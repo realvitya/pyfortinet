@@ -147,3 +147,8 @@ For a single port, `PortRange` accepts either the start or end endpoint. For exa
 
 Service port-range lists can mix strings and `PortRange` objects in either order. Invalid entries raise
 a Pydantic `ValidationError` instead of being silently omitted. Explicit `None` values remain unset.
+
+## Optional collection serialization
+
+Optional member, category, and port-range collections preserve `None` during model serialization.
+Explicit empty lists remain empty lists, allowing them to clear an existing collection.
