@@ -223,7 +223,7 @@ class AsyncFMG(AsyncFMGBase):
             response.data = {"error": f"Wrong type of request received: {request}"}
             logger.error(response.data["error"])
             if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+                raise FMGWrongRequestException(response.data["error"])
             return response
 
     async def delete(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
@@ -289,7 +289,7 @@ class AsyncFMG(AsyncFMGBase):
             response.data = {"error": f"Wrong type of request received: {request}"}
             logger.error(response.data["error"])
             if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+                raise FMGWrongRequestException(response.data["error"])
             return response
 
     async def update(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
@@ -358,7 +358,7 @@ class AsyncFMG(AsyncFMGBase):
             response.data = {"error": f"Wrong type of request received: {request}"}
             logger.error(response.data["error"])
             if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+                raise FMGWrongRequestException(response.data["error"])
             return response
 
     async def set(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
@@ -427,7 +427,7 @@ class AsyncFMG(AsyncFMGBase):
             response.data = [{"error": f"Wrong type of request received: {request}"}]
             logger.error(response.data[0]["error"])
             if self._raise_on_error:
-                raise FMGWrongRequestException(request)
+                raise FMGWrongRequestException(response.data[0]["error"])
             return response
 
     async def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> AsyncFMGResponse:
@@ -441,6 +441,8 @@ class AsyncFMG(AsyncFMGBase):
         else:
             result = AsyncFMGResponse(fmg=self, data=[{"error": f"Wrong type of request received: {request}"}])
             logger.error(result.data[0]["error"])
+            if self._raise_on_error:
+                raise FMGWrongRequestException(result.data[0]["error"])
             return result
 
     def get_obj(
