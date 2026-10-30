@@ -20,10 +20,11 @@ fmg:
 
 ## Offline regression tests
 
-Run `pytest tests/unit` to check shared sync and async behavior without a lab configuration or network access.
+Run `uv run pytest tests/unit` (or `pytest tests/unit` in an activated environment) to check shared sync
+and async behavior without a lab configuration or network access.
 These tests mock the transport and exercise the public client methods.
 
 ## Local transport checks
 
-Run `pytest tests/transport` to verify native HTTP timeouts against a temporary loopback-only TCP peer.
+Run `uv run pytest tests/transport` to verify native HTTP timeouts against a temporary loopback-only TCP peer.
 These tests need permission to create local sockets and do not connect to a FortiManager device.

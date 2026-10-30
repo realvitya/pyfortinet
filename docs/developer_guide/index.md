@@ -5,7 +5,22 @@ setup and workflow to develop the library!
 
 ## Installing dev tools
 
-For development, you can use the project framework by installing the library with `dev` extras:
+For development with [uv](https://docs.astral.sh/uv/), sync the project and its default development group:
+
+```shell
+git clone https://github.com/{YOURFORK}/pyfortinet.git
+cd pyfortinet
+uv sync
+uv run pytest tests/unit
+uv run invoke --list
+uv build
+```
+
+`uv sync` installs the project in editable mode. Commit `uv.lock` when dependency changes update it;
+use `uv sync --locked` to require the checked-in resolution. `uv sync --no-dev` installs runtime
+dependencies only; add `--extra async`, `--extra rich`, or `--extra all` as needed.
+
+The Flit build backend and the existing pip development extra remain supported:
 
 ```shell
 # clone your fork

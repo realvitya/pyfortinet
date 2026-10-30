@@ -67,6 +67,31 @@ all = [
     "aiohttp"
 ]
 
+# Keep this group aligned with the published dev extra for pip users.
+# uv installs this group by default during sync and run.
+[dependency-groups]
+dev = [
+    "pytest-cov",
+    "pytest",
+    "pytest-asyncio>=0.23.0",
+    "pytest-dependency",
+    "flit",
+    "invoke",
+    "pre-commit",
+    "ruff",
+    # mkdocs dependencies
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+    "mkdocstrings",
+    "mkdocstrings-python",
+    # optional dependencies
+    "rich",
+    "aiohttp",
+]
+
 [tool.flit.module]
 name = "pyfortinet"
 

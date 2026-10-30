@@ -9,3 +9,5 @@ lab-config.yml
 site/
 .pytest_cache
 .ruff_cache
+
+.venv/
