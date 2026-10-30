@@ -144,3 +144,6 @@ lists with the same operator are flattened, so explicit grouping is retained.
 
 For a single port, `PortRange` accepts either the start or end endpoint. For example,
 `PortRange(destination_start="443")` and `PortRange(destination_end="443")` both serialize to `443`.
+
+Service port-range lists can mix strings and `PortRange` objects in either order. Invalid entries raise
+a Pydantic `ValidationError` instead of being silently omitted. Explicit `None` values remain unset.

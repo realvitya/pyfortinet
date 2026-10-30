@@ -592,28 +592,34 @@ class ServiceCustom(FMGObject):
         return serialized
 
     @field_validator("udp_portrange", "tcp_portrange", "sctp_portrange", mode="plain")
-    def ensure_port_ranges(cls, v) -> List[PortRange]:
+    def ensure_port_ranges(cls, v) -> Optional[List[PortRange]]:
         """Create PortRange object from string to standardize portrange handling"""
+        if v is None:
+            return None
         ranges = []
         if not isinstance(v, list):
             v = [v]
-        if v and isinstance(v[0], PortRange):
-            return v
         for rng in v:
+            if isinstance(rng, PortRange):
+                ranges.append(rng)
+                continue
+            if not isinstance(rng, str):
+                raise ValueError("Port ranges must be strings or PortRange objects")
             # assuming string
             # format: "dst_st-dst_end:src_st-src_end"
-            match = re.match(
+            match = re.fullmatch(
                 r"^(?P<dst>(?P<destination_start>\d+)(?:-(?P<destination_end>\d+))?)"
                 r"(?::(?P<src>(?P<source_start>\d+)(?:-(?P<source_end>\d+))?))?$",
                 rng,
             )
-            if match:
-                data = match.groupdict()
-                if not data["destination_end"]:
-                    data["destination_end"] = data["destination_start"]
-                if not data["source_end"]:
-                    data["source_end"] = data["source_start"]
-                ranges.append(PortRange(**data))
+            if not match:
+                raise ValueError(f"Invalid port range: {rng!r}")
+            data = match.groupdict()
+            if not data["destination_end"]:
+                data["destination_end"] = data["destination_start"]
+            if not data["source_end"]:
+                data["source_end"] = data["source_start"]
+            ranges.append(PortRange(**data))
         return ranges
 
     @field_validator("app_service_type", mode="before")
