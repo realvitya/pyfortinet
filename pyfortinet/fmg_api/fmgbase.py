@@ -26,6 +26,7 @@ from pyfortinet.exceptions import (
 )
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api._requests import prepare_batch
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
 from pyfortinet.settings import FMGSettings
@@ -661,8 +662,7 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):
-            request = [request]
+        request = prepare_batch(request)
         body = {
             "method": "add",
             "params": [
@@ -716,8 +716,7 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):
-            request = [request]
+        request = prepare_batch(request)
         body = {
             "method": "update",
             "params": [
@@ -771,8 +770,7 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):
-            request = [request]
+        request = prepare_batch(request)
         body = {
             "method": "set",
             "params": [
@@ -819,8 +817,7 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):
-            request = [request]
+        request = prepare_batch(request)
         body = {
             "method": "delete",
             "params": [
@@ -870,8 +867,7 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
-        if isinstance(request, dict):
-            request = [request]
+        request = prepare_batch(request)
         body = {
             "method": "clone",
             "params": [

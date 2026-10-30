@@ -8,6 +8,22 @@ from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F, text_to_filter
 
 
+def prepare_batch(request, *, allow_objects=False):
+    """Normalize a write request and reject empty or mixed batches."""
+    requests = request if isinstance(request, list) else [request]
+    if not requests:
+        raise FMGWrongRequestException("Request list must not be empty")
+    if isinstance(requests[0], dict):
+        expected_type = dict
+    elif allow_objects and isinstance(requests[0], FMGObject):
+        expected_type = FMGObject
+    else:
+        raise FMGWrongRequestException(f"Wrong type of request received: {request}")
+    if not all(isinstance(item, expected_type) for item in requests):
+        raise FMGWrongRequestException("Batch requests must all be dictionaries or all be FMGObject instances")
+    return requests
+
+
 def prepare_get(request, adom, *, filters=None, scope=None, fields=None, loadsub=True, options=None):  # noqa: PLR0913
     """Build high-level GET parameters and retain the effective object scope."""
     if isinstance(filters, str):

@@ -12,7 +12,7 @@ from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required, error_handling
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
-from pyfortinet.fmg_api._requests import prepare_get, prepare_refresh
+from pyfortinet.fmg_api._requests import prepare_batch, prepare_get, prepare_refresh
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +149,7 @@ class FMG(FMGBase):
         result.success = True
         return result
 
+    @error_handling
     def add(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Add operation
 
@@ -193,9 +194,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
-        if not isinstance(request, list):
-            request = [request]
+        request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
             return super().add(request)
         elif isinstance(request[0], FMGObject):  # high-level operation
@@ -204,12 +203,8 @@ class FMG(FMGBase):
                 req.fmg_scope = req.fmg_scope or self._settings.adom
                 api_data.append({"url": req.get_url(method="add"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return super().add(request=api_data)
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            if self._raise_on_error:
-                raise FMGWrongRequestException(response.data["error"])
-            return response
 
+    @error_handling
     def delete(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Delete operation
 
@@ -243,9 +238,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
-        if not isinstance(request, list):
-            request = [request]
+        request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
             return super().delete(request)
 
@@ -260,12 +253,8 @@ class FMG(FMGBase):
                 # api_data.append({"url": f"{req.get_url}/{master_value}"})
                 api_data.append({"url": req.get_url(method="delete")})
             return super().delete(api_data)
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            if self._raise_on_error:
-                raise FMGWrongRequestException(response.data["error"])
-            return response
 
+    @error_handling
     def update(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Update operation
 
@@ -310,9 +299,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
-        if not isinstance(request, list):
-            request = [request]
+        request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
             return super().update(request)
         elif isinstance(request[0], FMGObject):  # high-level operation
@@ -322,12 +309,7 @@ class FMG(FMGBase):
                 api_data.append({"url": req.get_url(method="update"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return super().update(request=api_data)
 
-        else:
-            response.data = {"error": f"Wrong type of request received: {request}"}
-            if self._raise_on_error:
-                raise FMGWrongRequestException(response.data["error"])
-            return response
-
+    @error_handling
     def set(self, request: MULTI_REQUEST_ARG) -> FMGResponse:
         """Set operation
 
@@ -372,9 +354,7 @@ class FMG(FMGBase):
         Returns:
             (FMGResponse): Result of operation
         """
-        response = FMGResponse(fmg=self)
-        if not isinstance(request, list):
-            request = [request]
+        request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
             return super().set(request)
         elif isinstance(request[0], FMGObject):  # high-level operation
@@ -383,12 +363,6 @@ class FMG(FMGBase):
                 req.fmg_scope = req.fmg_scope or self._settings.adom
                 api_data.append({"url": req.get_url(method="set"), "data": req.model_dump(by_alias=True, exclude_none=True)})
             return super().set(request=api_data)
-
-        else:
-            response.data = [{"error": f"Wrong type of request received: {request}"}]
-            if self._raise_on_error:
-                raise FMGWrongRequestException(response.data[0]["error"])
-            return response
 
     def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> FMGResponse:
         """Execute on FMG"""

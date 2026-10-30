@@ -113,3 +113,9 @@ clients, await `close()`.
 
 `close(discard_changes=True)` applies only to that close operation. It leaves the configured
 `discard_on_close` setting unchanged when the client is opened again.
+
+## Batch write validation
+
+Write batches must be nonempty and contain either only request dictionaries or only API objects.
+Low-level clients accept dictionaries only. Invalid batches raise `FMGWrongRequestException`, or return
+a failed response when `raise_on_error=False`, before contacting FortiManager.
