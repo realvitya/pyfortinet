@@ -27,6 +27,7 @@ from pyfortinet.exceptions import (
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.task import Task
+from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.error_table import get_fmg_error
 
@@ -915,29 +916,25 @@ class FMGBase:
             ...         result.wait_for_task(task, callback=update_progress)
             ```
         """
-        task_id = (
-            task_res
-            if isinstance(task_res, int)
-            else (task_res.data[0].get("data", {}).get("taskid") or task_res.data[0].get("data", {}).get("task"))
-        )
+        task_id = task_id_from_response(task_res)
         if task_id is None:
             return
-        start_time = time.time()
+        start_time = time.monotonic()
         while True:
             try:
                 task: Task = self.get(Task, F(id=task_id)).first()
-            except ConnectionError as err:  # avoid error out, let requests retry
+            except ConnectionError:  # avoid error out, let requests retry
                 time.sleep(loop_interval)
-                if time.time() - start_time > timeout:
-                    raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+                if time.monotonic() - start_time > timeout:
+                    raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task_id}!") from None
                 continue
             if not task:
                 return
-            if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+            if time.monotonic() - start_time > timeout:
+                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task_id}!")
             if callable(callback):
                 callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
-            if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
+            if task.state in TERMINAL_TASK_STATES:
                 return task.state
             time.sleep(loop_interval)

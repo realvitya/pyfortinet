@@ -99,3 +99,8 @@ preserves a newly acquired lock.
 High-level `get` calls accept `fields=["name", ...]` to request selected fields. Returned objects retain
 the scope used by the request, so their later operations continue to target that scope even when the
 client's selected ADOM changes. An object's explicit scope takes precedence over the request's scope.
+
+## Waiting for tasks
+
+Both clients accept task responses containing either `taskid` or `task` and retry transient connection
+failures until the polling timeout. Async callbacks may be functions or callable objects returning an awaitable.

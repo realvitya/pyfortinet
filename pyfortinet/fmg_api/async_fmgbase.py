@@ -2,6 +2,7 @@
 
 import asyncio
 import functools
+from inspect import isawaitable
 import logging
 import re
 import time
@@ -31,6 +32,7 @@ from pyfortinet.exceptions import (
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api.task import Task
+from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.error_table import get_fmg_error
 
@@ -910,22 +912,27 @@ class AsyncFMGBase:
             >>> asyncio.run(add_device(test_device))
             ```
         """
-        task_id = task_res if isinstance(task_res, int) else task_res.data[0].get("data", {}).get("taskid")
+        task_id = task_id_from_response(task_res)
         if task_id is None:
             return
-        start_time = time.time()
+        start_time = time.monotonic()
         while True:
-            task: Task = (await self.get(Task, F(id=task_id))).first()
+            try:
+                task: Task = (await self.get(Task, F(id=task_id))).first()
+            except aiohttp.ClientConnectionError:
+                await asyncio.sleep(loop_interval)
+                if time.monotonic() - start_time > timeout:
+                    raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task_id}!") from None
+                continue
             if not task:
                 return
-            if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+            if time.monotonic() - start_time > timeout:
+                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task_id}!")
             if callable(callback):
-                if asyncio.iscoroutinefunction(callback):
-                    await callback(task.percent, task.line[-1].detail if task.line else "")
-                else:
-                    callback(task.percent, task.line[-1].detail if task.line else "")
+                callback_result = callback(task.percent, task.line[-1].detail if task.line else "")
+                if isawaitable(callback_result):
+                    await callback_result
             # exit on the following states
-            if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
+            if task.state in TERMINAL_TASK_STATES:
                 return task.state
             await asyncio.sleep(loop_interval)
