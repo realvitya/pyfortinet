@@ -37,3 +37,13 @@ def prepare_get(request, adom, *, filters=None, scope=None, fields=None, loadsub
     if options:
         parameters["option"] = options
     return parameters, object_scope
+
+
+def prepare_refresh(obj):
+    """Preserve scope and URL parameters while looking up an object's identity."""
+    fields = {
+        name: getattr(obj, name)
+        for name, definition in type(obj).model_fields.items()
+        if name in obj.master_keys.values() or (definition.exclude and getattr(obj, name) is not None)
+    }
+    return type(obj)(**fields, fmg_scope=obj.fmg_scope)

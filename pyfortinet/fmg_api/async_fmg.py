@@ -12,7 +12,7 @@ from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMis
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
-from pyfortinet.fmg_api._requests import prepare_get
+from pyfortinet.fmg_api._requests import prepare_get, prepare_refresh
 
 logger = logging.getLogger(__name__)
 
@@ -489,7 +489,7 @@ class AsyncFMG(AsyncFMGBase):
             raise FMGMissingMasterKeyException
         # Use master key fields only to identify this object, filters are not appropriate as there might be URL
         # fields amongst master keys
-        new = await self.get(type(obj)(**{key: getattr(obj, key) for key in obj.master_keys.values()}))
+        new = await self.get(prepare_refresh(obj))
         if len(new.data) != 1:
             raise FMGWrongRequestException(
                 f"{obj} need to load from FMG first in order to call .refresh()!",
@@ -497,8 +497,8 @@ class AsyncFMG(AsyncFMGBase):
         new = new.first()
         if new:
             # overwrite our object fields with data from FMG
-            for att in vars(obj):
-                if not obj.model_fields[att].exclude:  # excluded fields should not be overwritten (e.g. URL fields)
+            for att, definition in type(obj).model_fields.items():
+                if not definition.exclude:  # excluded fields should not be overwritten (e.g. URL fields)
                     setattr(obj, att, getattr(new, att))
         return obj
 
