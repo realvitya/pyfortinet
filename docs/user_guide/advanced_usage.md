@@ -134,3 +134,8 @@ a failed response when `raise_on_error=False`, before contacting FortiManager.
 Malformed JSON-RPC replies, including empty result lists and missing status codes, raise
 `FMGUnhandledException`. With `raise_on_error=False`, calls return a failed response instead. Successful
 GET results may still contain absent or null data; the result envelope must include a valid status code.
+
+## Combining filters
+
+Filter combinations preserve nested expressions when using `&`, `|`, and `+`. Only adjacent filter
+lists with the same operator are flattened, so explicit grouping is retained.

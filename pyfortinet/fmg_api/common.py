@@ -163,14 +163,14 @@ class FilterList:
                 out = deepcopy(self)
                 out.members.append(other)
                 return out
-            if isinstance(other, FilterList):
+            if isinstance(other, FilterList) and other.op == self.op:
                 out = deepcopy(self)
                 out.members.extend(other.members)
                 return out
         return ComplexFilter(self, ",", other)
 
     def __and__(self, other):
-        if self.op == "&&" and not (isinstance(other, FilterList) and other.op != "&&"):
+        if self.op == "&&" and (isinstance(other, F) or (isinstance(other, FilterList) and other.op == self.op)):
             out = deepcopy(self)
             if isinstance(other, F):
                 out.members.append(other)
@@ -180,7 +180,7 @@ class FilterList:
         return ComplexFilter(self, "&&", other)
 
     def __or__(self, other):
-        if self.op == "||" and not (isinstance(other, FilterList) and other.op != "||"):
+        if self.op == "||" and (isinstance(other, F) or (isinstance(other, FilterList) and other.op == self.op)):
             out = deepcopy(self)
             if isinstance(other, F):
                 out.members.append(other)
