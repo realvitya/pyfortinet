@@ -2,17 +2,20 @@
 
 import logging
 from inspect import isclass
-from typing import Optional, Union, Any, Type, List
+from typing import TYPE_CHECKING, Optional, Union, Any, Type, List
 
 from more_itertools import first
 
 from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException, \
-    FMGObjectNotExistException
+    FMGObjectNotExistException, FMGConfigurationException
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required, error_handling
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
 from pyfortinet.fmg_api._requests import prepare_batch, prepare_get, prepare_refresh
+
+if TYPE_CHECKING:
+    from pyfortinet.fmg_api.async_fmg import AsyncFMG
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +28,9 @@ class FMG(FMGBase):
 
     Goal of this class to provide easy access to FMG features. This extends the base class capabilities with easy to use
     methods.
+
+    A synchronous context yields this client. An asynchronous context yields an AsyncFMG client;
+    use the variable bound by ``as`` for requests in either context.
     """
 
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
@@ -45,6 +51,52 @@ class FMG(FMGBase):
             discard_on_error (bool): Discard changes when exception occurs (workspace mode)
         """
         super().__init__(settings, **kwargs)
+        self._async_context: Optional[AsyncFMG] = None
+
+    def _require_sync_mode(self) -> None:
+        if self._async_context is not None:
+            raise FMGConfigurationException("Use the client bound by 'async with' while its context is active")
+
+    def open(self) -> "FMG":
+        """Open a synchronous connection when no async context is active."""
+        self._require_sync_mode()
+        super().open()
+        return self
+
+    def close(self, discard_changes: bool = False) -> None:
+        """Close the synchronous connection; async contexts manage their own connection."""
+        self._require_sync_mode()
+        super().close(discard_changes=discard_changes)
+
+    def __enter__(self) -> "FMG":
+        """Enter a synchronous connection context."""
+        return super().__enter__()
+
+    async def __aenter__(self) -> "AsyncFMG":
+        """Open and yield an async client with the same configuration."""
+        from pyfortinet.fmg_api.async_fmg import AsyncFMG  # noqa: PLC0415 - create the async client lazily
+
+        if self._session is not None or self._async_context is not None:
+            raise FMGConfigurationException("This FMG instance already has an active connection or async context")
+        client = AsyncFMG(self._settings)
+        client.raise_on_error = self.raise_on_error
+        self._async_context = client
+        try:
+            return await client.__aenter__()
+        except BaseException:
+            self._async_context = None
+            raise
+
+    async def __aexit__(self, exc_type, exc_value, exc_tb) -> None:
+        """Delegate async cleanup, preserving exception and discard behavior."""
+        client = self._async_context
+        if client is None:
+            raise FMGConfigurationException("This FMG instance has no active async context")
+        try:
+            await client.__aexit__(exc_type, exc_value, exc_tb)
+        finally:
+            self._raise_on_error = client.raise_on_error
+            self._async_context = None
 
     @staticmethod
     def _get_filter_list(filters: FILTER_TYPE = None):

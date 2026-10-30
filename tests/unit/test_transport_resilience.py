@@ -256,7 +256,8 @@ class BlockAiohttp(importlib.abc.MetaPathFinder):
             raise ModuleNotFoundError(fullname, name=fullname)
 
 sys.meta_path.insert(0, BlockAiohttp())
-from pyfortinet import FMGBase
+from pyfortinet import FMG, FMGBase
+FMG(base_url="https://example.invalid", username="test", password="test")
 FMGBase(base_url="https://example.invalid", username="test", password="test")
 """
     subprocess.run([sys.executable, "-c", code], check=True, capture_output=True, text=True)

@@ -29,6 +29,30 @@ with FMG(**config) as fmg:
     print(server2.name)
 ```
 
+## Using the same entry point asynchronously
+
+Install the async dependency with `pip install "pyfortinet[async]"`. The context syntax selects the
+client mode: `with FMG(...)` yields a synchronous client; `async with FMG(...)` yields an `AsyncFMG` client.
+
+```python
+import asyncio
+
+from pyfortinet import FMG
+from pyfortinet.fmg_api.firewall import Address
+
+
+async def main():
+    async with FMG(**config) as fmg:
+        addresses = (await fmg.get(Address)).data
+        print(addresses)
+
+
+asyncio.run(main())
+```
+
+Use the client bound by `as fmg` inside the context. Requests and methods on objects fetched through
+this client must be awaited. Existing `AsyncFMG` imports and manual async connection management remain supported.
+
 ## Updating existing object
 
 ```python
@@ -92,7 +116,7 @@ To find specific object quickly, you can use it's master key which is unique in 
 
 ```python title="Getting specific object"
 with FMG(**config) as fmg:
-    myfirewall = fmg.get(Device(name"myfirewall")).first()
+    myfirewall = fmg.get(Device(name="myfirewall")).first()
 ```
 
 ## Task run

@@ -87,6 +87,32 @@ with MyFMG(**conn_data) as fmg:
     fmg.create_firewall("mytestfw", "1.1.1.1", "FG100FTK22345678")
 ```
 
+## Choosing sync or async context management
+
+`FMG` supports both connection context protocols:
+
+```python
+with FMG(**settings) as fmg:
+    addresses = fmg.get(Address).data
+
+async def read_addresses():
+    async with FMG(**settings) as fmg:
+        return (await fmg.get(Address)).data
+```
+
+Each async entry creates a separate `AsyncFMG` client with async methods and response types. Objects fetched
+or bound with `fmg.get_obj(...)` inside that context use this async client as well. Use the value bound
+by `as fmg` for operations; the original manager retains its synchronous API.
+
+A manager can be reused sequentially in either mode. Its configuration is shared with the yielded
+async client, so changes to properties such as `adom` and `raise_on_error` persist between contexts.
+Overlapping async contexts or mixing an open sync connection with an async context on the same manager
+raise `FMGConfigurationException`. Separate managers can be used independently.
+
+`FMG.open()` and `FMG.close()` remain synchronous. Use `AsyncFMG` for manual `await client.open()` and
+`await client.close()` management. Async context cleanup preserves the existing discard-on-error
+behavior and propagates exceptions. Custom synchronous subclass methods are not converted to async methods.
+
 ## Explicit workspace locking
 
 Use `with fmg.lock_adom("root"):` for synchronous operations and
