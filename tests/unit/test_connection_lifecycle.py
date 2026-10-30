@@ -108,3 +108,22 @@ def test_cancelled_logout_cleans_up(client, session):
     session.close.assert_awaited_once_with()
     assert client._session is None
     assert client._token is None
+
+
+@pytest.mark.parametrize("configured_discard", [False, True])
+@pytest.mark.parametrize("discard_changes", [False, True])
+def test_close_discard_policy_is_not_sticky(client, session, configured_discard, discard_changes):
+    """A per-close discard request must not change future connection behavior."""
+    client.discard_on_close = configured_discard
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    client.lock.commit_changes = mock_type()
+    client.lock.unlock_adoms = mock_type()
+    resolve(client.open())
+    client.lock._uses_workspace = True
+    resolve(client.close(discard_changes=discard_changes))
+    assert client.discard_on_close is configured_discard
+    resolve(client.open())
+    client.lock._uses_workspace = True
+    resolve(client.close())
+    expected_commits = int(not configured_discard and not discard_changes) + int(not configured_discard)
+    assert client.lock.commit_changes.call_count == expected_commits

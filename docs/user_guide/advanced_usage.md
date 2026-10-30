@@ -110,3 +110,6 @@ failures until the polling timeout. Async callbacks may be functions or callable
 `close()` is safe before opening a connection and after it has already been closed. Both clients release
 the HTTP session and clear authentication and cached workspace state even if logout fails. For async
 clients, await `close()`.
+
+`close(discard_changes=True)` applies only to that close operation. It leaves the configured
+`discard_on_close` setting unchanged when the client is opened again.

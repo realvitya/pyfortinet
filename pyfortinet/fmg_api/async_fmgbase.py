@@ -412,10 +412,9 @@ class AsyncFMGBase:
                 "params": [{"url": "/sys/logout"}],
                 "session": self._token.get_secret_value(),
             }
-            self._settings.discard_on_close = self._settings.discard_on_close or discard_changes
             try:
                 if self.lock.uses_workspace:
-                    if not self.discard_on_close:
+                    if not (self.discard_on_close or discard_changes):
                         await self.lock.commit_changes()
                     await self.lock.unlock_adoms()
             except FMGException:  # Ensure logout even when workspace cleanup fails.
