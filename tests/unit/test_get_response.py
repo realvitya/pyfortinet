@@ -1,0 +1,43 @@
+"""Low-level GET response parity."""
+
+from copy import deepcopy
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+
+from pyfortinet import AsyncFMG, AsyncFMGBase, FMGBase
+from pyfortinet.exceptions import FMGObjectNotExistException
+
+from .conftest import resolve
+
+
+@pytest.mark.parametrize("data", [[], {}, None, [{"name": "example"}]])
+def test_low_level_get_preserves_successful_result(client, post, data):
+    """An empty or absent data value must not turn an OK response into failure."""
+    payload = {"data": data, "status": {"code": 0}, "url": "/example"}
+    post.return_value = deepcopy(payload)
+    response = resolve(client.get({"url": "/example"}))
+    assert response.success
+    assert response.data == [payload]
+    assert response.fmg is client
+
+
+def test_low_level_get_missing_object(client, post):
+    """Keep the existing missing-object result in both implementations."""
+    post.side_effect = FMGObjectNotExistException("missing")
+    response = resolve(client.get({"url": "/example"}))
+    assert not response.success
+    assert response.data == {"data": [], "status": {"code": 0}}
+
+
+@pytest.mark.parametrize("payload", [{"result": []}, {"result": [{"data": ""}]}])
+def test_transport_empty_response(client, monkeypatch, payload):
+    """Both transports tolerate the same empty and status-less replies."""
+    asynchronous = isinstance(client, AsyncFMG)
+    response = Mock()
+    response.json = AsyncMock(return_value=payload) if asynchronous else Mock(return_value=payload)
+    client._session = Mock()
+    client._session.post = AsyncMock(return_value=response) if asynchronous else Mock(return_value=response)
+    base = AsyncFMGBase if asynchronous else FMGBase
+    result = resolve(base._post(client, {"method": "get"}))
+    assert result == ([] if not payload["result"] else {"data": ""})
