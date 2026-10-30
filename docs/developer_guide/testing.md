@@ -17,3 +17,8 @@ fmg:
   password: verysecret
   adom: root
 ```
+
+## Offline regression tests
+
+Run `pytest tests/unit` to check shared sync and async behavior without a lab configuration or network access.
+These tests mock the transport and exercise the public client methods.

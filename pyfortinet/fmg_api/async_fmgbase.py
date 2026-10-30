@@ -5,7 +5,7 @@ import functools
 import logging
 import re
 import time
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from copy import copy
 from random import randint
 from typing import Any, Callable, Optional, Union, List, Coroutine
@@ -352,7 +352,7 @@ class AsyncFMGBase:
     def raise_on_error(self, value: bool):
         self._raise_on_error = bool(value)
 
-    @contextmanager
+    @asynccontextmanager
     async def lock_adom(self, adom: Optional[str] = None, keep_locked: bool = False):
         """Locks specified ADOM explicitly
 

@@ -86,3 +86,10 @@ conn_data = {
 with MyFMG(**conn_data) as fmg:
     fmg.create_firewall("mytestfw", "1.1.1.1", "FG100FTK22345678")
 ```
+
+## Explicit workspace locking
+
+Use `with fmg.lock_adom("root"):` for synchronous operations and
+`async with fmg.lock_adom("root"):` for asynchronous operations. The context releases locks it acquired,
+including when the operation raises an exception. Existing locks are preserved; `keep_locked=True` also
+preserves a newly acquired lock.
