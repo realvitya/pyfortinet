@@ -92,7 +92,7 @@ with MyFMG(**conn_data) as fmg:
 Use `with fmg.lock_adom("root"):` for synchronous operations and
 `async with fmg.lock_adom("root"):` for asynchronous operations. The context releases locks it acquired,
 including when the operation raises an exception. Existing locks are preserved; `keep_locked=True` also
-preserves a newly acquired lock.
+preserves a newly acquired lock. Unlocking a selected ADOM leaves other ADOM locks intact.
 
 ## Selecting fields and scopes
 

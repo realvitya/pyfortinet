@@ -249,10 +249,11 @@ class FMGLockContext:
                 url = f"/dvmdb/adom/{adom}/workspace/unlock/"
             result.data = [{adom: self._fmg.exec(request={"url": url})}]
             if not result.data[0][adom].data[0].get("error"):
-                self._locked_adoms.remove(adom)
+                self._locked_adoms.discard(adom)
 
-        if self._locked_adoms:
-            raise FMGException(f"Failed to unlock ADOMs: {self._locked_adoms}")
+        failed_adoms = self._locked_adoms.intersection(adoms)
+        if failed_adoms:
+            raise FMGException(f"Failed to unlock ADOMs: {failed_adoms}")
         return result
 
     def commit_changes(self, adoms: Optional[list] = None, aux: bool = False) -> list[FMGResponse]:
