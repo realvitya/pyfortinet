@@ -20,6 +20,7 @@ def session(client, monkeypatch):
     session = Mock()
     session.close = mock_type()
     response = Mock()
+    response.status_code = response.status = 200
     response.json = mock_type(return_value={"result": [{"status": {"code": 0}}]})
     session.post = mock_type(return_value=response)
     factory = "aiohttp.ClientSession" if asynchronous else "requests.Session"

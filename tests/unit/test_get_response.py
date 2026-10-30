@@ -35,6 +35,7 @@ def test_transport_empty_response(client, monkeypatch, payload):
     """Malformed result envelopes raise a library exception in both clients."""
     asynchronous = isinstance(client, AsyncFMG)
     response = Mock()
+    response.status_code = response.status = 200
     response.json = AsyncMock(return_value=payload) if asynchronous else Mock(return_value=payload)
     client._session = Mock()
     client._session.post = AsyncMock(return_value=response) if asynchronous else Mock(return_value=response)

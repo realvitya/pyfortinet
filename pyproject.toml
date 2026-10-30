@@ -25,6 +25,7 @@ dependencies = [
     "requests~=2.32",
     "ruamel.yaml~=0.18",
     "more-itertools",
+    "pyresilience>=0.4.1,<0.5",
 ]
 
 [project.optional-dependencies]

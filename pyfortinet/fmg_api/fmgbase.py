@@ -12,7 +12,6 @@ from typing import Any, Callable, Optional, Union, List, Iterator, Type, Dict
 
 import requests
 from requests.exceptions import ConnectionError
-from requests.adapters import HTTPAdapter, Retry
 from more_itertools import first
 from pydantic import SecretStr
 
@@ -22,10 +21,11 @@ from pyfortinet.exceptions import (
     FMGLockException,
     FMGLockNeededException,
     FMGTokenException,
-    FMGUnhandledException, FMGObjectNotExistException,
+    FMGObjectNotExistException,
 )
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api._requests import prepare_batch
+from pyfortinet.fmg_api._resilience import request_json, timeout_seconds
 from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_from_response, task_id_from_response
@@ -339,7 +339,7 @@ class FMGBase:
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
             verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
-            timeout (float): Connection timeout for requests in seconds
+            timeout (float): Connect/read inactivity timeout per transport attempt, in seconds
             raise_on_error (bool): Raise exception on error
             discard_on_close (bool): Discard changes after connection close (workspace mode)
             discard_on_error (bool): Discard changes when exception occurs (workspace mode)
@@ -356,7 +356,7 @@ class FMGBase:
     @contextmanager
     def timeout(self, timeout: float = 120.0):
         original_timeout = self._settings.timeout
-        self._settings.timeout = timeout
+        self._settings.timeout = timeout_seconds(timeout)
         try:
             yield
         finally:
@@ -431,11 +431,6 @@ class FMGBase:
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
         try:
-            retries = Retry(
-                total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
-            )
-            self._session.mount("https://", HTTPAdapter(max_retries=retries))
-            self._session.mount("http://", HTTPAdapter(max_retries=retries))
             self._token = self._get_token()
         except BaseException:
             session, self._session = self._session, None
@@ -463,10 +458,8 @@ class FMGBase:
                     self.lock.unlock_adoms()
             except FMGException:  # Ensure logout even when workspace cleanup fails.
                 pass
-            req = session.post(
-                str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
-            )
-            status = req.json().get("result", [{}])[0].get("status", {})
+            payload = request_json(session, self._settings, request)
+            status = payload.get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
         except requests.exceptions.ConnectionError:
@@ -495,13 +488,7 @@ class FMGBase:
 
     def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
-        req = self._session.post(
-            str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
-        )
-        try:
-            payload = req.json()
-        except ValueError as err:
-            raise FMGUnhandledException("Invalid JSON-RPC response: expected JSON") from err
+        payload = request_json(self._session, self._settings, request)
         return rpc_result(payload)
 
     def _get_token(self) -> SecretStr:
@@ -522,10 +509,8 @@ class FMGBase:
             ],
         }
         try:
-            req = self._session.post(
-                str(self._settings.base_url), json=request, verify=self._settings.verify, timeout=self._settings.timeout
-            )
-            token = login_token(req.json())
+            payload = request_json(self._session, self._settings, request)
+            token = login_token(payload)
             logger.debug("Token obtained")
         except FMGTokenException as err:
             logger.error("Can't gather token: %s", err)

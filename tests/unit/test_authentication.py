@@ -14,6 +14,7 @@ from .conftest import resolve
 def login_response(client):
     asynchronous = isinstance(client, AsyncFMG)
     response = Mock()
+    response.status_code = response.status = 200
     response.json = AsyncMock() if asynchronous else Mock()
     client._session = Mock()
     client._session.post = AsyncMock(return_value=response) if asynchronous else Mock(return_value=response)

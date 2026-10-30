@@ -27,10 +27,11 @@ from pyfortinet.exceptions import (
     FMGTokenException,
     FMGLockNeededException,
     FMGLockException,
-    FMGUnhandledException, FMGObjectNotExistException,
+    FMGObjectNotExistException,
 )
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api._requests import prepare_batch
+from pyfortinet.fmg_api._resilience import async_request_json, timeout_seconds
 from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_from_response, task_id_from_response
@@ -305,7 +306,7 @@ class AsyncFMGBase:
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
             verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
-            timeout (float): Connection timeout for requests in seconds
+            timeout (float): Connect/read inactivity timeout per transport attempt, in seconds
             raise_on_error (bool): Raise exception on error
             discard_on_close (bool): Discard changes after connection close (workspace mode)
             discard_on_error (bool): Discard changes when exception occurs (workspace mode)
@@ -326,7 +327,7 @@ class AsyncFMGBase:
     @contextmanager
     def timeout(self, timeout: float = 120.0):
         original_timeout = self._settings.timeout
-        self._settings.timeout = timeout
+        self._settings.timeout = timeout_seconds(timeout)
         try:
             yield
         finally:
@@ -426,10 +427,8 @@ class AsyncFMGBase:
                     await self.lock.unlock_adoms()
             except FMGException:  # Ensure logout even when workspace cleanup fails.
                 pass
-            req = await session.post(
-                str(self._settings.base_url), json=request, ssl=self._settings.verify, timeout=self._settings.timeout
-            )
-            status = (await req.json()).get("result", [{}])[0].get("status", {})
+            payload = await async_request_json(session, self._settings, request)
+            status = payload.get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
         except aiohttp.ClientConnectionError:
@@ -458,13 +457,7 @@ class AsyncFMGBase:
 
     async def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
-        req = await self._session.post(
-            str(self._settings.base_url), json=request, ssl=self._settings.verify, timeout=self._settings.timeout
-        )
-        try:
-            payload = await req.json()
-        except (ValueError, aiohttp.ContentTypeError) as err:
-            raise FMGUnhandledException("Invalid JSON-RPC response: expected JSON") from err
+        payload = await async_request_json(self._session, self._settings, request)
         return rpc_result(payload)
 
     async def _get_token(self) -> SecretStr:
@@ -485,10 +478,8 @@ class AsyncFMGBase:
             ],
         }
         try:
-            req = await self._session.post(
-                str(self._settings.base_url), json=request, ssl=self._settings.verify, timeout=self._settings.timeout
-            )
-            token = login_token(await req.json())
+            payload = await async_request_json(self._session, self._settings, request)
+            token = login_token(payload)
             logger.debug("Token obtained")
         except FMGTokenException as err:
             logger.error("Can't gather token: %s", err)

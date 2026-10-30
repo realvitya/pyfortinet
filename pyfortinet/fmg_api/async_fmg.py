@@ -39,7 +39,7 @@ class AsyncFMG(AsyncFMGBase):
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
             verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
-            timeout (float): Connection timeout for requests in seconds
+            timeout (float): Connect/read inactivity timeout per transport attempt, in seconds
             raise_on_error (bool): Raise exception on error
             discard_on_close (bool): Discard changes after connection close (workspace mode)
             discard_on_error (bool): Discard changes when exception occurs (workspace mode)

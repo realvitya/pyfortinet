@@ -168,3 +168,51 @@ For API objects without declared master keys, supply the lookup field explicitly
 `refresh()` requires a successful lookup of exactly one object. A failed lookup leaves the object
 unchanged and raises a library exception, including when `raise_on_error=False`; no refreshed object
 can be returned in that case.
+
+## Transport retries and timeouts
+
+Both clients use [pyresilience](https://pyresilience.readthedocs.io/en/latest/core/retry/) for transport
+retries. JSON-RPC `get` operations retry connection failures, native timeouts, and HTTP status codes
+429, 500, 502, 503, and 504. The decision uses the JSON-RPC method: every FMG request uses HTTP POST.
+
+Login, logout, writes, and `exec` operations have one transport attempt. Replaying them after losing
+a response could duplicate a completed operation. Existing authentication renewal and workspace-lock
+recovery still handle explicit API rejections separately. API validation errors, malformed JSON,
+certificate failures, and other HTTP errors are not retried.
+
+Configure the same settings on `FMGSettings`, `FMG`, `FMGBase`, or their async counterparts:
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `retry_attempts` | `3` | Total attempts per read request, including the first |
+| `retry_delay` | `0.1` | Initial backoff in seconds |
+| `retry_backoff` | `2.0` | Backoff multiplier |
+| `retry_max_delay` | `2.0` | Backoff cap in seconds |
+| `retry_jitter` | `True` | Randomize backoff delays |
+| `timeout` | `120.0` | Native connect/read inactivity timeout in seconds |
+
+Set `retry_attempts=1` to disable automatic transport retries. Exhausted transport failures retain
+their native requests/aiohttp exception types. HTTP errors raise `FMGHTTPException`, whose
+`status_code` attribute identifies the HTTP status. For JSON-RPC operations, `raise_on_error=False`
+converts this to a failed response.
+
+`timeout` applies to each attempt's connection and read inactivity limits, including response-body
+reading. Multiple attempts and backoff can increase total elapsed time. It is not a strict overall
+wall-clock deadline. The async transport uses the corresponding `aiohttp.ClientTimeout` connection
+and socket limits rather than aiohttp's separate total-request timer.
+
+The existing override works with both clients and validates positive, finite timeout values:
+
+```python
+with fmg.timeout(30):
+    response = fmg.get(Address)
+
+# When fmg is an AsyncFMG instance:
+with fmg.timeout(30):
+    response = await fmg.get(Address)
+```
+
+Sync requests stay on the caller's thread. pyresilience's thread-based sync timeout wrapper is not
+used because it cannot reliably interrupt blocking socket I/O; see its
+[timeout implementation notes](https://pyresilience.readthedocs.io/en/latest/changelog/).
+Async cancellation propagates immediately. Each response is released before retrying or returning.

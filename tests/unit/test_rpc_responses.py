@@ -14,6 +14,7 @@ from .conftest import resolve
 def http_response(client):
     mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
     response = Mock()
+    response.status_code = response.status = 200
     response.json = mock_type()
     client._session = Mock()
     client._session.post = mock_type(return_value=response)

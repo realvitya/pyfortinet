@@ -16,7 +16,12 @@ class FMGSettings(BaseSettings):
         password (str): Password for authentication
         adom (str): ADOM to use for this connection
         verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
-        timeout (float): Connection timeout for requests in seconds
+        timeout (float): Connect and read inactivity timeout per transport attempt, in seconds
+        retry_attempts (int): Maximum transport attempts for read requests, including the initial call
+        retry_delay (float): Initial retry delay in seconds
+        retry_backoff (float): Retry delay multiplier
+        retry_max_delay (float): Maximum retry delay in seconds
+        retry_jitter (bool): Randomize retry delays
         raise_on_error (bool): Raise exception on error
     """
 
@@ -27,7 +32,14 @@ class FMGSettings(BaseSettings):
     verify: Annotated[
         bool, Field(description="Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)")
     ] = True
-    timeout: Annotated[float, Field(description="Connection timeout for requests in seconds")] = 120.0
+    timeout: Annotated[float, Field(gt=0, allow_inf_nan=False, description="Connect/read timeout in seconds")] = 120.0
+    retry_attempts: Annotated[int, Field(ge=1, description="Total transport attempts for read requests")] = 3
+    retry_delay: Annotated[float, Field(ge=0, allow_inf_nan=False, description="Initial retry delay in seconds")] = 0.1
+    retry_backoff: Annotated[float, Field(ge=1, allow_inf_nan=False, description="Retry delay multiplier")] = 2.0
+    retry_max_delay: Annotated[
+        float, Field(ge=0, allow_inf_nan=False, description="Maximum retry delay in seconds")
+    ] = 2.0
+    retry_jitter: bool = True
     raise_on_error: Annotated[bool, Field(description="Raise exception on error")] = True
     discard_on_close: Annotated[bool, Field(description="Discard changes after connection close (workspace mode)")] = (
         False
