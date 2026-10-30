@@ -30,11 +30,10 @@ from pyfortinet.exceptions import (
     FMGUnhandledException, FMGObjectNotExistException,
 )
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api._requests import prepare_batch
 from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled
 from pyfortinet.fmg_api.task import Task
-from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
+from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_from_response, task_id_from_response
 from pyfortinet.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
@@ -921,10 +920,8 @@ class AsyncFMGBase:
         start_time = time.monotonic()
         while True:
             try:
-                response = await self.get(Task, F(id=task_id))
-                if not response.success:
-                    return
-                task: Task = response.first()
+                response = await self.get({"url": Task._url.default, "filter": ["id", "==", task_id]})
+                task: Task = task_from_response(response)
             except aiohttp.ClientConnectionError:
                 await asyncio.sleep(loop_interval)
                 if time.monotonic() - start_time > timeout:

@@ -106,6 +106,8 @@ Successful high-level GET replies with absent or null data return an empty objec
 
 ## Waiting for tasks
 
+Task polling works with `FMGBase` and `AsyncFMGBase` as well as the high-level clients.
+
 Both clients accept task responses containing either `taskid` or `task` and retry transient connection
 failures until the polling timeout. Async callbacks may be functions or callable objects returning an awaitable.
 Failed task-creation responses and replies without task metadata are not polled; waiting returns `None`.

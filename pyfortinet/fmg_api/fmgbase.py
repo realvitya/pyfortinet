@@ -25,11 +25,10 @@ from pyfortinet.exceptions import (
     FMGUnhandledException, FMGObjectNotExistException,
 )
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api._requests import prepare_batch
 from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled
 from pyfortinet.fmg_api.task import Task
-from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
+from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_from_response, task_id_from_response
 from pyfortinet.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
@@ -155,7 +154,7 @@ class FMGResponse:
             return items[key]
         master_key = ""
         if isinstance(key, tuple):  # master_key is also passed as result["myhost", "hostname"]
-            if len(key) != 2 or not isinstance(key[1], str):
+            if len(key) != 2 or not isinstance(key[1], str):  # noqa: PLR2004 - (value, field) pair
                 raise ValueError(f"Invalid key: '{key}'")
             key, master_key = key
         if isinstance(key, str) and items:
@@ -934,10 +933,8 @@ class FMGBase:
         start_time = time.monotonic()
         while True:
             try:
-                response = self.get(Task, F(id=task_id))
-                if not response.success:
-                    return
-                task: Task = response.first()
+                response = self.get({"url": Task._url.default, "filter": ["id", "==", task_id]})
+                task: Task = task_from_response(response)
             except ConnectionError:  # avoid error out, let requests retry
                 time.sleep(loop_interval)
                 if time.monotonic() - start_time > timeout:

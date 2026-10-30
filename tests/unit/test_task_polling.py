@@ -1,6 +1,5 @@
 """Task polling parity without sleeping or accessing a device."""
 
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import aiohttp
@@ -20,8 +19,8 @@ def polling(client, monkeypatch):
     client.get = mock_type()
     module = "pyfortinet.fmg_api.async_fmgbase" if asynchronous else "pyfortinet.fmg_api.fmgbase"
     monkeypatch.setattr(f"{module}.{'asyncio' if asynchronous else 'time'}.sleep", mock_type())
-    done = SimpleNamespace(id=12, state="done", percent=100, line=[])
-    client.get.return_value = FMGResponse(data=[done], success=True)
+    done = {"adom": 0, "end_tm": 0, "flags": 0, "id": 12, "line": [], "percent": 100, "state": "done"}
+    client.get.return_value = FMGResponse(data=[{"data": [done], "status": {"code": 0}}], success=True)
     return client.get
 
 
@@ -31,7 +30,7 @@ def test_task_identifier_spellings(client, polling, key):
     callback = Mock()
     assert resolve(client.wait_for_task(response, callback=callback)) == "done"
     callback.assert_called_once_with(100, "")
-    assert polling.call_args.args[1].targets == 12  # noqa: PLR2004
+    assert polling.call_args.args[0]["filter"] == ["id", "==", 12]
 
 
 @pytest.mark.parametrize("timeout", [60, -1])
