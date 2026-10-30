@@ -62,3 +62,16 @@ def test_async_callable_callback(client, polling):
     callback = Callback()
     assert resolve(client.wait_for_task(12, callback=callback)) == "done"
     assert callback.calls == [(100, "")]
+
+
+@pytest.mark.parametrize("data", [[], {}, {"data": None}, [{"data": None}], [{"data": []}]])
+def test_response_without_task_metadata_is_not_polled(client, polling, data):
+    response = FMGResponse(data=data, success=True)
+    assert resolve(client.wait_for_task(response)) is None
+    polling.assert_not_called()
+
+
+def test_failed_task_creation_response_is_not_polled(client, polling):
+    response = FMGResponse(data=[{"data": {"taskid": 12}}], success=False)
+    assert resolve(client.wait_for_task(response)) is None
+    polling.assert_not_called()
