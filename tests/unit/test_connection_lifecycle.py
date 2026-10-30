@@ -55,3 +55,56 @@ def test_open_returns_authenticated_client(client, session):
     assert client._session is session
     assert client._token.get_secret_value() == "session"
     session.close.assert_not_called()
+
+
+def test_close_without_open_is_safe(client, session):
+    resolve(client.close())
+    assert client._session is None
+    assert client._token is None
+    session.post.assert_not_called()
+
+
+def test_repeated_close_is_safe(client, session):
+    resolve(client.open())
+    resolve(client.close())
+    resolve(client.close())
+    session.close.assert_called_once_with()
+    session.post.assert_called_once()
+    assert client._session is None
+    assert client._token is None
+
+
+@pytest.mark.parametrize("failure", ["logout", "decode", "session_close", "workspace"])
+def test_close_cleans_up_on_errors(client, session, failure):
+    resolve(client.open())
+    client.lock._uses_workspace = True
+    client.lock.locked_adoms.add("other")
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    client.lock.commit_changes = mock_type()
+    client.lock.unlock_adoms = mock_type()
+    targets = {
+        "logout": session.post,
+        "decode": session.post.return_value.json,
+        "session_close": session.close,
+        "workspace": client.lock.commit_changes,
+    }
+    targets[failure].side_effect = RuntimeError("cleanup failed")
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        resolve(client.close())
+    session.close.assert_called_once_with()
+    assert client._session is None
+    assert client._token is None
+    assert not client.lock.locked_adoms
+    assert client.lock.uses_workspace is None
+
+
+def test_cancelled_logout_cleans_up(client, session):
+    if not isinstance(client, AsyncFMG):
+        return
+    resolve(client.open())
+    session.post.side_effect = asyncio.CancelledError()
+    with pytest.raises(asyncio.CancelledError):
+        resolve(client.close())
+    session.close.assert_awaited_once_with()
+    assert client._session is None
+    assert client._token is None

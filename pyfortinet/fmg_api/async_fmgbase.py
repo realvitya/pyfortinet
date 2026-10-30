@@ -402,34 +402,43 @@ class AsyncFMGBase:
 
     async def close(self, discard_changes: bool = False):
         """close connection"""
-        # Logout and expire token
-        request = {
-            "id": self._id,
-            "method": "exec",
-            "params": [{"url": "/sys/logout"}],
-            "session": self._token.get_secret_value(),
-        }
-        self._settings.discard_on_close = self._settings.discard_on_close or discard_changes
+        session = self._session
         try:
+            if session is None or self._token is None:
+                return
+            request = {
+                "id": self._id,
+                "method": "exec",
+                "params": [{"url": "/sys/logout"}],
+                "session": self._token.get_secret_value(),
+            }
+            self._settings.discard_on_close = self._settings.discard_on_close or discard_changes
             try:
                 if self.lock.uses_workspace:
                     if not self.discard_on_close:
                         await self.lock.commit_changes()
                     await self.lock.unlock_adoms()
-            except FMGException:  # go ahead and ensure logout regardless we could unlock
+            except FMGException:  # Ensure logout even when workspace cleanup fails.
                 pass
-            req = await self._session.post(
+            req = await session.post(
                 str(self._settings.base_url), json=request, ssl=self._settings.verify, timeout=self._settings.timeout
             )
             status = (await req.json()).get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
-        except aiohttp.ClientConnectorError:
+        except aiohttp.ClientConnectionError:
             logger.warning("Logout failed!")
         finally:
-            await self._session.close()
-        self._token = None
-        logger.debug("Closed session")
+            try:
+                if session is not None:
+                    await session.close()
+            finally:
+                self._session = None
+                self._token = None
+                self.lock.locked_adoms.clear()
+                self.lock._uses_workspace = None
+                self.lock._uses_adoms = None
+            logger.debug("Closed session")
 
     async def __aenter__(self):
         await self.open()

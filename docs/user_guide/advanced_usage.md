@@ -104,3 +104,9 @@ client's selected ADOM changes. An object's explicit scope takes precedence over
 
 Both clients accept task responses containing either `taskid` or `task` and retry transient connection
 failures until the polling timeout. Async callbacks may be functions or callable objects returning an awaitable.
+
+## Connection cleanup
+
+`close()` is safe before opening a connection and after it has already been closed. Both clients release
+the HTTP session and clear authentication and cached workspace state even if logout fails. For async
+clients, await `close()`.
