@@ -226,32 +226,36 @@ class FMGLockContext:
         Returns:
             Response object
         """
-        result = FMGResponse(fmg=self._fmg)
+        result = FMGResponse(fmg=self._fmg, data=[], success=True)
         if not adoms:
             adoms = ["root"]
         for adom in adoms:
             url = "/dvmdb/global/workspace/lock/" if adom.lower() == "global" else f"/dvmdb/adom/{adom}/workspace/lock/"
-            result.data = [{adom: self._fmg.exec(request={"url": url})}]
-            if result.data[0][adom].data[0].get("error"):
-                raise FMGLockException(result.data[0][adom].data[0])
+            operation = self._fmg.exec(request={"url": url})
+            result.data.append({adom: operation})
+            if not operation.success:
+                raise FMGLockException(operation.data)
             self._locked_adoms.add(adom)
         return result
 
     def unlock_adoms(self, *adoms) -> FMGResponse:
         """unlock ADOMs"""
-        result = FMGResponse(fmg=self._fmg)
+        result = FMGResponse(fmg=self._fmg, data=[], success=True)
         if not adoms:
             adoms = copy(self._locked_adoms)
+        failed_adoms = set()
         for adom in adoms:
             if adom.lower() == "global":
                 url = "/dvmdb/global/workspace/unlock/"
             else:
                 url = f"/dvmdb/adom/{adom}/workspace/unlock/"
-            result.data = [{adom: self._fmg.exec(request={"url": url})}]
-            if not result.data[0][adom].data[0].get("error"):
+            operation = self._fmg.exec(request={"url": url})
+            result.data.append({adom: operation})
+            if operation.success:
                 self._locked_adoms.discard(adom)
+            else:
+                failed_adoms.add(adom)
 
-        failed_adoms = self._locked_adoms.intersection(adoms)
         if failed_adoms:
             raise FMGException(f"Failed to unlock ADOMs: {failed_adoms}")
         return result

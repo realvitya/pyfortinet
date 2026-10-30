@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from pyfortinet import AsyncFMG, AsyncFMGResponse, FMGResponse
-from pyfortinet.exceptions import FMGException
+from pyfortinet.exceptions import FMGException, FMGLockException
 
 from .conftest import resolve
 
@@ -39,3 +39,25 @@ def test_unlock_failure_keeps_failed_lock(client, execute):
     with pytest.raises(FMGException, match="first"):
         resolve(client.lock.unlock_adoms("first"))
     assert client.lock.locked_adoms == {"first", "other"}
+
+
+@pytest.mark.parametrize("method", ["lock_adoms", "unlock_adoms"])
+def test_workspace_results_include_all_operations(client, execute, method):
+    result = resolve(getattr(client.lock, method)("first", "other"))
+    assert result.success
+    assert result.fmg is client
+    assert [next(iter(item)) for item in result.data] == ["first", "other"]
+    assert all(item[adom].success for item, adom in zip(result.data, ["first", "other"]))
+
+
+def test_unsuccessful_lock_does_not_mark_adom_locked(client, execute):
+    execute.return_value = FMGResponse(data=[{"status": {"code": -1}}], success=False)
+    with pytest.raises(FMGLockException):
+        resolve(client.lock.lock_adoms("first"))
+    assert not client.lock.locked_adoms
+
+
+def test_unsuccessful_unlock_without_local_lock_is_reported(client, execute):
+    execute.return_value = FMGResponse(data=[], success=False)
+    with pytest.raises(FMGException, match="first"):
+        resolve(client.lock.unlock_adoms("first"))
