@@ -108,6 +108,9 @@ failures until the polling timeout. Async callbacks may be functions or callable
 
 ## Connection cleanup
 
+Calling `open()` on an already open client keeps the existing session and workspace locks. To start
+a new session, close the client first.
+
 `close()` is safe before opening a connection and after it has already been closed. Both clients release
 the HTTP session and clear authentication and cached workspace state even if logout fails. For async
 clients, await `close()`.

@@ -415,10 +415,14 @@ class FMGBase:
         """open connection"""
         # TODO: token and cloud auth
         # https://how-to-fortimanager-api.readthedocs.io/en/latest/001_fmg_json_api_introduction.html#token-based-authentication
+        if self._session is not None and self._token is not None:
+            return self
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
         try:
-            retries = Retry(total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+            retries = Retry(
+                total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504]
+            )
             self._session.mount("https://", HTTPAdapter(max_retries=retries))
             self._session.mount("http://", HTTPAdapter(max_retries=retries))
             self._token = self._get_token()

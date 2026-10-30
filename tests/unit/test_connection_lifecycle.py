@@ -57,6 +57,18 @@ def test_open_returns_authenticated_client(client, session):
     session.close.assert_not_called()
 
 
+def test_repeated_open_keeps_existing_session(client, session):
+    resolve(client.open())
+    client.lock._uses_workspace = True
+    client.lock.locked_adoms.add("other")
+    assert resolve(client.open()) is client
+    client._get_token.assert_called_once_with()
+    assert client._session is session
+    assert client.lock.locked_adoms == {"other"}
+    assert client.lock.uses_workspace is True
+    session.close.assert_not_called()
+
+
 def test_close_without_open_is_safe(client, session):
     resolve(client.close())
     assert client._session is None

@@ -390,6 +390,8 @@ class AsyncFMGBase:
 
     async def open(self) -> "AsyncFMGBase":
         """open connection"""
+        if self._session is not None and self._token is not None:
+            return self
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = aiohttp.ClientSession()
         try:
