@@ -391,7 +391,13 @@ class AsyncFMGBase:
         """open connection"""
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = aiohttp.ClientSession()
-        self._token = await self._get_token()
+        try:
+            self._token = await self._get_token()
+        except BaseException:
+            session, self._session = self._session, None
+            self._token = None
+            await session.close()
+            raise
         return self
 
     async def close(self, discard_changes: bool = False):

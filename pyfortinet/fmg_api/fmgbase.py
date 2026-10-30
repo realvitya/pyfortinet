@@ -416,10 +416,16 @@ class FMGBase:
         # https://how-to-fortimanager-api.readthedocs.io/en/latest/001_fmg_json_api_introduction.html#token-based-authentication
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
-        retries = Retry(total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
-        self._session.mount("https://", HTTPAdapter(max_retries=retries))
-        self._session.mount("http://", HTTPAdapter(max_retries=retries))
-        self._token = self._get_token()
+        try:
+            retries = Retry(total=5, connect=3, read=3, other=3, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+            self._session.mount("https://", HTTPAdapter(max_retries=retries))
+            self._session.mount("http://", HTTPAdapter(max_retries=retries))
+            self._token = self._get_token()
+        except BaseException:
+            session, self._session = self._session, None
+            self._token = None
+            session.close()
+            raise
         return self
 
     def close(self, discard_changes: bool = False):
