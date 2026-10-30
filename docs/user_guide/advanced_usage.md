@@ -93,3 +93,9 @@ Use `with fmg.lock_adom("root"):` for synchronous operations and
 `async with fmg.lock_adom("root"):` for asynchronous operations. The context releases locks it acquired,
 including when the operation raises an exception. Existing locks are preserved; `keep_locked=True` also
 preserves a newly acquired lock.
+
+## Selecting fields and scopes
+
+High-level `get` calls accept `fields=["name", ...]` to request selected fields. Returned objects retain
+the scope used by the request, so their later operations continue to target that scope even when the
+client's selected ADOM changes. An object's explicit scope takes precedence over the request's scope.

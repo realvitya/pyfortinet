@@ -1,7 +1,6 @@
 """FMG API for humans"""
 
 import logging
-import re
 from inspect import isclass
 from typing import Optional, Union, Any, Type, List, Dict
 
@@ -13,6 +12,7 @@ from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMis
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
+from pyfortinet.fmg_api._requests import prepare_get
 
 logger = logging.getLogger(__name__)
 
@@ -129,46 +129,13 @@ class AsyncFMG(AsyncFMGBase):
             return await super().get(request)
         # High level arguments
         result = AsyncFMGResponse(fmg=self)
-        api_request = {
-            "loadsub": 1 if loadsub else 0,
-        }
-        if isinstance(request, FMGObject):
-            # derive url from current scope and adom
-            if not request.fmg_scope:  # assign local FMG scope to request as fallback
-                request.fmg_scope = scope or self.adom
-            url = request.get_url()
-            for field in request.model_dump_for_filter():
-                if filters:
-                    filters &= F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
-                else:
-                    filters = F(**{field: getattr(request, field.replace(" ", "_").replace("-", "_"))})
-        elif issubclass(request, FMGObject):
-            # pydantic model default value
-            url = request._url.default
-            # remove /{field} parts except scope
-            # reason: there are urls with specific parameters which we can't provide with using class
-            # this way, we can cover some cases where general list of objects will return when there is no specific
-            # parameter. Such a request is `dynamic.Interface`
-            # Use object instance instead, where URL processing is done by the object's `get_url` method!
-            url = re.sub(r"/{(?!scope).*?}", "", url)
-            # derive url from current scope and adom
-            if not scope:  # get adom from FMG settings
-                scope = "global" if self.adom == "global" else f"adom/{self.adom}"
-            else:  # user specified
-                scope = "global" if scope == "global" else f"adom/{scope}"
-            url = url.replace("{scope}", scope)
-        else:
-            raise FMGWrongRequestException("Wrong type of request received: {request}")
-
-        if filters:
-            api_request["filter"] = self._get_filter_list(filters)
-
-        if options:
-            api_request["option"] = options
+        api_request, object_scope = prepare_get(
+            request, self.adom, filters=filters, scope=scope, fields=fields, loadsub=loadsub, options=options
+        )
 
         body = {
             "method": "get",
-            "params": [{"url": url, **api_request}],
+            "params": [api_request],
             "verbose": 1,
             "session": self._token.get_secret_value(),
             "id": self._id,
@@ -185,7 +152,7 @@ class AsyncFMG(AsyncFMGBase):
         if not isinstance(api_result.get("data"), list):
             api_result["data"] = [api_result["data"]]
         for value in api_result.get("data"):
-            objects.append(obj_class(**value, fmg_scope=scope, fmg=self))
+            objects.append(obj_class(**value, fmg_scope=object_scope, fmg=self))
         result.data = objects
         result.success = True
         return result
