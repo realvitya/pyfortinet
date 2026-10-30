@@ -61,3 +61,24 @@ def test_unsuccessful_unlock_without_local_lock_is_reported(client, execute):
     execute.return_value = FMGResponse(data=[], success=False)
     with pytest.raises(FMGException, match="first"):
         resolve(client.lock.unlock_adoms("first"))
+
+
+@pytest.mark.parametrize("mode, expected", [(0, False), ("0", False), ("disabled", False), (1, True), ("normal", True)])
+def test_workspace_mode_discovery(client, monkeypatch, mode, expected):
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    response = FMGResponse(data=[{"data": {"workspace-mode": mode}}], success=True)
+    monkeypatch.setattr(client, "get", mock_type(return_value=response))
+    resolve(client.lock.check_mode())
+    assert client.lock.uses_workspace is expected
+
+
+@pytest.mark.parametrize(
+    "data, success", [([{"error": "denied"}], False), ([], True), ([{"data": {}}], True), ([{"data": None}], True)]
+)
+def test_failed_workspace_discovery_does_not_cache_a_mode(client, monkeypatch, data, success):
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    response = FMGResponse(data=data, success=success)
+    monkeypatch.setattr(client, "get", mock_type(return_value=response))
+    with pytest.raises(FMGLockException, match="workspace mode"):
+        resolve(client.lock.check_mode())
+    assert client.lock.uses_workspace is None

@@ -94,7 +94,8 @@ Use `with fmg.lock_adom("root"):` for synchronous operations and
 including when the operation raises an exception. Existing locks are preserved; `keep_locked=True` also
 preserves a newly acquired lock. Unlocking a selected ADOM leaves other ADOM locks intact.
 `lock_adoms()` and `unlock_adoms()` return successful responses only when all requested operations
-succeed, and their data includes a result for each ADOM.
+succeed, and their data includes a result for each ADOM. Workspace mode discovery raises
+`FMGLockException` when its reply is unsuccessful or incomplete and leaves the cached mode unset.
 
 ## Selecting fields and scopes
 

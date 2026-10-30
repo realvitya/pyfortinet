@@ -27,7 +27,7 @@ from pyfortinet.exceptions import (
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api._requests import prepare_batch
-from pyfortinet.fmg_api._responses import login_token, rpc_result
+from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
 from pyfortinet.settings import FMGSettings
@@ -211,7 +211,7 @@ class FMGLockContext:
         """Get workspace-mode from config"""
         url = "/cli/global/system/global"
         result = self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = result.data[0]["data"].get("workspace-mode") not in (0, "0", "disabled")
+        self._uses_workspace = workspace_enabled(result)
         # self.uses_adoms = (result.data["data"].get("adom-status") in (1, "1", "enable")
 
     def lock_adoms(self, *adoms: str) -> FMGResponse:

@@ -2,7 +2,7 @@
 
 from pydantic import SecretStr
 
-from pyfortinet.exceptions import FMGTokenException, FMGUnhandledException
+from pyfortinet.exceptions import FMGLockException, FMGTokenException, FMGUnhandledException
 from pyfortinet.fmg_api.error_table import get_fmg_error
 
 
@@ -40,3 +40,14 @@ def login_token(payload):
     if not isinstance(token, str) or not token:
         raise FMGTokenException("Login failed, missing or invalid session token")
     return SecretStr(token)
+
+
+def workspace_enabled(response):
+    """Read workspace mode only from a successful and complete discovery reply."""
+    if not response.success or not isinstance(response.data, list) or not response.data:
+        raise FMGLockException("Unable to determine workspace mode")
+    result = response.data[0]
+    data = result.get("data") if isinstance(result, dict) else None
+    if not isinstance(data, dict) or data.get("workspace-mode") is None:
+        raise FMGLockException("Unable to determine workspace mode")
+    return data["workspace-mode"] not in (0, "0", "disabled")
