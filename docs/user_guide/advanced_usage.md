@@ -108,6 +108,8 @@ failures until the polling timeout. Async callbacks may be functions or callable
 
 ## Connection cleanup
 
+Malformed login replies and missing session tokens raise `FMGTokenException` in both clients.
+
 Calling `open()` on an already open client keeps the existing session and workspace locks. To start
 a new session, close the client first.
 

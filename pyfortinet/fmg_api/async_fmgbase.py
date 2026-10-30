@@ -32,6 +32,7 @@ from pyfortinet.exceptions import (
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F
 from pyfortinet.fmg_api._requests import prepare_batch
+from pyfortinet.fmg_api._responses import login_token
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_id_from_response
 from pyfortinet.settings import FMGSettings
@@ -493,11 +494,7 @@ class AsyncFMGBase:
             req = await self._session.post(
                 str(self._settings.base_url), json=request, ssl=self._settings.verify, timeout=self._settings.timeout
             )
-            status = (await req.json()).get("result", [{}])[0].get("status", {})
-            if status.get("code") != 0:
-                if "No permission for resource" in status.get("message"):
-                    raise FMGUnhandledException("No permission for resource, probably user does not have API access!")
-                raise FMGTokenException("Login failed, wrong credentials!")
+            token = login_token(await req.json())
             logger.debug("Token obtained")
         except FMGTokenException as err:
             logger.error("Can't gather token: %s", err)
@@ -505,8 +502,7 @@ class AsyncFMGBase:
         except aiohttp.ClientConnectorError as err:
             logger.error("Can't gather token: %s", err)
             raise err
-        token = (await req.json()).get("session", "")
-        return SecretStr(token)
+        return token
 
     @error_handling
     @auth_required
