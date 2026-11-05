@@ -4,8 +4,6 @@ import asyncio
 
 from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
-from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.dvmcmd import DeviceTask
 from pyfortinet.fmg_api.firewall import Address
 from tests.conftest import AsyncTestCase
 
@@ -16,19 +14,8 @@ class TestObjectsOnLab(AsyncTestCase):
         """Async test callback"""
         await asyncio.sleep(0.1)
 
-    async def test_dvmdb_device(self, fmg: AsyncFMG):
-        device = fmg.get_obj(Device, name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
-        job = DeviceTask(adom=fmg.adom, device=device)
-        result = await fmg.exec(job)
-        await result.wait_for_task(callback=self.async_callback)
-        assert result.success
-        job = DeviceTask(adom=fmg.adom, device=device, action="del")
-        result = await fmg.exec(job)
-        assert result
-        result = await fmg.get(Device, F(name__like="TEST%"))
-        assert result
-
-    async def test_object_functions(self, fmg: AsyncFMG):
+    async def test_object_functions(self, fmg: AsyncFMG, lab):
+        await lab.reserve(f"/pm/config/adom/{fmg.adom}/obj/firewall/address/test-firewall-address")
         to_add = fmg.get_obj(Address, name="test-firewall-address", subnet="10.0.0.0/24")
         # test ADD
         result = await to_add.add()
@@ -55,7 +42,9 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg.get(Address, F(name="test-firewall-address"))
         assert result and not result.data  # ensure empty result
 
-    async def test_multi_obj(self, fmg: AsyncFMG):
+    async def test_multi_obj(self, fmg: AsyncFMG, lab):
+        for name in ["test-addr1", "test-addr2"]:
+            await lab.reserve(f"/pm/config/adom/{fmg.adom}/obj/firewall/address/{name}")
         addr1 = fmg.get_obj(Address(name="test-addr1", subnet="10.0.0.1/32"))
         addr2 = fmg.get_obj(Address(name="test-addr2", subnet="10.0.0.2/32"))
         result = await fmg.add([addr1, addr2])

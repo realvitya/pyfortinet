@@ -1,143 +1,91 @@
-"""Test of human API"""
+"""Independent firewall CRUD tests with per-test resource ownership."""
 
 import pytest
 
-from pyfortinet import AsyncFMG
 from pyfortinet.fmg_api.common import F
-from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, PortRange, ServiceGroup
+from pyfortinet.fmg_api.firewall import Address, AddressGroup, PortRange, ServiceCustom, ServiceGroup
 from tests.conftest import AsyncTestCase
 
 
-class TestAsynchObjectsOnLab(AsyncTestCase):
-    async def test_firewall_address(self, fmg: AsyncFMG):
-        to_add = fmg.get_obj(Address(name="test-firewall-address", subnet="10.0.0.0/24", allow_routing="disable"))
-        # test ADD
-        result = await to_add.add()
-        assert result
-        # test CLONE
-        result = await to_add.clone(name="clone-firewall-address")
-        assert result
-        # wildcard test
-        wildcard = fmg.get_obj(Address(name="test-wildcard", type="wildcard", wildcard="10.0.0.1 255.255.0.255"))
-        result = await wildcard.add()
-        assert result
-        wildcard = (await fmg.get(Address, F(name="test-wildcard"))).first()
-        assert wildcard
-        await wildcard.delete()
-        # test GET
-        address = (await fmg.get(Address, F(name__like="test-firewall-addr%"))).first()
-        assert address.name == "test-firewall-address"
-        address.subnet = "10.0.1.0/24"
-        # test UPDATE
-        result = await address.update()
-        assert result
-        address = (await fmg.get(Address, F(name=address.name))).first()
-        assert address.subnet == "10.0.1.0/24"
-        # test DELETE
-        result = await address.delete()
-        assert result
-        result = await fmg.get(Address, F(name="test-firewall-address"))
-        assert result and not result.data  # ensure empty result
-        # test SET
-        result = await to_add.set()
-        assert result
-        # cleanup
-        cloned = (await fmg.get(Address, F(name="clone-firewall-address"))).first()
-        result = await cloned.delete()
-        assert result
-        result = await to_add.delete()
-        assert result
-        result = await fmg.get(Address, F(name="test-firewall-address"))
-        assert result and not result.data  # ensure empty result
+class TestObjects:
+    def test_portrange(self):
+        with pytest.raises(ValueError, match="Start port must be equal or less than end port"):
+            PortRange(source_start="6666", source_end="5555")
+        with pytest.raises(ValueError, match="Start port must be equal or less than end port"):
+            PortRange(destination_start="6666", destination_end="5555")
+        ports = PortRange(source_end="5555", destination_end="6666")
+        assert ports.source_start == "5555" and ports.destination_start == "6666"
 
-    async def test_firewall_address_mapping(self, fmg: AsyncFMG):
-        # create a new object
-        server: Address = fmg.get_obj(Address(name="test-server", subnet="10.0.0.1/32"))
-        # get first device from FMG
-        fw: Device = (await fmg.get(Device)).first()
-        # create server object in FMG
-        await server.add()
-        # create a mapping to server object with the fw device and different IP
-        # server.dynamic_mapping = [Address(mapping__scope=[{"name": fw.name, "vdom": "root"}], subnet="2.2.2.2")]
-        server.dynamic_mapping = [Address(mapping__scope=fw.get_vdom_scope("root"), subnet="2.2.2.2")]
-        # update server object in FMG
-        result = await server.update()
-        assert result
-        # re-load server object from FMG
-        server: Address = (await fmg.get(Address, F(name="test-server"))).first()
-        # check if we have our mapping
-        assert any(address.subnet == "2.2.2.2/32" for address in server.dynamic_mapping)
-        #
-        # commented out as I referenced a 2nd FW (FG02) which I do not expect in the lab
-        #
-        # # create new mapping with FG02 device (I created a model device for testing)
-        # server.dynamic_mapping.append(Address(mapping__scope=[{"name": "FG02", "vdom": "root"}], subnet="3.3.3.3"))
-        # result = server.update()
-        # assert result
-        # server = fmg.get(Address, F(name="test-server")).first()
-        # assert server
-        # # delete mapping (simply removing from the list works. Could be more sophisticated, but good for example)
-        # del server.dynamic_mapping[1]
-        # server.update()
-        # server = fmg.get(Address, F(name="test-server")).first()
-        # # check if we still have the first mapping
-        # assert any(address.subnet == "2.2.2.2/32" for address in server.dynamic_mapping)
-        # # check if we really deleted the second mapping
-        # assert not any(address.subnet == "3.3.3.3/32" for address in server.dynamic_mapping)
 
-    async def test_firewall_address_group(self, fmg: AsyncFMG):
-        # create members
-        member1 = fmg.get_obj(Address(name="test-address1", subnet="10.0.0.1"))
-        member2 = fmg.get_obj(Address(name="test-address2", subnet="10.0.0.2"))
-        member3 = fmg.get_obj(Address(name="test-address3", subnet="10.0.0.3"))
-        await member1.add()
-        await member2.add()
-        await member3.add()
-        # create groups with members
-        group1 = fmg.get_obj(AddressGroup(name="test-group1", member=[member1, member2]))
-        group2 = fmg.get_obj(AddressGroup(name="test-group2", member=[member1, group1]))
+class TestObjectsOnLab(AsyncTestCase):
+    async def test_firewall_address(self, fmg, lab):
+        address = await lab.object(Address, "addr", subnet="10.0.0.0/24", allow_routing="disable")
+        clone = await lab.object(Address, "clone")
+        assert await address.add()
+        assert await address.clone(name=clone.name)
+        wildcard = await lab.object(Address, "wild", type="wildcard", wildcard="10.0.0.1 255.255.0.255")
+        assert await wildcard.add()
+        assert (await fmg.get(Address, F(name=wildcard.name))).first()
+        assert await wildcard.delete()
+        loaded = (await fmg.get(Address, F(name=address.name))).first()
+        assert loaded.name == address.name
+        loaded.subnet = "10.0.1.0/24"
+        assert await loaded.update()
+        await loaded.refresh()
+        assert loaded.subnet == "10.0.1.0/24"
+        assert await loaded.delete()
+        assert (await fmg.get(Address, F(name=address.name))).first() is None
+        assert await address.set()
+        assert await address.delete()
+        assert (await fmg.get(Address, F(name=address.name))).first() is None
+
+    async def test_firewall_address_mapping(self, fmg, lab, lab_device):
+        server = await lab.object(Address, "server", subnet="10.0.0.1/32")
+        assert await server.add()
+        server.dynamic_mapping = [Address(mapping__scope=lab_device.get_vdom_scope("root"), subnet="2.2.2.2")]
+        assert await server.update()
+        await server.refresh()
+        assert any(mapping.subnet == "2.2.2.2/32" for mapping in server.dynamic_mapping)
+
+    async def test_firewall_address_group(self, fmg, lab):
+        member1 = await lab.object(Address, "addr1", subnet="10.0.0.1")
+        member2 = await lab.object(Address, "addr2", subnet="10.0.0.2")
+        member3 = await lab.object(Address, "addr3", subnet="10.0.0.3")
+        assert await member1.add()
+        assert await member2.add()
+        assert await member3.add()
+        group1 = await lab.object(AddressGroup, "grp1", member=[member1, member2])
         assert await group1.add()
+        group2 = await lab.object(AddressGroup, "grp2", member=[member1, group1])
         assert await group2.add()
-        # add member3 in-memory
         group1.member.append(member3)
-        # update FMG
         assert await group1.update()
-        # reload from FMG
         await group1.refresh()
-        # check if members still match from FMG loaded object
-        assert group1.member == ["test-address1", "test-address2", "test-address3"]
-        # deleting objects must follow dependency tree else FMG error out by deleting object used
-        await group2.delete()
-        await group1.delete()
-        await member1.delete()
-        await member2.delete()
+        assert group1.member == [member1.name, member2.name, member3.name]
+        found = (await fmg.get(AddressGroup, F(name=group1.name) & F(member__contain=member1.name))).first()
+        assert found.name == group1.name
+        found = (
+            await fmg.get(
+                AddressGroup, F(name=group2.name) & F(member__contain=member1.name) & F(member__contain=group1.name)
+            )
+        ).first()
+        assert found.name == group2.name
 
-    async def test_firewall_custom_service(self, fmg: AsyncFMG):
-        # get all services from FMG
+    async def test_firewall_custom_service(self, fmg, lab):
         services = await fmg.get(ServiceCustom)
-        # check .getitem finds with custom and built-in key
         assert services["QUAKE", "name"].name == "QUAKE" and services["QUAKE"].name == "QUAKE"
-        with pytest.raises(AttributeError):
-            # invalid key should raise error
-            quake = services["QUAKE", "qweqweqwe"]
-        # single tcp port using PortRange
-        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange=PortRange(destination_end="6666")))
-        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
-        # single tcp port using string (simple destination port)
-        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange="6666"))
-        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
-        # complex service with two ports, second has source port range and sinlge dst port
-        new_service = fmg.get_obj(ServiceCustom(name="test-srv", tcp_portrange=["6666", "7777:1-1024"]))
-        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[0] == "6666"
-        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
-        # check adding new service to FMG
-        result = await new_service.add()
-        assert result
-        # re-load service from FMG
-        await new_service.refresh()
-        assert new_service.model_dump(by_alias=True).get("tcp-portrange")[1] == "7777:1-1024"
+        with pytest.raises(AttributeError, match="invalid-key"):
+            services["QUAKE", "invalid-key"]
+        for ports, expected in [
+            (PortRange(destination_end="6666"), ["6666"]),
+            ("6666", ["6666"]),
+            (["6666", "7777:1-1024"], ["6666", "7777:1-1024"]),
+        ]:
+            service = await lab.object(ServiceCustom, "srv", tcp_portrange=ports)
+            assert service.model_dump(by_alias=True)["tcp-portrange"] == expected
+        assert await service.add()
+        await service.refresh()
+        assert service.model_dump(by_alias=True)["tcp-portrange"] == ["6666", "7777:1-1024"]
 
-    async def test_firewall_custom_service_group(self, fmg: AsyncFMG):
-        services = await fmg.get(ServiceGroup)
-        assert services
+    async def test_firewall_custom_service_group(self, fmg):
+        assert await fmg.get(ServiceGroup)

@@ -1,9 +1,8 @@
 """Test offline classes and functions"""
 
-import pytest
 from pydantic import Field
 
-from pyfortinet import FMGResponse, AsyncFMGResponse
+from pyfortinet import AsyncFMGResponse, FMGResponse
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import F, text_to_filter
 
@@ -192,37 +191,45 @@ class TestFilters:
         ]
 
     def test_filters_with_parentheses6(self):
-        f = ((F(protocol="ICMP") & F(icmptype="8")) & (F(icmpcode=None)+F(icmpcode=0))).generate()
+        f = ((F(protocol="ICMP") & F(icmptype="8")) & (F(icmpcode=None) + F(icmpcode=0))).generate()
         assert f == [
             [["protocol", "==", "ICMP"], "&&", ["icmptype", "==", "8"]],
             "&&",
-            [["icmpcode", "==", None], ["icmpcode", "==", 0]]
+            [["icmpcode", "==", None], ["icmpcode", "==", 0]],
         ]
 
     def test_filters_with_parentheses7(self):
-        f = ((F(protocol="ICMP") | F(icmptype="8")) & (F(icmpcode=None)+F(icmpcode=0))).generate()
+        f = ((F(protocol="ICMP") | F(icmptype="8")) & (F(icmpcode=None) + F(icmpcode=0))).generate()
         assert f == [
             [["protocol", "==", "ICMP"], "||", ["icmptype", "==", "8"]],
             "&&",
-            [["icmpcode", "==", None], ["icmpcode", "==", 0]]
+            [["icmpcode", "==", None], ["icmpcode", "==", 0]],
         ]
 
     def test_filters_with_parentheses8(self):
         """parentheses do not mean anything here"""
         f = ((F(protocol="ICMP") & F(icmptype="8")) & (F(icmpcode=None) & F(icmpcode=0))).generate()
         assert f == [
-            ["protocol", "==", "ICMP"], "&&", ["icmptype", "==", "8"],
+            ["protocol", "==", "ICMP"],
             "&&",
-            ["icmpcode", "==", None], "&&", ["icmpcode", "==", 0]
+            ["icmptype", "==", "8"],
+            "&&",
+            ["icmpcode", "==", None],
+            "&&",
+            ["icmpcode", "==", 0],
         ]
 
     def test_filters_with_parentheses9(self):
         """parentheses do not mean anything here"""
         f = ((F(protocol="ICMP") | F(icmptype="8")) | (F(icmpcode=None) | F(icmpcode=0))).generate()
         assert f == [
-            ["protocol", "==", "ICMP"], "||", ["icmptype", "==", "8"],
+            ["protocol", "==", "ICMP"],
             "||",
-            ["icmpcode", "==", None], "||", ["icmpcode", "==", 0]
+            ["icmptype", "==", "8"],
+            "||",
+            ["icmpcode", "==", None],
+            "||",
+            ["icmpcode", "==", 0],
         ]
 
     def test_and_filters(self):
@@ -327,7 +334,7 @@ class TestFilters:
 
 
 class TestFMGObject:
-    class TestObj(FMGObject):
+    class ExampleObj(FMGObject):
         _url: str = "/something/{urlvar}/qwe"
         urlvar: str = Field(None, exclude=True)
         normal: str = None
@@ -337,6 +344,6 @@ class TestFMGObject:
 
     def test_fmo_model_dump_for_filter(self):
 
-        test = self.TestObj(urlvar="qwe", normal="normal", excluded="excluded", ex_with_alias="ex-with-alias")
+        test = self.ExampleObj(urlvar="qwe", normal="normal", excluded="excluded", ex_with_alias="ex-with-alias")
         for_filter = test.model_dump_for_filter()
         assert for_filter == {"normal": "normal", "excluded": "excluded", "ex-with-alias": "ex-with-alias"}

@@ -1,39 +1,35 @@
-"""Test of human API"""
-
-import pytest
+"""Device settings tests use FG01 and remove their generated configuration."""
 
 from pyfortinet.fmg_api.system import DeviceInterface, DeviceZone, SystemAdmin
-from pyfortinet.fmg_api.dvmdb import Device
+from tests.conftest import AsyncTestCase
 
 
 class TestInterface:
     def test_interface_create(self):
-        iface = DeviceInterface(name="inside")
+        assert DeviceInterface(name="inside").name == "inside"
 
 
-@pytest.mark.usefixtures("fmg")
-@pytest.mark.filterwarnings("ignore:Unverified")
-class TestObjectsOnLab:
-    def test_interface_ops(self, fmg):
-        # inside_iface = fmg.get_obj(DeviceInterface, device="FG01")
-        ifaces = fmg.get(DeviceInterface(device="FG01"))
-        assert ifaces
+class TestObjectsOnLab(AsyncTestCase):
+    async def test_interface_ops(self, fmg, lab_device):
+        assert await fmg.get(DeviceInterface(device=lab_device.name))
 
-    def test_zone_ops(self, fmg):
-        test_iface = fmg.get_obj(DeviceInterface(device="FG01", name="vlan_test", type="vlan", interface="port1", vlanid=123))
-        test_iface.add()
-        new_zone = fmg.get_obj(DeviceZone, device="FG01", name="test_inside", interface=[test_iface])
-        response = new_zone.add()
-        zones = fmg.get(DeviceZone(device="FG01"))
-        assert zones
+    async def test_zone_ops(self, fmg, lab, lab_device):
+        interface = await lab.object(
+            DeviceInterface, "vlan", device=lab_device.name, type="vlan", interface="port1", vlanid=123
+        )
+        assert await interface.add()
+        zone = await lab.object(DeviceZone, "zone", device=lab_device.name, interface=[interface])
+        assert await zone.add()
+        assert await fmg.get(DeviceZone(device=lab_device.name, name=zone.name))
 
-    def test_sysadmin_ops(self, fmg):
-        my_fw = fmg.get(Device).first()
-        test_user = fmg.get_obj(SystemAdmin(device=my_fw.name, name="test-admin", password="verysecret", accprofile="super_admin"))
-        test_user.set()
-        test_user.refresh()
-        old_profile = test_user.accprofile
-        test_user.accprofile = "prof_admin"
-        test_user.update()
-        test_user.refresh()
-        assert old_profile != test_user.accprofile
+    async def test_sysadmin_ops(self, fmg, lab, lab_device):
+        user = await lab.object(
+            SystemAdmin, "admin", device=lab_device.name, password="test-only-password", accprofile="super_admin"
+        )
+        assert await user.set()
+        await user.refresh()
+        assert user.accprofile in ("super_admin", ["super_admin"])
+        user.accprofile = "prof_admin"
+        assert await user.update()
+        await user.refresh()
+        assert user.accprofile in ("prof_admin", ["prof_admin"])

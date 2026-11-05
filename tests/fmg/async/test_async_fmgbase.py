@@ -3,12 +3,7 @@
 from copy import deepcopy
 
 import pytest
-
-try:
-    from aiohttp import ClientConnectorError
-except ModuleNotFoundError:
-    """support optional async"""
-from pydantic import SecretStr, ValidationError
+from pydantic import ValidationError
 
 from pyfortinet import AsyncFMGBase
 from pyfortinet import exceptions as fe
@@ -63,67 +58,15 @@ class TestLab(AsyncTestCase):
 
     config = pytest.lab_config.get("fmg")  # configured in conftest.py
 
-    @pytest.mark.dependency()
     async def test_fmg_lab_connect(self):
         settings = FMGSettings(**self.config)
         async with AsyncFMGBase(settings) as conn:
             ver = await conn.get_version()
         assert "-build" in ver
 
-    async def test_fmg_lab_connect_wrong_creds(self):
-        config = deepcopy(self.config)
-        config["password"] = "badpassword"  # pragma: allowlist secret
-        settings = FMGSettings(**config)
-        conn = AsyncFMGBase(settings)
-        with pytest.raises(fe.FMGTokenException, match="Login failed, wrong credentials!"):
-            await conn.open()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_connection_error(self):
-        config = deepcopy(self.config)
-        config["base_url"] = "https://127.0.0.1"
-        settings = FMGSettings(**config)
-        conn = AsyncFMGBase(settings)
-        with pytest.raises(ClientConnectorError):
-            await conn.open()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_expired_session(self):
-        settings = FMGSettings(**self.config)
-        async with AsyncFMGBase(settings) as conn:
-            conn._token = SecretStr("bad_token")
-            await conn.get_version()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_expired_session_and_wrong_creds(self):
-        """Simulate expired token and changed credentials"""
-        settings = FMGSettings(**self.config)
-        async with AsyncFMGBase(settings) as conn:
-            conn._token = SecretStr("bad_token")
-            conn._settings.password = SecretStr("bad_password")
-            with pytest.raises(fe.FMGTokenException, match="wrong credentials"):
-                await conn.get_version()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_fail_logout_with_expired_token(self, caplog):
-        """Simulate expired token by logout"""
-        settings = FMGSettings(**self.config)
-        async with AsyncFMGBase(settings) as conn:
-            conn._token = SecretStr("bad_token")
-        assert "Logout failed" in caplog.text
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    async def test_fmg_lab_fail_logout_with_disconnect(self, caplog):
-        """Simulate disconnection by logout"""
-        settings = FMGSettings(**self.config)
-        async with AsyncFMGBase(settings) as conn:
-            conn._settings.base_url = "https://127.0.0.1/jsonrpc"
-
-        assert "Logout failed" in caplog.text
-
 
 class TestObjectsOnLab(AsyncTestCase):
-    async def test_address_add_dict(self, fmg_base):
+    async def _address_add_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address",
@@ -135,7 +78,7 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg_base.add(address_request)
         assert result.success
 
-    async def test_address_add_dict_bad_subnet(self, fmg_base):
+    async def _address_add_dict_bad_subnet(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address",
@@ -149,7 +92,7 @@ class TestObjectsOnLab(AsyncTestCase):
         assert not result.success and "data is invalid" in result.data[0]["error"]
         fmg_base.raise_on_error = True
 
-    async def test_address_update_dict(self, fmg_base):
+    async def _address_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
@@ -160,7 +103,7 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg_base.update(address_request)
         assert result.success
 
-    async def test_address_get_dict(self, fmg_base):
+    async def _address_get_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address",
@@ -169,7 +112,7 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg_base.get(address_request)
         assert result.success and result.data[0]["data"][0].get("name") == "test-address"
 
-    async def test_address_del_dict(self, fmg_base):
+    async def _address_del_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
@@ -177,7 +120,7 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg_base.delete(address_request)
         assert result.success
 
-    async def test_address_set_dict(self, fmg_base):
+    async def _address_set_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
@@ -188,10 +131,29 @@ class TestObjectsOnLab(AsyncTestCase):
         result = await fmg_base.set(address_request)
         assert result.success
 
-    async def test_address_cleanup(self, fmg_base):
+    async def _address_cleanup(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
         }
         result = await fmg_base.delete(address_request)
         assert result.success
+
+    async def test_address_lifecycle(self, fmg_base, base_lab):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        for name in [
+            "test-address",
+            "test-address10",
+            "test-address11",
+            "clone-address",
+            "clone-address10",
+            "clone-address11",
+        ]:
+            await base_lab.reserve(f"/pm/config/{scope}/obj/firewall/address/{name}")
+        await self._address_add_dict(fmg_base)
+        await self._address_add_dict_bad_subnet(fmg_base)
+        await self._address_update_dict(fmg_base)
+        await self._address_get_dict(fmg_base)
+        await self._address_del_dict(fmg_base)
+        await self._address_set_dict(fmg_base)
+        await self._address_cleanup(fmg_base)

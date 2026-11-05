@@ -34,7 +34,7 @@ def test_object_lookup_with_explicit_key(response_type):
     obj = UnkeyedObject(name="example")
     response = response_type(data=[obj], success=True)
     assert response["example", "name"] is obj
-    with pytest.raises(ValueError, match="Invalid key"):
+    with pytest.raises(AttributeError, match="Invalid key"):
         _ = response["example"]
 
 
@@ -43,3 +43,15 @@ def test_object_lookup_retains_default_master_key(response_type):
     response = response_type(data=[obj], success=True)
     assert response["example"] is obj
     assert response["missing"] is None
+
+
+def test_object_lookup_rejects_unknown_field(response_type):
+    response = response_type(data=[Address(name="example")], success=True)
+    with pytest.raises(AttributeError, match="invalid-key"):
+        _ = response["example", "invalid-key"]
+
+
+def test_object_lookup_accepts_unset_optional_field(response_type):
+    response = response_type(data=[Address(name="example")], success=True)
+    assert response["unmatched", "comment"] is None
+    assert response["missing", "name"] is None

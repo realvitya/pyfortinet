@@ -1,140 +1,133 @@
-"""Pytest setup"""
+"""Pytest configuration and per-test lab connections."""
 
-import asyncio
-import time
 from pathlib import Path
 
 import pytest
-import requests
+import pytest_asyncio
 from ruamel.yaml import YAML
 
-from pyfortinet import FMG, FMGSettings, FMGBase, AsyncFMGBase, AsyncFMG
-from pyfortinet.exceptions import FMGConfigurationException
+from pyfortinet import FMG, AsyncFMG, AsyncFMGBase, FMGBase, FMGSettings
+from pyfortinet.fmg_api.dvmdb import Device
+from tests.lab_resources import AsyncLabResources, LabResources
 
 
 def pytest_addoption(parser):
-    """Pytest options"""
     parser.addoption("--lab_config", action="store", default="lab-config.yml")
+    parser.addoption(
+        "--run-baseline-tests", action="store_true", help="Run install tests requiring an authorized snapshot restore"
+    )
 
 
 def pytest_configure(config):
-    """Pytest configuration"""
     pytest.lab_config_file = Path(config.getoption("--lab_config"))
     pytest.lab_config = {}
     if pytest.lab_config_file.is_file():
-        yaml = YAML(typ="safe", pure=True)
-        lab_config = yaml.load(pytest.lab_config_file)
-        pytest.lab_config = lab_config
+        pytest.lab_config = YAML(typ="safe", pure=True).load(pytest.lab_config_file) or {}
+    config.addinivalue_line("markers", "requires_baseline: installs configuration; requires snapshot-based restoration")
 
 
-@pytest.fixture(scope="class")
-def fmg_base(request):
-    # Create FMGBase object
+def pytest_collection_modifyitems(config, items):
+    if not config.getoption("--run-baseline-tests"):
+        skip = pytest.mark.skip(reason="Requires an authorized baseline restore and --run-baseline-tests")
+        for item in items:
+            if item.get_closest_marker("requires_baseline"):
+                item.add_marker(skip)
+
+
+def lab_settings() -> FMGSettings:
+    """Never attempt a lab connection when no credentials were supplied."""
+    if not pytest.lab_config.get("fmg"):
+        pytest.skip(f"Lab config {pytest.lab_config_file} has no fmg settings")
+    return FMGSettings(**pytest.lab_config["fmg"])
+
+
+@pytest.fixture
+def fmg_base():
+    client = FMGBase(lab_settings())
     try:
-        fmg = FMGBase(FMGSettings(**pytest.lab_config.get("fmg")))
-    except AttributeError as err:
-        raise FMGConfigurationException("FMG settings are missing") from err
-
-    # Create connection to FMG
-    fmg.open()
-
-    # Give FMG object to test object
-    yield fmg
-
-    # Logout and close connection to FMG
-    fmg.close(discard_changes=True)
+        client.open()
+        yield client
+    finally:
+        client.close(discard_changes=True)
 
 
-@pytest.fixture(scope="class")
-def fmg(request):
-    # Create FMG object
+@pytest.fixture
+def fmg():
+    client = FMG(lab_settings())
     try:
-        fmg = FMG(FMGSettings(**pytest.lab_config.get("fmg")))
-    except AttributeError as err:
-        raise FMGConfigurationException("FMG settings are missing") from err
-
-    # Create connection to FMG
-    fmg.open()
-
-    # Give FMG object to test object
-    yield fmg
-
-    # Logout and close connection to FMG
-    fmg.close(discard_changes=True)
+        client.open()
+        yield client
+    finally:
+        client.close(discard_changes=True)
 
 
-@pytest.mark.asyncio(scope="class")
+@pytest.fixture
+def lab(fmg):
+    resources = LabResources(fmg)
+    try:
+        yield resources
+    finally:
+        resources.cleanup()
+
+
+@pytest.fixture
+def base_lab(fmg_base):
+    resources = LabResources(fmg_base)
+    try:
+        yield resources
+    finally:
+        resources.cleanup()
+
+
+@pytest.fixture
+def lab_device(fmg):
+    """Use the policy's named device rather than whichever device happens to be first."""
+    device = fmg.get(Device(name="FG01")).first()
+    assert device is not None, "Expected authorized device FG01 in the configured ADOM"
+    return device
+
+
+@pytest.mark.asyncio
 @pytest.mark.filterwarnings("ignore:Unverified")
 class AsyncTestCase:
-    """Base class for async test cases."""
+    """Request only the async connection needed by this individual test."""
 
-    # @pytest.fixture(scope="session")
-    # def event_loop(self):
-    #     """Override default event loop
-    #
-    #     This fixture overrides event_loop for the class and allows to run everything in a single loop. We get context
-    #     manager errors otherwise.
-    #     """
-    #     # give some time for previous test to correctly logout and clean up
-    #     time.sleep(2)
-    #     loop = asyncio.get_event_loop()
-    #     yield loop
-    #     loop.close()
-
-    @pytest.fixture(autouse=True, scope="class")
+    @pytest_asyncio.fixture
     async def fmg_base(self):
-        """Create and use a single FMG instance during all class tests.
-
-        In order to use this fixture, you need to inherit this class and specify ``fmg`` as argument for each test
-        method.
-
-        Examples:
-            class TestAsyncStuff(AsyncTestCase):
-                async def test_something(self, fmg_base):
-                    assert fmg_base.adom
-                    ...
-        """
-        # Create AsyncFMG object
+        client = AsyncFMGBase(lab_settings())
         try:
-            fmg_base = AsyncFMGBase(FMGSettings(**pytest.lab_config.get("fmg")))
-        except AttributeError as err:
-            raise FMGConfigurationException("FMG settings are missing") from err
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+            await client.open()
+            yield client
+        finally:
+            await client.close(discard_changes=True)
 
-        # Create connection to FMG
-        await fmg_base.open()
-
-        # Give FMG object to test object
-        yield fmg_base
-
-        # Logout and close connection to FMG
-        await fmg_base.close(discard_changes=True)
-
-    @pytest.fixture(autouse=True, scope="class")
+    @pytest_asyncio.fixture
     async def fmg(self):
-        """Create and use a single FMG instance during all class tests.
-
-        In order to use this fixture, you need to inherit this class and specify ``fmg`` as argument for each test
-        method.
-
-        Examples:
-            class TestAsyncStuff(AsyncTestCase):
-                async def test_something(self, fmg):
-                    assert fmg.adom
-                    ...
-        """
-        # Create AsyncFMG object
+        client = AsyncFMG(lab_settings())
         try:
-            fmg = AsyncFMG(FMGSettings(**pytest.lab_config.get("fmg")))
-        except AttributeError as err:
-            raise FMGConfigurationException("FMG settings are missing") from err
-        requests.packages.urllib3.disable_warnings(requests.packages.urllib3.exceptions.InsecureRequestWarning)
+            await client.open()
+            yield client
+        finally:
+            await client.close(discard_changes=True)
 
-        # Create connection to FMG
-        await fmg.open()
+    @pytest_asyncio.fixture
+    async def lab(self, fmg):
+        resources = AsyncLabResources(fmg)
+        try:
+            yield resources
+        finally:
+            await resources.cleanup()
 
-        # Give FMG object to test object
-        yield fmg
+    @pytest_asyncio.fixture
+    async def base_lab(self, fmg_base):
+        resources = AsyncLabResources(fmg_base)
+        try:
+            yield resources
+        finally:
+            await resources.cleanup()
 
-        # Logout and close connection to FMG
-        await fmg.close(discard_changes=True)
+    @pytest_asyncio.fixture
+    async def lab_device(self, fmg):
+        device = (await fmg.get(Device(name="FG01"))).first()
+        assert device is not None, "Expected authorized device FG01 in the configured ADOM"
+        return device

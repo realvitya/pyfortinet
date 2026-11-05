@@ -1,48 +1,41 @@
-"""Test of DVMDB object operations"""
+"""Device and ADOM lifecycle tests own unique resources and await task completion."""
+
+from uuid import uuid4
 
 import pytest
+
 from pyfortinet.fmg_api.common import F
-from pyfortinet.fmg_api.dvmdb import Device, ADOM, VDOM
 from pyfortinet.fmg_api.dvmcmd import DeviceTask
+from pyfortinet.fmg_api.dvmdb import ADOM, VDOM, Device
 
 
-@pytest.mark.usefixtures("fmg")
 @pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
-    def test_dvmdb_device(self, fmg):
-        # test adding device
-        device = Device(name="TEST-DEVICE", sn="FG100FTK22345678", os_ver="7.0", mr=2)
-        job = DeviceTask(adom=fmg.adom, device=device)
-        result = fmg.exec(job)
-        result.wait_for_task()
+    def test_dvmdb_device(self, fmg, lab):
+        device = fmg.get_obj(
+            Device, name=lab.name("device"), sn="FG100FTK" + uuid4().hex[:8].upper(), os_ver="7.0", mr=2
+        )
+        device.fmg_scope = fmg.adom
+        lab.reserve(
+            device.get_url(method="delete"),
+            delete=lambda: fmg.exec(DeviceTask(adom=fmg.adom, device=device, action="del")),
+        )
+        result = fmg.exec(DeviceTask(adom=fmg.adom, device=device))
+        lab.wait(result)
         assert result.success
-        # test VDOM
-        result = fmg.get(VDOM(device="TEST-DEVICE", name="root"))
-        assert result
-        # test Device
-        result = fmg.get(Device(conn_status="UNKNOWN"))
-        assert result.data  # should be at least the previously created device
-        # test removing device
-        job = DeviceTask(adom=fmg.adom, device=device, action="del")
-        result = fmg.exec(job)
-        assert result
-        result = fmg.get(Device, F(name__like="TEST%"))
-        assert result
+        assert fmg.get(VDOM(device=device.name, name="root"))
+        assert (fmg.get(Device, F(name=device.name))).first() is not None
+        result = fmg.exec(DeviceTask(adom=fmg.adom, device=device, action="del"))
+        lab.wait(result)
+        assert (fmg.get(Device, F(name=device.name))).first() is None
 
-    def test_dvmdb_adom(self, fmg):
-        root_adom = fmg.get(ADOM, F(name="root")).first()
-        test_adom = fmg.get(ADOM, F(name="test-adom")).first()
-        if not test_adom:
-            test_adom = fmg.get_obj(ADOM(name="test-adom"))
-            test_adom.add()
-        result = fmg.get(ADOM, F(name="clone-adom"))
-        if result.first():
-            fmg.delete(ADOM(name="clone-adom"))
-        result = test_adom.clone(create_task=True, name="clone-adom")
-        result.wait_for_task(callback=lambda percent, log: print(f"Task at {percent}%: {log}"))
-        assert result
-        clone_adom = fmg.get(ADOM, F(name="clone-adom")).first()
-        result = clone_adom.delete()
-        assert result
-        result = test_adom.delete()
-        assert result
+    def test_dvmdb_adom(self, fmg, lab):
+        source = lab.object(ADOM, "adom")
+        clone = lab.object(ADOM, "clone")
+        assert source.add()
+        result = source.clone(create_task=True, name=clone.name)
+        lab.wait(result)
+        assert result.success
+        assert (fmg.get(ADOM, F(name=clone.name))).first() is not None
+        assert clone.delete()
+        assert source.delete()

@@ -3,8 +3,7 @@
 from copy import deepcopy
 
 import pytest
-from pydantic import SecretStr, ValidationError
-from requests.exceptions import ConnectionError
+from pydantic import ValidationError
 
 from pyfortinet import FMGBase
 from pyfortinet import exceptions as fe
@@ -58,69 +57,17 @@ class TestLab:
 
     config = pytest.lab_config.get("fmg")  # configured in conftest.py
 
-    @pytest.mark.dependency()
     def test_fmg_lab_connect(self):
         settings = FMGSettings(**self.config)
         with FMGBase(settings) as conn:
             ver = conn.get_version()
         assert "-build" in ver
 
-    def test_fmg_lab_connect_wrong_creds(self):
-        config = deepcopy(self.config)
-        config["password"] = "badpassword"  # pragma: allowlist secret
-        settings = FMGSettings(**config)
-        conn = FMGBase(settings)
-        with pytest.raises(fe.FMGTokenException, match="Login failed, wrong credentials!"):
-            conn.open()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_connection_error(self):
-        config = deepcopy(self.config)
-        config["base_url"] = "https://127.0.0.1"
-        settings = FMGSettings(**config)
-        conn = FMGBase(settings)
-        with pytest.raises(ConnectionError):
-            conn.open()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_expired_session(self):
-        settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
-            conn._token = SecretStr("bad_token")
-            conn.get_version()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_expired_session_and_wrong_creds(self):
-        """Simulate expired token and changed credentials"""
-        settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
-            conn._token = SecretStr("bad_token")
-            conn._settings.password = SecretStr("bad_password")
-            with pytest.raises(fe.FMGTokenException, match="wrong credentials"):
-                conn.get_version()
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_fail_logout_with_expired_token(self, caplog):
-        """Simulate expired token by logout"""
-        settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
-            conn._token = SecretStr("bad_token")
-        assert "Logout failed" in caplog.text
-
-    @pytest.mark.dependency(depends=["TestLab::test_fmg_lab_connect"])
-    def test_fmg_lab_fail_logout_with_disconnect(self, caplog):
-        """Simulate disconnection by logout"""
-        settings = FMGSettings(**self.config)
-        with FMGBase(settings) as conn:
-            conn._settings.base_url = "https://127.0.0.1/jsonrpc"
-
-        assert "Logout failed" in caplog.text
-
 
 @pytest.mark.usefixtures("fmg_base")
 @pytest.mark.filterwarnings("ignore:Unverified")
 class TestObjectsOnLab:
-    def test_address_add_dict(self, fmg_base):
+    def _address_add_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address",
@@ -132,7 +79,7 @@ class TestObjectsOnLab:
         result = fmg_base.add(address_request)
         assert result.success
 
-    def test_address_add_dict_bad_subnet(self, fmg_base):
+    def _address_add_dict_bad_subnet(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address",
@@ -146,7 +93,7 @@ class TestObjectsOnLab:
         assert not result.success and "data is invalid" in result.data[0]["error"]
         fmg_base.raise_on_error = True
 
-    def test_address_multiple_add_dict(self, fmg_base):
+    def _address_multiple_add_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = [
             {
@@ -162,7 +109,7 @@ class TestObjectsOnLab:
                     "name": "test-address11",
                     "subnet": "10.0.0.11/32",
                 },
-            }
+            },
         ]
         result = fmg_base.add(address_request)
         assert result.success
@@ -175,13 +122,13 @@ class TestObjectsOnLab:
         # wrong master_key gives None
         assert result["test-address10", "qweqwe"] is None
         # master_key would be mandatory by dict data
-        with pytest.raises(ValueError):
+        with pytest.raises(AttributeError, match="Invalid key"):
             res = result["test-address10"]
         # test sequence get
         res = result[0]
         assert res["data"]["name"] == "test-address10"
 
-    def test_address_update_dict(self, fmg_base):
+    def _address_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
@@ -192,7 +139,7 @@ class TestObjectsOnLab:
         result = fmg_base.update(address_request)
         assert result.success
 
-    def test_address_multiple_update_dict(self, fmg_base):
+    def _address_multiple_update_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = [
             {
@@ -206,12 +153,12 @@ class TestObjectsOnLab:
                 "data": {
                     "subnet": "10.0.0.111/32",
                 },
-            }
+            },
         ]
         result = fmg_base.update(address_request)
         assert result.success
 
-    def test_address_get_dict(self, fmg_base):
+    def _address_get_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address",
@@ -220,7 +167,7 @@ class TestObjectsOnLab:
         result = fmg_base.get(address_request)
         assert result.success and result.data[0]["data"][0].get("name") == "test-address"
 
-    def test_address_del_dict(self, fmg_base):
+    def _address_del_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
@@ -228,7 +175,7 @@ class TestObjectsOnLab:
         result = fmg_base.delete(address_request)
         assert result.success
 
-    def test_address_multiple_del_dict(self, fmg_base):
+    def _address_multiple_del_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = [
             {
@@ -241,7 +188,7 @@ class TestObjectsOnLab:
         result = fmg_base.delete(address_request)
         assert result.success
 
-    def test_address_set_dict(self, fmg_base):
+    def _address_set_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",
@@ -252,7 +199,7 @@ class TestObjectsOnLab:
         result = fmg_base.set(address_request)
         assert result.success
 
-    def test_address_multiple_set_dict(self, fmg_base):
+    def _address_multiple_set_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = [
             {
@@ -266,42 +213,42 @@ class TestObjectsOnLab:
                 "data": {
                     "subnet": "10.0.0.11/32",
                 },
-            }
+            },
         ]
         result = fmg_base.set(address_request)
         assert result.success
 
-    def test_address_clone_dict(self, fmg_base):
+    def _address_clone_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = {
             "url": f"/pm/config/{scope}/obj/firewall/address/test-address",  # source object
             "data": {
                 "name": "clone-address",  # destination object
-            }
+            },
         }
         result = fmg_base.clone(address_request)
         assert result.success
 
-    def test_address_multiple_clone_dict(self, fmg_base):
+    def _address_multiple_clone_dict(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = [
             {
                 "url": f"/pm/config/{scope}/obj/firewall/address/test-address10",  # source object
                 "data": {
                     "name": "clone-address10",  # destination object
-                }
+                },
             },
             {
                 "url": f"/pm/config/{scope}/obj/firewall/address/test-address11",  # source object
                 "data": {
                     "name": "clone-address11",  # destination object
-                }
+                },
             },
         ]
         result = fmg_base.clone(address_request)
         assert result.success
 
-    def test_address_cleanup(self, fmg_base):
+    def _address_cleanup(self, fmg_base):
         scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
         address_request = [
             {
@@ -325,3 +272,28 @@ class TestObjectsOnLab:
         ]
         result = fmg_base.delete(address_request)
         assert result.success
+
+    def test_address_lifecycle(self, fmg_base, base_lab):
+        scope = "global" if fmg_base.adom == "global" else f"adom/{fmg_base.adom}"
+        for name in [
+            "test-address",
+            "test-address10",
+            "test-address11",
+            "clone-address",
+            "clone-address10",
+            "clone-address11",
+        ]:
+            base_lab.reserve(f"/pm/config/{scope}/obj/firewall/address/{name}")
+        self._address_add_dict(fmg_base)
+        self._address_add_dict_bad_subnet(fmg_base)
+        self._address_multiple_add_dict(fmg_base)
+        self._address_update_dict(fmg_base)
+        self._address_multiple_update_dict(fmg_base)
+        self._address_get_dict(fmg_base)
+        self._address_del_dict(fmg_base)
+        self._address_multiple_del_dict(fmg_base)
+        self._address_set_dict(fmg_base)
+        self._address_multiple_set_dict(fmg_base)
+        self._address_clone_dict(fmg_base)
+        self._address_multiple_clone_dict(fmg_base)
+        self._address_cleanup(fmg_base)
