@@ -571,12 +571,14 @@ class AsyncFMGBase:
         except FMGObjectNotExistException:
             # handling when specific requested object doesn't exist
             # we don't error out, but give an empty list
-            result.data = {"data": [], "status": {"code": 0}}
+            result.data = [{"data": [], "status": {"code": 0}}]
+            result.success = True
             return result
 
         # handling empty result list
         if not api_result:
-            result.data = {"data": [], "status": {"code": 0}}
+            result.data = [{"data": [], "status": {"code": 0}}]
+            result.success = True
             return result
 
         # processing result list

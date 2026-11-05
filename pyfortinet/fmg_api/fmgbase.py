@@ -149,13 +149,14 @@ class FMGResponse:
         return iter(self.data)
 
     def __getitem__(self, key: Union[int, str, tuple]) -> Union[dict, FMGObject]:
+        """Look up a value; unknown model attributes raise AttributeError, unmatched values return None."""
         items = [self.data] if isinstance(self.data, dict) else self.data
         if isinstance(key, int):
             return items[key]
         master_key = ""
         if isinstance(key, tuple):  # master_key is also passed as result["myhost", "hostname"]
             if len(key) != 2 or not isinstance(key[1], str):  # noqa: PLR2004 - (value, field) pair
-                raise ValueError(f"Invalid key: '{key}'")
+                raise AttributeError(f"Invalid key: '{key}'")
             key, master_key = key
         if isinstance(key, str) and items:
             if isinstance(items[0], dict) and master_key:
@@ -165,8 +166,8 @@ class FMGResponse:
             if isinstance(items[0], FMGObject):
                 field_name = master_key or first((items[0].master_keys or {}).values(), None)
                 if field_name:
-                    return next((d for d in items if getattr(d, field_name, None) == key), None)
-        raise ValueError(f"Invalid key: '{key}'")
+                    return next((d for d in items if getattr(d, field_name) == key), None)
+        raise AttributeError(f"Invalid key: '{key}'")
 
     def __len__(self):
         return len(self.data)
@@ -599,12 +600,14 @@ class FMGBase:
         except FMGObjectNotExistException:
             # handling when specific requested object doesn't exist
             # we don't error out, but give an empty list
-            result.data = {"data": [], "status": {"code": 0}}
+            result.data = [{"data": [], "status": {"code": 0}}]
+            result.success = True
             return result
 
         # handling empty result list
         if not api_result:
-            result.data = {"data": [], "status": {"code": 0}}
+            result.data = [{"data": [], "status": {"code": 0}}]
+            result.success = True
             return result
 
         # processing result list
