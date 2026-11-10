@@ -162,6 +162,22 @@ the scope used by the request, so their later operations continue to target that
 client's selected ADOM changes. An object's explicit scope takes precedence over the request's scope.
 Successful high-level GET replies with absent or null data return an empty object list.
 
+### Device system configuration schemas
+
+`DeviceInterface` covers all 285 interface attributes in the supplied **FortiManager 7.6.7
+Configuration Database v7.4 Device Level Config** schema, including `mediatype`. It accepts both
+Python names such as `snmp_index` and API names such as `snmp-index`, and writes API aliases.
+IPv6 settings, DHCP client options, secondary IP entries, tagging, and VRRP accept nested dictionaries
+and preserve their documented structure. Existing secondary-IP address shorthand remains supported.
+
+The reference uses the same interface object definition for GET responses and ADD/SET/UPDATE
+inputs and does not mark attributes read-only. Fields therefore remain optional, with no device
+defaults injected into writes; a partial GET response does not need every configuration attribute.
+`device` and `fmg_interface` locate the object and are excluded from its configuration payload.
+The interface's API identity is `name`; `interface` is a separate parent-interface reference.
+Platform-specific availability still depends on the managed FortiGate. The schema targets FortiOS
+7.4 on FMG 7.6.7; it is not evidence that every attribute exists on every 7.4 device or older FMG.
+
 ## Waiting for tasks
 
 Task polling works with `FMGBase` and `AsyncFMGBase` as well as the high-level clients.

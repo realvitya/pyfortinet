@@ -5,9 +5,13 @@ from typing import Literal, Optional, List, Union
 from pydantic import Field, field_validator, AliasChoices
 
 from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api import _system_interface
 from pyfortinet.fmg_api.dvmdb import VDOM, Device
 
-ALLOW_ACCESS_TYPE = Literal["https", "ping", "ssh", "snmp", "http", "telnet", "fgfm", "auto-ipsec", "radius-acct", "probe-response", "capwap", "dnp", "ftm", "fabric", "speed-test"]
+ALLOW_ACCESS_TYPE = Literal[
+    "https", "ping", "ssh", "snmp", "http", "telnet", "fgfm", "auto-ipsec", "radius-acct",
+    "probe-response", "capwap", "dnp", "ftm", "fabric", "speed-test", "icond",
+]
 ENABLE_DISABLE = Literal["disable", "enable"]
 INTERFACE_BFD_TYPE = Literal["global", "enable", "disable"]
 INTERFACE_MODE_TYPE = Literal["static", "dhcp", "pppoe", "pppoa", "ipoa", "eoa"]
@@ -27,7 +31,7 @@ TWO_FACTOR_AUTH = Literal["fortitoken", "email", "sms"]
 TWO_FACTOR_NOTIFY = Literal["email", "sms"]
 
 
-class DeviceInterface(FMGObject):
+class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
     """Interface object
 
     Attributes:
@@ -58,75 +62,23 @@ class DeviceInterface(FMGObject):
         color:
     """
     _url = "/pm/config/device/{device}/global/system/interface/{fmg_interface}"
-    _master_keys = {"fmg_interface": "interface"}
+    _master_keys = {"fmg_interface": "name"}
     # URL fields
     device: Optional[str] = Field(None, exclude=True)
     fmg_interface: Optional[str] = Field(None, exclude=True)
     # API fields
-    # ac_name
-    # aggregate
-    # aggregate_type: Optional[str] = Field(None, exclude=True)
-    # algorithm
     alias: Optional[str] = None
     allowaccess: Optional[Union[ALLOW_ACCESS_TYPE, List[ALLOW_ACCESS_TYPE]]] = None
-    # annex
-    # 'ap-discover',
     arpforward: Optional[ENABLE_DISABLE] = None
-    # atm_protocol
-    # 'auth-cert',
-    # auth_portal_addr
-    # auth_type
-    # 'auto-auth-extension-device',
-    # 'bandwidth-measure-time',
     bfd: Optional[INTERFACE_BFD_TYPE] = None
-    # bfd_desired_min_tx
-    # bfd_detect_mult
-    # bfd_required_min_rx
-    # broadcast_forticlient_discovery
     broadcast_forward: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("broadcast-forward", "broadcast_forward"),
         serialization_alias="broadcast-forward"
     )
-    # 'captive-portal',
-    # 'cli-conn-status',
-    # 'client-options',
-    # 'color',
-    # 'dedicated-to',
-    # defaultgw: Optional[ENABLE_DISABLE] = None,
     description: Optional[str] = None
-    # 'detected-peer-mtu',
-    # 'device-identification',
     devindex: Optional[int] = None
-    # 'dhcp-classless-route-addition',
-    # 'dhcp-relay-interface',
-    # 'dhcp-relay-interface-select-method',
-    # 'dhcp-relay-link-selection',
-    # 'dhcp-relay-request-all-server',
-    # 'dhcp-relay-service',
-    # 'dhcp-renew-time',
-    # 'dhcp-snooping-server-list',
-    # 'disconnect-threshold',
-    # 'dns-server-protocol',
-    # 'drop-fragment',
-    # 'drop-overlapped-fragment',
-    # 'eap-ca-cert',
-    # 'eap-password',
-    # 'eap-supplicant',
-    # 'eap-user-cert',
-    # 'egress-queues',
-    # 'egress-shaping-profile',
-    # 'estimated-downstream-bandwidth',
-    # 'estimated-upstream-bandwidth',
-    # 'explicit-ftp-proxy',
-    # 'explicit-web-proxy',
-    # 'external',
-    # 'fail-action-on-extender',
-    # 'fail-detect',
     fortilink: Optional[ENABLE_DISABLE] = None
-    # 'fortilink-backup-link',
-    # 'fortilink-neighbor-detect',
-    # 'forward-domain',
     icmp_accept_redirect: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("icmp-accept-redirect", "icmp_accept_redirect"),
@@ -138,20 +90,9 @@ class DeviceInterface(FMGObject):
         serialization_alias="icmp-send-redirect"
     )
 
-    # 'ident-accept',
-    # 'ike-saml-server',
-    # 'inbandwidth',
-    # 'ingress-shaping-profile',
-    # 'ingress-spillover-threshold',
     interface: Optional[Union["DeviceInterface", List["DeviceInterface"], Union[str, List[str]]]] = None
-    # 'internal',
     ip: Optional[Union[str, list]] = None
-    # 'ip-managed-by-fortiipam',
     ipmac: Optional[ENABLE_DISABLE] = None
-    # 'ips-sniffer-mode',
-    # 'ipv6',
-    # 'l2forward',
-    # 'l2tp-client-settings',
     lacp_ha_secondary: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("lacp-ha-secondary", "lacp_ha_secondary"),
@@ -183,19 +124,13 @@ class DeviceInterface(FMGObject):
         serialization_alias="lldp-transmission"
     )
     macaddr: Optional[str] = None
-    # 'managed-subnetwork-size',
     management_ip: Optional[Union[str, list]] = Field(
         None,
         validation_alias=AliasChoices("management-ip", "management_ip"),
         serialization_alias="management-ip"
     )
-    # 'measured-downstream-bandwidth',
-    # 'measured-upstream-bandwidth',
     member: Optional[List[str]] = None
-    # 'min-links',
-    # 'min-links-down',
     mode: Optional[INTERFACE_MODE_TYPE] = None
-    # 'monitor-bandwidth',
     mtu: Optional[int] = None
     mtu_override: Optional[ENABLE_DISABLE] = Field(
         None,
@@ -203,40 +138,14 @@ class DeviceInterface(FMGObject):
         serialization_alias="mtu-override"
     )
     name: Optional[str] = None
-    # 'ndiscforward',
-    # 'netbios-forward',
-    # 'netflow-sampler',
-    # 'oid',
-    # 'outbandwidth',
-    # 'polling-interval',
-    # 'pppoe-unnumbered-negotiate',
-    # 'pptp-auth-type',
-    # 'pptp-client',
-    # 'pptp-password',
-    # 'pptp-server-ip',
-    # 'pptp-timeout',
-    # 'preserve-session-route',
-    # 'priority-override',
-    # 'proxy-captive-portal',
-    # 'reachable-time',
-    # 'ring-rx',
-    # 'ring-tx',
     role: Optional[INTERFACE_ROLE_TYPE] = None
-    # 'sample-direction',
-    # 'sample-rate',
     secondary_IP: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("secondary-IP", "secondary_IP"),
         serialization_alias="secondary-IP"
     )
-    secondaryip: Optional[Union[str, List[str]]] = None
-    # 'security-exempt-list',
-    # 'security-mac-auth-bypass',
-    # 'security-mode',
-    # 'sflow-sampler',
-    # 'snmp-index',
+    secondaryip: Optional[Union[str, list[str], list[_system_interface.InterfaceSecondaryip]]] = None
     speed: Optional[INTERFACE_SPEED_TYPE] = None
-    # 'spillover-threshold',
     src_check: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("src-check", "src_check"),
@@ -244,47 +153,33 @@ class DeviceInterface(FMGObject):
     )
     status: Optional[INTERFACE_STATUS_TYPE] = None
     stpforward: Optional[ENABLE_DISABLE] = None
-    stpforward_mode: Optional[INTERFACE_STPFORWARD_MODE_TYPE] = None
-    # 'subst',
-    # 'substitute-dst-mac',
-    # 'swc-first-create',
-    # 'swc-vlan',
-    # 'switch-controller-arp-inspection',
-    # 'switch-controller-feature',
-    # 'switch-controller-igmp-snooping-fast-leave',
-    # 'switch-controller-igmp-snooping-proxy',
-    # 'switch-controller-mgmt-vlan',
-    # 'switch-controller-netflow-collect',
-    # 'switch-controller-rspan-mode',
-    # 'switch-controller-source-ip',
-    # 'system-id',
-    # 'system-id-type',
-    # 'tagging',
+    stpforward_mode: Optional[INTERFACE_STPFORWARD_MODE_TYPE] = Field(
+        None,
+        validation_alias=AliasChoices("stpforward-mode", "stpforward_mode"),
+        serialization_alias="stpforward-mode",
+    )
     tcp_mss: Optional[int] = Field(
         None,
         validation_alias=AliasChoices("tcp-mss", "tcp_mss"),
         serialization_alias="tcp-mss"
     )
-    # 'trust-ip6-1',
-    # 'trust-ip6-2',
-    # 'trust-ip6-3',
     type: Optional[INTERFACE_TYPE_TYPE] = None
     vdom: Optional[Union[Union[str, VDOM], List[Union[str, VDOM]]]] = None
     vindex: Optional[int] = None
-    vlan_protocol: Optional[INTERFACE_VLAN_PROTO_TYPE] = None
+    vlan_protocol: Optional[INTERFACE_VLAN_PROTO_TYPE] = Field(
+        None,
+        validation_alias=AliasChoices("vlan-protocol", "vlan_protocol"),
+        serialization_alias="vlan-protocol",
+    )
     vlanid: Optional[int] = None
-    # 'vlanforward',
     vrf: Optional[int] = Field(None, ge=0)
-    vrrp: Optional[Union[str]] = None  # TODO: implement VRRP object
+    vrrp: Optional[Union[str, list[_system_interface.InterfaceVrrp]]] = None
     vrrp_virtual_mac: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("vrrp-virtual-mac", "vrrp_virtual_mac"),
         serialization_alias="vrrp-virtual-mac"
     )
-    # 'wccp',
     weight: Optional[int] = None
-    # 'wifi-networks',
-    # 'wins-ip'
 
     def get_url(self, method = "get") -> str:
         if self.device is None:
@@ -302,6 +197,8 @@ class DeviceInterface(FMGObject):
     def validate_vdom(cls, vdom) -> Optional[List[str]]:
         if vdom is None:
             return vdom
+        if isinstance(vdom, str):
+            return [vdom]
         if isinstance(vdom, VDOM):
             return [vdom.name]
         if isinstance(vdom, list):
@@ -313,7 +210,7 @@ class DeviceInterface(FMGObject):
                 return vdom
         raise ValueError(f"Invalid vdom data {vdom}")
 
-    @field_validator("ip", "management_ip", "secondaryip")
+    @field_validator("ip", "management_ip")
     def standardize_subnet(cls, v):
         """validator: x.x.x.x/y.y.y.y -> x.x.x.x/y
 
@@ -327,8 +224,19 @@ class DeviceInterface(FMGObject):
         else:
             return IPv4Interface(v).compressed
 
+    @field_validator("secondaryip")
+    def standardize_secondaryip(cls, value):
+        """Accept schema subtable rows as well as the legacy address shorthand."""
+        if value is None:
+            return value
+        if isinstance(value, list) and all(isinstance(row, _system_interface.InterfaceSecondaryip) for row in value):
+            return value
+        return cls.standardize_subnet(value)
+
     @field_validator("interface", mode="before")
     def validate_interface(cls, v) -> List[str]:
+        if v is None:
+            return None
         if isinstance(v, str):
             return [v]
         if isinstance(v, DeviceInterface):
