@@ -1,5 +1,11 @@
 # Guidelines for Implementing Objects for API Calls
 
+Firewall objects live in the `pyfortinet/fmg_api/firewall/` package. Put related implementations
+in their domain module (`address.py`, `service.py`, `vip.py`, `ip_pool.py`, etc.) and expose public
+classes and type aliases through `firewall/__init__.py` using its explicit `__all__` list.
+Keep shared input normalization in `_values.py` and shared literal choices in `types.py`.
+Existing imports such as `from pyfortinet.fmg_api.firewall import Address` remain supported.
+
 As not all API calls are implemented, I'm happily accept help with your use case implemented here.
 I'd like to describe the general logic of the API classes and how to develop them.
 

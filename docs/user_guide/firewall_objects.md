@@ -1,7 +1,10 @@
 # Additional firewall objects
 
 These classes are imported from `pyfortinet.fmg_api.firewall` and work with both `FMG` and
-`AsyncFMG`. Their fields follow the supplied **FortiManager 7.6.7 Configuration Database v7.4
+`AsyncFMG`. The firewall API is a package with an explicit `__all__`; existing imports remain
+unchanged, and implementations can also be imported from submodules such as
+`pyfortinet.fmg_api.firewall.vip` or `pyfortinet.fmg_api.firewall.ip_pool`.
+Their fields follow the supplied **FortiManager 7.6.7 Configuration Database v7.4
 ADOM Level Objects** schema. Fields are optional for collection queries, partial GET responses,
 and partial updates. Only supplied values are written when absent values are excluded by the client.
 Python field names use underscores; outgoing payloads use the documented API aliases.

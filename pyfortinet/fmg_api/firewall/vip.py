@@ -8,8 +8,8 @@ from typing import Literal, Optional
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api._firewall_values import as_list, reference_names, uuid_string
 from pyfortinet.fmg_api.common import Scope
+from pyfortinet.fmg_api.firewall._values import as_list, reference_names, uuid_string
 
 
 class VIPDynamicMappingRealservers(BaseModel):
