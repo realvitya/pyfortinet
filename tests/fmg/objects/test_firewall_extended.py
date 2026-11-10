@@ -2,6 +2,7 @@
 
 import pytest
 
+from pyfortinet.exceptions import FMGUnhandledException
 from pyfortinet.fmg_api.firewall import InternetService
 from tests.firewall_lab_cases import (
     GROUP_CASES,
@@ -52,10 +53,14 @@ class TestFirewallObjects:
         loaded = (fmg.get(case.model(name=group.name))).first()
         assert set(loaded.member) == {first.name, second.name}
 
-        assert group.clone(name=clone.name)
-        cloned = (fmg.get(case.model(name=clone.name))).first()
-        assert set(cloned.member) == {first.name, second.name}
-        assert clone.delete()
+        if case.clone_error:
+            with pytest.raises(FMGUnhandledException, match=case.clone_error):
+                group.clone(name=clone.name)
+        else:
+            assert group.clone(name=clone.name)
+            cloned = (fmg.get(case.model(name=clone.name))).first()
+            assert set(cloned.member) == {first.name, second.name}
+            assert clone.delete()
         assert (fmg.get(case.model(name=clone.name))).first() is None
 
         group.member = [first.name]

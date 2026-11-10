@@ -8,6 +8,8 @@ Python field names use underscores; outgoing payloads use the documented API ali
 
 Verification uses the supplied schema and mocked transport. Live compatibility with FMG 7.6.7
 has not been verified. No configuration is installed by constructing these objects.
+Live scenarios passed on FMG 7.4.6 build 2588 for the five writable object types and the VIP/IPPool
+mappings. InternetService live lookups were skipped because that lab's catalog was empty.
 Sync and async lab scenarios are available in the
 [testing guide](../developer_guide/testing.md#additional_firewall_lab_scenarios).
 
@@ -118,13 +120,20 @@ fmg.add(pool)
 ## IP pool groups
 
 `IPPoolGroup` uses the schema's `firewall/ippool_grp` route, with an underscore. Members can be
-pool names or `IPPool` objects and serialize as names. The reference requires member pools to
-have the same attributes except their public/client ranges; FMG enforces that relationship.
+pool names or `IPPool` objects and serialize as names. Member pools must use
+`type="cgn-resource-allocation"`, have the same attributes except their public/client ranges,
+and belong to only one pool group. FMG enforces these relationships; the CGN type and exclusive
+membership requirements were verified on FMG 7.4.6 build 2588.
+Cloning a populated group attempts to reuse its pools and is rejected by that firmware.
 The group itself has no dynamic mapping in this reference; mappings belong to its member pools.
 
 ```python
 from pyfortinet.fmg_api.firewall import IPPoolGroup
 
-group = IPPoolGroup(name="outbound-pools", member=[pool, "another-pool"])
+pool = IPPool(
+    name="cgn-pool", type="cgn-resource-allocation", startip="203.0.113.10", endip="203.0.113.19",
+)
+fmg.add(pool)
+group = IPPoolGroup(name="outbound-pools", member=[pool])
 fmg.add(group)
 ```

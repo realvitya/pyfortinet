@@ -93,7 +93,8 @@ for the schema-backed firewall objects:
 | Objects | Coverage |
 |---------|----------|
 | ProxyAddress, VIP, IPPool | Add, read, update, refresh, set, delete, verify absence |
-| ProxyAddressGroup, IPPoolGroup | Owned members, add/read, clone, membership update/set, delete |
+| ProxyAddressGroup | Owned members, add/read, clone, membership update/set, delete |
+| IPPoolGroup | Owned CGN pools, add/read, exclusive-membership clone rejection, update/set, delete |
 | VIP, IPPool dynamic mappings | Add scoped override, read typed mapping, change override, remove mapping |
 | InternetService | Bounded read of one catalog record followed by a high-level ID-filtered lookup |
 
@@ -106,14 +107,21 @@ The catalog test makes no writes and skips explicitly if the Internet Service Da
 
 The implementation reference is FMG 7.6.7 with FortiOS 7.4 ADOM objects. The lab must support the
 selected endpoints and fields; older firmware or a missing feature may fail a scenario. These new
-scenarios have not yet been verified against a live device. After authorizing their object writes,
-run them serially:
+scenarios were exercised on FMG 7.4.6 build 2588. IP pool groups require CGN resource-allocation
+pools and reject cloning a populated group because pools cannot belong to two groups. The tests
+check that specific rejection and verify that no clone was created. FMG 7.6.7 itself remains
+unverified. After authorizing their object writes, run the scenarios serially:
 
 ```powershell
 uv run pytest tests/fmg/objects/test_firewall_extended.py tests/fmg/async/objects/test_async_firewall_extended.py --lab_config private/lab-config.yml -ra
 ```
 
 For collection without a lab connection, add `--collect-only` and use a nonexistent config path.
+
+The verified FMG 7.4.6 run completed with **14 passed and 2 skipped**: the catalog count was zero,
+so both InternetService lookups skipped. Cleanup verification found no remaining journaled objects,
+the five object-table name inventories matched their pre-run baseline, and ADOM `test` had no
+workspace lock records. No configuration was installed.
 
 ## Local transport checks
 
