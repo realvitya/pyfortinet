@@ -169,6 +169,8 @@ Configuration Database v7.4 Device Level Config** schema, including `mediatype`.
 Python names such as `snmp_index` and API names such as `snmp-index`, and writes API aliases.
 IPv6 settings, DHCP client options, secondary IP entries, tagging, and VRRP accept nested dictionaries
 and preserve their documented structure. Existing secondary-IP address shorthand remains supported.
+`dns_server_protocol` accepts either a single protocol string or an array from FMG and normalizes
+it to a list, preserving the schema's array shape when serialized.
 
 The reference uses the same interface object definition for GET responses and ADD/SET/UPDATE
 inputs and does not mark attributes read-only. Fields therefore remain optional, with no device

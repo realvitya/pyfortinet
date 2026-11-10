@@ -72,6 +72,38 @@ def test_interface_partial_reply_and_invalid_media():
         DeviceInterface(mediatype="invalid-media")
 
 
+@pytest.mark.parametrize("key", ["dns-server-protocol", "dns_server_protocol"])
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("cleartext", ["cleartext"]),
+        ("dot", ["dot"]),
+        ("doh", ["doh"]),
+        (["cleartext", "dot"], ["cleartext", "dot"]),
+        ([], []),
+        (None, None),
+    ],
+)
+def test_interface_dns_protocol_accepts_scalar_and_array(key, value, expected):
+    obj = DeviceInterface(**{key: value})
+    assert obj.dns_server_protocol == expected
+    payload = obj.model_dump(by_alias=True, exclude_none=True)
+    assert payload == ({"dns-server-protocol": expected} if expected is not None else {})
+
+
+@pytest.mark.parametrize("invalid", ["invalid", ["cleartext", "invalid"], 42])
+def test_interface_dns_protocol_rejects_invalid_values(invalid):
+    with pytest.raises(ValidationError):
+        DeviceInterface(dns_server_protocol=invalid)
+
+
+def test_get_interface_with_scalar_dns_protocol(client, post):
+    post.return_value = {"status": {"code": 0}, "data": [{"name": "port1", "dns-server-protocol": "cleartext"}]}
+    obj = resolve(client.get(DeviceInterface(device="FG01"))).first()
+    assert obj.dns_server_protocol == ["cleartext"]
+    assert obj.model_dump(by_alias=True, exclude_none=True) == {"name": "port1", "dns-server-protocol": ["cleartext"]}
+
+
 def test_get_preserves_new_interface_fields(client, post):
     payload = {
         "name": "port1",

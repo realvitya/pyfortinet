@@ -6,7 +6,7 @@ because the same models represent partial GET replies and ADD/SET/UPDATE payload
 
 from typing import Literal, Optional
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
 class InterfaceClientOptions(BaseModel):
@@ -980,6 +980,13 @@ class InterfaceFields(BaseModel):
         serialization_alias="dns-server-protocol",
         description="DNS transport protocols.",
     )
+
+    @field_validator("dns_server_protocol", mode="before")
+    @classmethod
+    def normalize_dns_server_protocol(cls, value: object) -> object:
+        """FMG may return a single protocol as a scalar instead of an array."""
+        return [value] if isinstance(value, str) else value
+
     drop_fragment: Optional[Literal["disable", "enable"]] = Field(
         None,
         validation_alias=AliasChoices("drop-fragment", "drop_fragment"),
