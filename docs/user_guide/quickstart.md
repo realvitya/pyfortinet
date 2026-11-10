@@ -82,7 +82,7 @@ functions:
 ??? example "F filter examples"
 
     ```python
-    --8<-- "tests/fmg/test_common.py"
+    --8<-- "tests/unit/common/test_common.py"
     ```
 
 ```python title="Short examples"

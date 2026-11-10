@@ -109,7 +109,8 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
 testpaths = [
-    "tests"
+    "tests/unit",
+    "tests/transport",
 ]
 
 [tool.ruff]

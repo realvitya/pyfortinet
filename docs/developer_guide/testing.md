@@ -1,5 +1,65 @@
 # Test guide
 
+## Test trees and PyCharm
+
+```text
+tests/
+  unit/                  # Offline tests, grouped by module
+    client/
+    common/
+    dynamic/
+    firewall/
+    lab_helpers/         # Cleanup infrastructure tested with mocks
+    policy/
+    system/
+    fixtures/            # Frozen schema references
+  transport/             # Offline loopback HTTP checks
+  lab/                   # Live FMG scenarios
+    sync/
+      objects/
+    async/
+      objects/
+    fixtures.py          # Function-scoped live connections
+    resources.py         # Ownership and compensating cleanup
+```
+
+Default pytest discovery selects `tests/unit` and `tests/transport`. Live connection fixtures and
+credential loading are confined to `tests/lab`; offline tests do not load the lab configuration.
+All paths below are relative to the repository root.
+
+```powershell
+uv sync --locked
+uv run pytest tests/unit tests/transport
+uv run pytest tests/unit/firewall
+uv run pytest tests/unit/firewall/test_service_ports.py
+uv run invoke test
+uv run invoke test --module unit
+```
+
+PyCharm loads shared configurations from `.run/`. The **Offline tests**, **Unit test files**, and
+**Firewall modules** folders provide combined, module-level, per-file, and per-firewall-family runs.
+The **Lab tests**, **Lab tests - sync**, and **Lab tests - async** folders target only the live tree.
+Configurations use the module's interpreter (the project's `.venv`) and the repository root as the
+working directory. Lab configurations pass `--lab_config private/lab-config.yml`; no configuration
+automatically enables the baseline installation tests. Reopen the project if the IDE has not yet
+refreshed the shared configuration list.
+
+The previous `.idea` state and test files were backed up locally under
+`private/pycharm-tests-backup-*` before replacement. This backup is gitignored and may contain
+local IDE settings. With PyCharm closed, restore its `.idea/workspace.xml` to recover the old local
+run entries, and move the generated `.run` directory aside if you want to hide the new shared entries.
+Non-test run configurations were preserved.
+
+After reviewing and authorizing the selected lab operations, run a live module or branch serially:
+
+```powershell
+uv run pytest tests/lab/sync/objects/test_firewall_extended.py --lab_config private/lab-config.yml -ra
+uv run invoke lab-test --module async
+```
+
+`invoke lab-test --baseline` additionally enables installation scenarios and requires the authorized
+baseline/restore procedure. `invoke test` runs offline checks only.
+
 ## Testing config file
 
 It is advisable to put all lab related configs and files to a separate folder which is not part of the GIT repository.
@@ -87,8 +147,8 @@ that the entire lab is restored after every failure.
 The following files contain 16 independent live scenarios (eight synchronous and eight asynchronous)
 for the schema-backed firewall objects:
 
-- `tests/fmg/objects/test_firewall_extended.py`
-- `tests/fmg/async/objects/test_async_firewall_extended.py`
+- `tests/lab/sync/objects/test_firewall_extended.py`
+- `tests/lab/async/objects/test_async_firewall_extended.py`
 
 | Objects | Coverage |
 |---------|----------|
@@ -113,7 +173,7 @@ check that specific rejection and verify that no clone was created. FMG 7.6.7 it
 unverified. After authorizing their object writes, run the scenarios serially:
 
 ```powershell
-uv run pytest tests/fmg/objects/test_firewall_extended.py tests/fmg/async/objects/test_async_firewall_extended.py --lab_config private/lab-config.yml -ra
+uv run pytest tests/lab/sync/objects/test_firewall_extended.py tests/lab/async/objects/test_async_firewall_extended.py --lab_config private/lab-config.yml -ra
 ```
 
 For collection without a lab connection, add `--collect-only` and use a nonexistent config path.

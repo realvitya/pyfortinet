@@ -16,6 +16,10 @@ uv run invoke --list
 uv build
 ```
 
+PyCharm configurations in `.run/` separate offline module/file runs from the live `tests/lab`
+tree. See the [test guide](testing.md) for the layout and commands. `uv run invoke test` runs
+offline checks; `uv run invoke lab-test` selects live scenarios explicitly.
+
 `uv sync` installs the project in editable mode. Commit `uv.lock` when dependency changes update it;
 use `uv sync --locked` to require the checked-in resolution. `uv sync --no-dev` installs runtime
 dependencies only; add `--extra async`, `--extra rich`, or `--extra all` as needed.
