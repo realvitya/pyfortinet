@@ -2,8 +2,10 @@
 
 Firewall objects live in the `pyfortinet/fmg_api/firewall/` package. Put related implementations
 in their domain module (`address.py`, `service.py`, `vip.py`, `ip_pool.py`, etc.) and expose public
-classes and type aliases through `firewall/__init__.py` using its explicit `__all__` list.
+classes through `firewall/__init__.py` using its explicit `__all__` list.
 Keep shared input normalization in `_values.py` and shared literal choices in `types.py`.
+Import literal choices from `firewall.types` and `PORT_RANGE_TYPE` from `firewall.service`;
+the package root exports classes only.
 Existing imports such as `from pyfortinet.fmg_api.firewall import Address` remain supported.
 
 As not all API calls are implemented, I'm happily accept help with your use case implemented here.

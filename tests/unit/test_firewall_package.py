@@ -41,10 +41,11 @@ def test_historical_pickle_class_paths_still_resolve(name):
     assert pickle.loads(historical_reference) is getattr(firewall, name)
 
 
-def test_literal_aliases_remain_public_and_port_ranges_still_normalize():
-    assert "ENABLE_DISABLE" in firewall.__all__
-    assert "ADDRESS_TYPE" in firewall.__all__
-    assert "PORT_RANGE_TYPE" in firewall.__all__
+def test_package_exports_only_classes_and_port_ranges_still_normalize():
+    assert all(isinstance(getattr(firewall, name), type) for name in firewall.__all__)
+    assert not hasattr(firewall, "ENABLE_DISABLE")
+    assert not hasattr(firewall, "ADDRESS_TYPE")
+    assert not hasattr(firewall, "PORT_RANGE_TYPE")
     service = firewall.ServiceCustom(tcp_portrange=firewall.PortRange(destination_end="443"))
     assert service.model_dump(by_alias=True, exclude_none=True) == {"tcp-portrange": ["443"]}
 

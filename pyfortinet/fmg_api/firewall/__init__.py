@@ -1,4 +1,4 @@
-"""Public firewall objects; existing imports remain available from this package."""
+"""Public firewall classes."""
 
 from pyfortinet.fmg_api.common import Scope
 
@@ -9,44 +9,17 @@ from .ip_pool_group import IPPoolGroup
 from .profile_group import ProfileGroup
 from .proxy_address import ProxyAddress, ProxyAddressHeaderGroup, ProxyAddressTagging
 from .proxy_address_group import ProxyAddressGroup, ProxyAddressGroupTagging
-from .service import PORT_RANGE_TYPE, PortRange, ServiceCategory, ServiceCustom, ServiceGroup
-from .types import (
-    ADDRESS_GROUP_CATEGORY,
-    ADDRESS_GROUP_TYPE,
-    ADDRESS_TYPE,
-    APP_SERVICE_TYPE,
-    CHECK_RESET_RANGE,
-    CLEARPASS_SPT,
-    DIRTY,
-    ENABLE_DISABLE,
-    HELPER,
-    OBJ_TYPE,
-    PROTOCOL,
-    SDN_ADDR_TYPE,
-    SUB_TYPE,
-)
+from .service import PortRange, ServiceCategory, ServiceCustom, ServiceGroup
 from .vip import VIP, VIPDynamicMapping
 
 __all__ = [
-    "ADDRESS_GROUP_CATEGORY",
-    "ADDRESS_GROUP_TYPE",
-    "ADDRESS_TYPE",
-    "APP_SERVICE_TYPE",
     "Address",
     "AddressGroup",
     "AddressTagging",
-    "CHECK_RESET_RANGE",
-    "CLEARPASS_SPT",
-    "DIRTY",
-    "ENABLE_DISABLE",
-    "HELPER",
     "IPPool",
     "IPPoolDynamicMapping",
     "IPPoolGroup",
     "InternetService",
-    "OBJ_TYPE",
-    "PORT_RANGE_TYPE",
-    "PROTOCOL",
     "PortRange",
     "ProfileGroup",
     "ProxyAddress",
@@ -54,8 +27,6 @@ __all__ = [
     "ProxyAddressGroupTagging",
     "ProxyAddressHeaderGroup",
     "ProxyAddressTagging",
-    "SDN_ADDR_TYPE",
-    "SUB_TYPE",
     "Scope",
     "ServiceCategory",
     "ServiceCustom",
