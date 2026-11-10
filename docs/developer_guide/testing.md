@@ -82,6 +82,39 @@ after a timeout can still leave state behind. Inspect reported resources and res
 needed. Do not rerun failed writes blindly. The new cleanup paths require live firmware verification before claiming
 that the entire lab is restored after every failure.
 
+## Additional firewall lab scenarios
+
+The following files contain 16 independent live scenarios (eight synchronous and eight asynchronous)
+for the schema-backed firewall objects:
+
+- `tests/fmg/objects/test_firewall_extended.py`
+- `tests/fmg/async/objects/test_async_firewall_extended.py`
+
+| Objects | Coverage |
+|---------|----------|
+| ProxyAddress, VIP, IPPool | Add, read, update, refresh, set, delete, verify absence |
+| ProxyAddressGroup, IPPoolGroup | Owned members, add/read, clone, membership update/set, delete |
+| VIP, IPPool dynamic mappings | Add scoped override, read typed mapping, change override, remove mapping |
+| InternetService | Bounded read of one catalog record followed by a high-level ID-filtered lookup |
+
+These tests refuse an ADOM other than `test`. Mapping scenarios require the existing `FG01` device,
+its `root` VDOM, and `port1` for the VIP interface override. They do not install configuration, create
+devices/ADOMs, change workspace mode, or modify pre-existing objects. Every created or cloned object
+is reserved with `lab` before its write. Member resources are registered before groups, so teardown
+removes references before their parents. Cleanup also runs after a failed assertion or partial write.
+The catalog test makes no writes and skips explicitly if the Internet Service Database is empty.
+
+The implementation reference is FMG 7.6.7 with FortiOS 7.4 ADOM objects. The lab must support the
+selected endpoints and fields; older firmware or a missing feature may fail a scenario. These new
+scenarios have not yet been verified against a live device. After authorizing their object writes,
+run them serially:
+
+```powershell
+uv run pytest tests/fmg/objects/test_firewall_extended.py tests/fmg/async/objects/test_async_firewall_extended.py --lab_config private/lab-config.yml -ra
+```
+
+For collection without a lab connection, add `--collect-only` and use a nonexistent config path.
+
 ## Local transport checks
 
 Run `uv run pytest tests/transport` to verify native HTTP timeouts against a temporary loopback-only TCP peer.

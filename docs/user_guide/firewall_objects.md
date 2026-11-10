@@ -8,6 +8,8 @@ Python field names use underscores; outgoing payloads use the documented API ali
 
 Verification uses the supplied schema and mocked transport. Live compatibility with FMG 7.6.7
 has not been verified. No configuration is installed by constructing these objects.
+Sync and async lab scenarios are available in the
+[testing guide](../developer_guide/testing.md#additional_firewall_lab_scenarios).
 
 ## Proxy addresses
 
