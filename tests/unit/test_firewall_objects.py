@@ -6,13 +6,15 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from pyfortinet.fmg_api.firewall import Address, ProxyAddress, ProxyAddressGroup
+from pyfortinet.exceptions import FMGWrongRequestException
+from pyfortinet.fmg_api.firewall import Address, InternetService, ProxyAddress, ProxyAddressGroup
 
 from .conftest import resolve
 
 CASES = [
     (ProxyAddress, "proxy_address", "proxy-address"),
     (ProxyAddressGroup, "proxy_address_group", "proxy-addrgrp"),
+    (InternetService, "internet_service", "internet-service"),
 ]
 
 
@@ -78,18 +80,24 @@ def test_get_preserves_fields_and_scope(client, post, case, scope):
 def test_write_routes(client, post, case, method, scope):
     model, filename, api_name = case
     post.return_value = {"status": {"code": 0}}
-    obj = model(name="example", fmg_scope=scope)
-    kwargs = {"name": "copy"} if method == "clone" else {}
+    identity = {"id": 1} if model is InternetService else {"name": "example"}
+    obj = model(**identity, fmg_scope=scope)
+    kwargs = ({"id": 2} if model is InternetService else {"name": "copy"}) if method == "clone" else {}
+    if model is InternetService and method not in ("set", "update"):
+        with pytest.raises(FMGWrongRequestException, match="GET, SET, and UPDATE"):
+            resolve(getattr(client, method)(obj, **kwargs))
+        post.assert_not_called()
+        return
     assert resolve(getattr(client, method)(obj, **kwargs)).success
     expected_scope = "global" if scope == "global" else "adom/" + scope
     url = "/pm/config/" + expected_scope + "/obj/firewall/" + api_name
-    if method != "add":
+    if method != "add" and model is not InternetService:
         url += "/example"
     sent = post.call_args.kwargs["request"]["params"][0]
     assert sent["url"] == url
     assert post.call_args.kwargs["request"]["method"] == method
     if method in ("add", "set", "update"):
-        assert sent["data"] == {"name": "example"}
+        assert sent["data"] == identity
     elif method == "clone":
         assert sent["data"] == {"name": "copy"}
 
@@ -114,3 +122,14 @@ def test_proxy_group_members_are_name_arrays():
     assert ProxyAddressGroup(member=None).model_dump(exclude_none=True) == {}
     assert "dynamic_mapping" not in ProxyAddressGroup.model_fields
     assert "dynamic_mapping" not in ProxyAddress.model_fields
+
+
+def test_internet_service_lookup_uses_id_filter(client, post):
+    service_id = 65536
+    post.return_value = {"status": {"code": 0}, "data": [{"id": service_id, "name": "example"}]}
+    service = resolve(client.get(InternetService(id=service_id))).first()
+    sent = post.call_args.kwargs["request"]["params"][0]
+    assert sent["url"] == "/pm/config/adom/root/obj/firewall/internet-service"
+    assert sent["filter"] == ["id", "==", service_id]
+    assert service.id == service_id
+    assert "dynamic_mapping" not in InternetService.model_fields
