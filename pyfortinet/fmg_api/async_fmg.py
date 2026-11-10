@@ -1,4 +1,4 @@
-"""FMG API for humans"""
+"""High-level FortiManager object API."""
 
 import logging
 from inspect import isclass
@@ -21,17 +21,21 @@ MULTI_REQUEST_ARG = Union[REQUEST_ARG, List[REQUEST_ARG]]
 
 
 class AsyncFMG(AsyncFMGBase):
-    """FMG API for humans
+    """High-level asynchronous FortiManager client.
 
-    Goal of this class to provide easy access to FMG features. This extends the base class capabilities with easy to use
-    methods.
+    Accepts configuration models and execution objects, constructs API requests, and returns
+    bound models from high-level GET operations. Dictionary requests remain supported for
+    endpoints without models. Use an authenticated connection context for object operations.
+
+    Install the async extra and await requests and operations on bound objects.
+    Constructing or binding an object with get_obj() does not require awaiting.
     """
 
     def __init__(self, settings: Optional[FMGSettings] = None, **kwargs):
-        """Initializes FMG
+        """Initialize the FortiManager client
 
         Args:
-            settings (Settings): FortiManager settings
+            settings (FMGSettings): Connection settings; when supplied, takes precedence over keyword settings
 
         Keyword Args:
             base_url (str): Base URL to access FMG (e.g.: https://myfmg)
@@ -74,55 +78,36 @@ class AsyncFMG(AsyncFMGBase):
         options: Optional[List[GetOption]] = None,
         **kwargs: Optional[Dict[str, str]]
     ) -> AsyncFMGResponse:
-        """Get info from FMG
-
-        If `request` is an `FMGObject` instance, it's initialized values will be considered as filters!
+        """Read objects from FortiManager.
 
         Args:
-            request: Get operation's data structure
-            scope: Scope where the object is searched (defaults to FMG setting on connection)
-            filters: Filter expression as text or using `F`
-            fields: Fields to return (default: None means all fields)
-            loadsub: Load sub objects
-            options: API request options
-
-        Examples:
-            ## Low-level - dict
-
-            ```pycon
-
-            >>> import asyncio
-            >>> address_request = {
-            ...    "url": "/pm/config/global/obj/firewall/address",
-            ...    "filter": [ ["name", "==", "test-address"] ],
-            ...    "fields": [ "name", "subnet" ]
-            ...}
-            >>> settings = {...}
-            >>> async def get_address(request: dict[str, Any]):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.get(address_request)
-            >>> asyncio.run(get_address())
-            ```
-
-            ## High-level - obj
-
-            ```pycon
-
-            >>> import asyncio
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> from pyfortinet.fmg_api.dvmdb import Device
-            >>> from pyfortinet.fmg_api.common import F
-            >>> settings = {...}
-            >>> async def get_info():
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         addresses = await fmg.get(Address, F(name__like="test-%") & F(subnet="test-subnet")).data
-            ...         devices_up = await fmg.get(Device(conn_status="up")).data
-            ...     return addresses, devices_up
-            >>> asyncio.run(get_info())
-            ```
+            request: Model class for a collection, initialized model for selection, or raw request dictionary.
+            filters: Filter expression as text or composed with F.
+            scope: Request scope; an explicit model scope takes precedence.
+            fields: API field names to request, or None for all fields.
+            loadsub: Request nested tables.
+            options: Additional API GET options.
 
         Returns:
-            (AsyncFMGResponse): response object with data
+            AsyncFMGResponse: High-level data contains bound models. A successful empty lookup
+            has an empty data list and first() returns None. Dictionary requests retain raw results.
+
+        Examples:
+            Use configured connection settings and handle an empty lookup:
+
+            ```python
+            from pyfortinet import AsyncFMG
+            from pyfortinet.fmg_api.common import F
+            from pyfortinet.fmg_api.firewall import Address
+
+            async with AsyncFMG(**config) as fmg:
+                response = await fmg.get(Address, F(name__like="server%"))
+                for address in response.data:
+                    print(address.name, address.subnet)
+                server = (await fmg.get(Address(name="server1"))).first()
+                if server is not None:
+                    print(server.name)
+            ```
         """
         # Call base function for base arguments
         if isinstance(request, dict):
@@ -163,53 +148,28 @@ class AsyncFMG(AsyncFMGBase):
 
     @error_handling
     async def add(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
-        """Add operation
-
-        Notes:
-            This method supports passing multiple objects as list
+        """Create configuration objects in FortiManager.
 
         Args:
-            request: Add operation's data structure or object
-
-        Examples:
-            ## Low-level - dict
-
-            ```pycon
-
-            >>> import asyncio
-            >>> settings = {...}
-            >>> address_request = {
-            ...     "url": "/pm/config/global/obj/firewall/address",
-            ...     "data": {
-            ...         "name": "test-address",
-            ...         "associated-interface": "inside",
-            ...         "obj-type": "ip",
-            ...         "type": "ipmask",
-            ...         "start-ip": "10.0.0.1/24"
-            ...     }
-            ... }
-            >>> async def add_request(request: dict[str,Any]):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.add(address_request)
-            >>> asyncio.run(add_request(address_request))
-            ```
-
-            ## High-level - obj
-
-            ```pycon
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
-            ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> async def add_request(addr):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.add(addr)
-            >>> asyncio.run(add_request(address))
-            ```
+            request: One model or dictionary, or a nonempty list containing only models or only dictionaries.
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            AsyncFMGResponse: Operation status; read the object separately to obtain its resulting configuration.
+
+        Notes:
+            This operation writes configuration. Models use API aliases and omit None values.
+            Empty lists are sent explicitly. Batch operations are not a transaction; partial writes
+            may remain after a failure. Check firmware semantics before using SET for a resource.
+
+        Examples:
+            Inside an open connection, with the appropriate target and permissions:
+
+            ```python
+            from pyfortinet.fmg_api.firewall import Address
+
+            address = Address(name="example-server", subnet="192.0.2.10/32")
+            response = await fmg.add(address)
+            ```
         """
         request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
@@ -224,45 +184,28 @@ class AsyncFMG(AsyncFMGBase):
 
     @error_handling
     async def delete(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
-        """Delete operation
-
-        Notes:
-            This method supports passing multiple objects as list
+        """Delete the identified configuration objects.
 
         Args:
-            request: dict or object to delete
-
-        Examples:
-            ## Low-level - dict
-
-            ```pycon
-
-            >>> import asyncio
-            >>> settings = {...}
-            >>> address_request = {
-            ...     "url": "/pm/config/global/obj/firewall/address/test-address",
-            ... }
-            >>> async def delete_address(address_request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         await fmg.delete(address_request)
-            >>> asyncio.run(delete_address(address_request))
-            ```
-
-            ## High-level - obj
-
-            ```pycon
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address")
-            >>> async def delete_address(addr):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.delete(addr)
-            >>> asyncio.run(delete_address(address))
-            ```
+            request: One model or dictionary, or a nonempty list containing only models or only dictionaries.
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            AsyncFMGResponse: Operation status; read the object separately to obtain its resulting configuration.
+
+        Notes:
+            This operation writes configuration. Models use API aliases and omit None values.
+            Empty lists are sent explicitly. Batch operations are not a transaction; partial writes
+            may remain after a failure. Check firmware semantics before using SET for a resource.
+
+        Examples:
+            Inside an open connection, with the appropriate target and permissions:
+
+            ```python
+            from pyfortinet.fmg_api.firewall import Address
+
+            address = Address(name="example-server")
+            response = await fmg.delete(address)
+            ```
         """
         request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
@@ -282,53 +225,28 @@ class AsyncFMG(AsyncFMGBase):
 
     @error_handling
     async def update(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
-        """Update operation
-
-        Notes:
-            This method supports passing multiple objects as list
+        """Update supplied non-null configuration fields.
 
         Args:
-            request: Update operation's data structure
-
-        Examples:
-            ## Low-level - dict
-
-            ```pycon
-
-            >>> import asyncio
-            >>> settings = {...}
-            >>> address_request = {
-            ...     "url": "/pm/config/global/obj/firewall/address",
-            ...     "data": {
-            ...         "name": "test-address",
-            ...         "associated-interface": "inside",
-            ...         "obj-type": "ip",
-            ...         "type": "ipmask",
-            ...         "start-ip": "10.0.0.1/24"
-            ...     }
-            ... }
-            >>> async def update_address(request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.update(request)
-            >>> asyncio.run(update_address(address_request))
-            ```
-
-            ## High-level - obj
-
-            ```pycon
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
-            ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> async def update_address(addr):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.update(addr)
-            >>> asyncio.run(update_address(address))
-            ```
+            request: One model or dictionary, or a nonempty list containing only models or only dictionaries.
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            AsyncFMGResponse: Operation status; read the object separately to obtain its resulting configuration.
+
+        Notes:
+            This operation writes configuration. Models use API aliases and omit None values.
+            Empty lists are sent explicitly. Batch operations are not a transaction; partial writes
+            may remain after a failure. Check firmware semantics before using SET for a resource.
+
+        Examples:
+            Inside an open connection, with the appropriate target and permissions:
+
+            ```python
+            from pyfortinet.fmg_api.firewall import Address
+
+            address = Address(name="example-server", comment="Application server")
+            response = await fmg.update(address)
+            ```
         """
         request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
@@ -343,53 +261,28 @@ class AsyncFMG(AsyncFMGBase):
 
     @error_handling
     async def set(self, request: MULTI_REQUEST_ARG) -> AsyncFMGResponse:
-        """Set operation
-
-        Notes:
-            This method supports passing multiple objects as list
+        """Submit a FortiManager SET operation for the supplied objects.
 
         Args:
-            request: Update operation's data structure
-
-        Examples:
-            ## Low-level - dict
-
-            ```pycon
-
-            >>> import asyncio
-            >>> settings = {...}
-            >>> address_request = {
-            ...     "url": "/pm/config/global/obj/firewall/address",
-            ...     "data": {
-            ...         "name": "test-address",
-            ...         "associated-interface": "inside",
-            ...         "obj-type": "ip",
-            ...         "type": "ipmask",
-            ...         "start-ip": "10.0.0.1/24"
-            ...     }
-            ... }
-            >>> async def set_address(request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.set(request)
-            >>> asyncio.run(set_address(address_request))
-            ```
-
-            ## High-level - obj
-
-            ```pycon
-
-            >>> from pyfortinet.fmg_api.firewall import Address
-            >>> settings = {...}
-            >>> address = Address(name="test-address", associated_interface="inside", obj_type="ip",
-            ...                   type="ipmask", start_ip="10.0.0.1/24")
-            >>> async def set_address(request):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         return await fmg.set(request)
-            >>> asyncio.run(set_address(address))
-            ```
+            request: One model or dictionary, or a nonempty list containing only models or only dictionaries.
 
         Returns:
-            (AsyncFMGResponse): Result of operation
+            AsyncFMGResponse: Operation status; read the object separately to obtain its resulting configuration.
+
+        Notes:
+            This operation writes configuration. Models use API aliases and omit None values.
+            Empty lists are sent explicitly. Batch operations are not a transaction; partial writes
+            may remain after a failure. Check firmware semantics before using SET for a resource.
+
+        Examples:
+            Inside an open connection, with the appropriate target and permissions:
+
+            ```python
+            from pyfortinet.fmg_api.firewall import Address
+
+            address = Address(name="example-server", subnet="192.0.2.10/32")
+            response = await fmg.set(address)
+            ```
         """
         request = prepare_batch(request, allow_objects=True)
         if isinstance(request[0], dict):  # dict input, low-level operation
@@ -420,14 +313,23 @@ class AsyncFMG(AsyncFMGBase):
     def get_obj(
         self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Any
     ) -> AnyFMGObject:
-        """Get an object and tie it to this FMG
+        """Construct or bind a local model to this client without an API request.
 
-        Arguments:
-            obj: Any type or instance of FMGObject or FMGExecObject
-            kwargs: fields for the new object initialization
+        Args:
+            obj: FMGObject or FMGExecObject class, or an existing instance.
+            **kwargs: Initialization fields when obj is a class; ignored for existing instances.
 
         Returns:
-            (AnyFMGObject): New object, tied to this FMG
+            AnyFMGObject: A new instance for a class argument, or the same bound instance for an object argument.
+
+        Examples:
+            This method is synchronous for both clients. Creating the model does not create the remote object:
+
+            ```python
+            from pyfortinet.fmg_api.firewall import Address
+
+            address = fmg.get_obj(Address, name="example-server", subnet="192.0.2.10/32")
+            ```
         """
         if isinstance(obj, (FMGObject, FMGExecObject)):
             obj._fmg = self
@@ -477,52 +379,24 @@ class AsyncFMG(AsyncFMGBase):
         return obj
 
     async def clone(self, request: REQUEST_ARG, *, create_task: bool = False, **new: str) -> AsyncFMGResponse:
-        """Clone an object
+        """Clone one configuration object using new identity values.
 
         Args:
-            request (dict|FMGObject): Object to clone or request dict
-            create_task (bool): Create background task and do not block here. Beware, that you must not close connection
-                                till task is finished, otherwise the task might fail. (use wait_for_task)
-            new (str): keys for new object
+            request: Source model or raw clone request dictionary.
+            create_task: Request a background task. Keep the connection open until it finishes.
+            **new: New identity fields, usually name, matching the model's master keys.
 
-        Note:
-            The object need to have _master_keys which is defining the base of cloning. Usually it's "name", but
-            it is possible to define multiple master keys for future use. All those will be passed to the API.
+        Returns:
+            AsyncFMGResponse: Clone operation status, with task metadata when provided by FortiManager.
 
-            This method does NOT support multiple requests in one call! Use low-level API if this is needed!
+        Examples:
+            Inside an open connection, clone an existing address to an unused name:
 
-        Example:
-            ## Low-level - dict
+            ```python
+            from pyfortinet.fmg_api.firewall import Address
 
-            ```pycon
-
-            >>> import asyncio
-            >>> settings = {...}
-            >>> clone_request = {
-            ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object
-            ...     "data": {
-            ....         "name": "clone-address",  # destination object
-            ... }
-            >>> async def clone_address(request):
-            ...     async with AsyncFMGBase(**settings) as fmg:
-            ...         await fmg.clone(request)
-            >>> asyncio.run(clone_address(clone_request))
+            response = await fmg.clone(Address(name="example-server"), name="example-server-copy")
             ```
-
-            ## High-level - obj
-
-            ```pycon
-
-            >>> from pyfortinet.fmg_api.dvmdb import ADOM
-            >>> settings = {...}
-            >>> async def clone_adom(name: str, new: str):
-            ...     async with AsyncFMG(**settings) as fmg:
-            ...         source_adom = fmg.get_obj(ADOM(name=name))
-            ...         result = await fmg.clone(source_adom, create_task=True, name=new)
-            ...         await result.wait_for_task()
-            >>> asyncio.run(clone_adom("root", "root-clone"))
-            ```
-
         """
         response = AsyncFMGResponse(fmg=self)
         if isinstance(request, dict):  # JSON input, low-level operation

@@ -8,21 +8,26 @@ from pydantic_settings import BaseSettings
 
 
 class FMGSettings(BaseSettings):
-    """Fortimanager settings
+    """Connection and resilience settings for FortiManager clients.
 
     Attributes:
-        base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
-        username (str): User to authenticate
-        password (str): Password for authentication
-        adom (str): ADOM to use for this connection
-        verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
-        timeout (float): Connect and read inactivity timeout per transport attempt, in seconds
-        retry_attempts (int): Maximum transport attempts for read requests, including the initial call
-        retry_delay (float): Initial retry delay in seconds
-        retry_backoff (float): Retry delay multiplier
-        retry_max_delay (float): Maximum retry delay in seconds
-        retry_jitter (bool): Randomize retry delays
-        raise_on_error (bool): Raise exception on error
+        base_url: FortiManager HTTPS URL; /jsonrpc is appended if absent.
+        username: Account with JSON-RPC API access.
+        password: Authentication password, stored as a Pydantic SecretStr.
+        adom: Selected ADOM or "global" for the Global Database. Defaults to "global".
+        verify: Verify TLS certificates. Defaults to True. REQUESTS_CA_BUNDLE applies to the sync transport.
+        timeout: Connect/read inactivity timeout per transport attempt, in seconds.
+        retry_attempts: Maximum transport attempts for read requests, including the initial call.
+        retry_delay: Initial retry delay in seconds.
+        retry_backoff: Retry delay multiplier.
+        retry_max_delay: Maximum retry delay in seconds.
+        retry_jitter: Randomize retry delays.
+        raise_on_error: Raise library exceptions for decorated API operations instead of failed responses.
+        discard_on_close: Skip workspace commits during close. Defaults to False.
+        discard_on_error: Skip workspace commits when an exception exits the context. Defaults to True.
+
+    Notes:
+        Discard settings do not reverse configuration installations or every device operation.
     """
 
     base_url: Annotated[HttpUrl, Field(description="Base URL to access FMG (e.g.: https://myfmg/jsonrpc)")]

@@ -1,6 +1,6 @@
 ---
 site_name: PyFortinet
-site_description: Python library for Fortinet API handling
+site_description: High-level Python objects for FortiManager automation
 site_author: Viktor Kertesz
 site_url: https://realvitya.github.io/pyfortinet/
 
@@ -45,16 +45,35 @@ extra_css:
 nav:
   - PyFortinet: index.md
   - User Guide:
-      - Quick Start Guide: user_guide/quickstart.md
+      - Quickstart: user_guide/quickstart.md
       - Installation: user_guide/installation.md
-      - Howto: user_guide/howto.md
+      - API Concepts: user_guide/api_concepts.md
+      - How-tos: user_guide/howto.md
       - Advanced Usage: user_guide/advanced_usage.md
-      - Firewall Objects: user_guide/firewall_objects.md
+      - Object Guides:
+          - Overview: user_guide/objects/index.md
+          - Firewall Objects:
+              - Overview: user_guide/firewall_objects.md
+              - Addresses and groups: user_guide/firewall/addresses.md
+              - Services: user_guide/firewall/services.md
+              - Security profiles: user_guide/firewall/profiles.md
+              - Proxy objects: user_guide/firewall/proxy.md
+              - Internet services: user_guide/firewall/internet_services.md
+              - Virtual IPs: user_guide/firewall/virtual_ips.md
+              - IP pools: user_guide/firewall/ip_pools.md
+              - Mapping scopes: user_guide/firewall/mapping_scopes.md
+          - Devices and ADOMs: user_guide/objects/dvmdb.md
+          - Policies and Packages: user_guide/objects/policy.md
+          - Normalized Interfaces: user_guide/objects/dynamic.md
+          - Device System Settings: user_guide/objects/system.md
+          - Device Operations: user_guide/objects/device_operations.md
+          - Tasks and Installation: user_guide/objects/tasks.md
   - Developer Guide:
-      - General guide: developer_guide/index.md
+      - Development Setup: developer_guide/index.md
       - Lab setup: developer_guide/lab_setup.md
-      - FMG API guide: developer_guide/fmg_api_objects.md
+      - Implementing API Objects: developer_guide/fmg_api_objects.md
       - Testing: developer_guide/testing.md
+      - Workspace Verification: developer_guide/workspace_verification.md
   - Code Reference: reference/
 
 plugins:

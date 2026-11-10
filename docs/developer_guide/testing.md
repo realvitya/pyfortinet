@@ -64,9 +64,9 @@ baseline/restore procedure. `invoke test` runs offline checks only.
 
 ## Testing config file
 
-It is advisable to put all lab related configs and files to a separate folder which is not part of the GIT repository.
-I used to use private folder which is excepted from GIT. In that folder you can store your config files. One of the most
-important config file is `lab-config.yml`. This file contains access to your lab environment.
+Store lab configuration and credentials in the gitignored `private/` directory.
+Keep `private/lab-config.yml` local and never include credentials in diagnostics or commits.
+Prefer certificate verification; set `verify: false` only when explicitly intended for the lab.
 
 Example of `lab-config.yml` file:
 
@@ -74,9 +74,9 @@ Example of `lab-config.yml` file:
 ---
 fmg:
   base_url: https://myfmg.co.com/
-  verify: false
+  verify: true
   username: admin
-  password: verysecret
+  password: "<lab-password>"
   adom: root
 ```
 

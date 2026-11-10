@@ -1,147 +1,75 @@
-# Fortinet Python library
+# pyfortinet
 
 [//]: # (--8<-- [start:intro])
 
-This project is a Python library for Fortinet products' REST API. Currently, only Fortimanager is supported, but
-extensions for various products are planned. Current state is rather a Proof of Concept.
+pyfortinet is a Python library for the FortiManager JSON-RPC API. Work with addresses, groups,
+services, policies, and other supported resources as Python objects. The library handles session
+authentication, request construction, and typed GET responses.
 
 ## Features
 
-* FMG API
-    * Low level API access via passing dict to various calls (add, get, set, update, exec)
-    * Automatic login (Currently, only user/password authentication is supported)
-    * Automatic locking in workspace mode (Currently, only ADOM locking is supported)
-    * High level API using all kind of objects (see some examples below)
-        * Only couple of objects are supported yet (being POC project), but extension is planned for most used functions!
-        * Task handling with waiting and callback function (to support progress bar, logging, etc.)
-    * Async code is supported
+- High-level configuration models with Pydantic validation and API field aliases.
+- Synchronous and asynchronous clients with consistent object operations.
+- ADOM workspace locking and connection cleanup.
+- Background task polling with progress callbacks.
+- Dictionary requests and low-level clients for endpoints without a model.
 
-### Planned features
-
-* FMG API
-    * Extended authentication capabilities (token, SAML)
-    * Extended locking capabilities to support object and package level locking and fallback feature to ADOM locking
-    * Proxy FortiOS API calls using objects of FortiOS API
-* FortiOS API
-    * Similar capabilities to FMG API
+Coverage is evolving. Check the code reference for available models and the target firmware's API
+reference for supported fields. Direct FortiGate connections, token/SAML authentication, and
+workflow session approval automation are not implemented.
 
 [//]: # (--8<-- [end:intro])
 
-## Quick examples
-
-### FMG
-
-```python
-from pyfortinet import FMG
-from pyfortinet.fmg_api.firewall import Address
-from pyfortinet.fmg_api.common import F
-
-config = {
-    "base_url": "https://myfmg.com",
-    "username": "myuser",
-    "password": "verysecret",
-    "adom": "root",
-    "verify": False
-}
-with FMG(**config) as fmg:
-    # create and assign new address object to FMG
-    server1 = fmg.get_obj(Address(name="server1", subnet="192.168.0.1/32"))
-    server1.add()
-    # get exact address object from FMG
-    server2 = fmg.get(Address(name="server2")).first()
-    print(server2.name)
-    # get list of address object from FMG
-    servers = fmg.get(Address, F(name__like="server%"))
-    print(servers.data)
-
-    # Low level call is also supported in case object was not available
-    address_request = {
-        "url": "/pm/config/adom/root/obj/firewall/address",
-        "filter": [["name", "==", "test-address"]],
-    }
-    result = fmg.get(address_request)
-    print(result.data["data"])
-```
-
-### AsyncFMG
-
-Async code is also supported via `AsyncFMG`. Intention is to support async frameworks like
-[FastAPI](https://fastapi.tiangolo.com/).
-
-```python
-import asyncio
-from pyfortinet import AsyncFMG
-from pyfortinet.fmg_api.firewall import Address
-from pyfortinet.fmg_api.common import F
-
-async def main():
-    config = {
-        "base_url": "https://myfmg.com",
-        "username": "myuser",
-        "password": "verysecret",
-        "adom": "root",
-        "verify": False
-    }
-    async with AsyncFMG(**config) as fmg:
-        # create and assign new address object to FMG
-        server1 = fmg.get_obj(Address(name="server1", subnet="192.168.0.1/32"))
-        await server1.add()
-        # get list of addresses from FMG and pick the first element
-        address = (await fmg.get(Address, F(name__like="test-firewall-addr%"))).first()
-        # update address object
-        address.subnet = "10.0.1.0/24"
-        result = await address.update()
-
-asyncio.run(main())
-```
-
-### FMGBase
-
-``FMGBase`` is a lower level API class which implements base functions. Purpose is to serve the inherited higher level
-classes like ``FMG``.
-
-```python
-from pyfortinet import FMGBase
-
-config = {
-    "base_url": "https://myfmg.com",
-    "username": "myuser",
-    "password": "verysecret",
-    "adom": "root",
-    "verify": False
-}
-with FMGBase(**config) as fmg:
-    ver = fmg.get_version()
-    print(ver)
-    
-    address_request = {
-        "url": f"/pm/config/adom/root/obj/firewall/address",
-        "filter": [["name", "==", "test-address"]],
-    }
-    result = fmg.get(address_request)
-    print(result.data["data"])
-```
-
-### Extending FMG capabilities
-
-It is possible to extend FMG capabilities by inheriting from this FMG class and adding custom methods to it.
-Please check [Fortimanager Template Sync](https://github.com/realvitya/fortimanager-template-sync) project for an
-example of how to do it!
-
 ## Installation
 
-The library can be installed via PIP from [PyPi](https://pypi.org/project/pyfortinet).
+Python 3.9 or later is required.
 
 ```shell
-# basic install
-pip install pyfortinet
-
-# install with async dependency
-pip isntall pyfortinet[async]
-
-# enable rich traceback
-pip install pyfortinet[rich]
-
-# simple install with all feature dependency
-pip install pyfortinet[all]
+python -m pip install pyfortinet
+# Optional asynchronous support:
+python -m pip install "pyfortinet[async]"
+# Both asynchronous support and Rich output:
+python -m pip install "pyfortinet[all]"
 ```
+
+## Read firewall addresses
+
+Set the example's environment variables for your FortiManager account and selected ADOM.
+The account needs JSON-RPC API access. TLS certificate verification is enabled by default.
+
+```python
+import os
+
+from pyfortinet import FMG
+from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.firewall import Address
+
+config = {
+    "base_url": os.environ["FMG_URL"],
+    "username": os.environ["FMG_USERNAME"],
+    "password": os.environ["FMG_PASSWORD"],
+    "adom": os.environ["FMG_ADOM"],
+}
+
+with FMG(**config) as fmg:
+    for address in fmg.get(Address, F(name__like="server%")).data:
+        print(address.name, address.subnet)
+```
+
+Use `async with FMG(**config) as fmg:` and `await fmg.get(...)` for asynchronous code.
+`AsyncFMG` is also available directly.
+
+## Documentation
+
+- [Quickstart](https://realvitya.github.io/pyfortinet/user_guide/quickstart/):
+  connect, read objects, and make a targeted update.
+- [API concepts](https://realvitya.github.io/pyfortinet/user_guide/api_concepts/):
+  move from JSON-RPC operations to high-level Python objects.
+- [How-tos](https://realvitya.github.io/pyfortinet/user_guide/howto/):
+  filtering, object lifecycle, groups, mappings, workspace locks, and installation tasks.
+- [Developer guide](https://realvitya.github.io/pyfortinet/developer_guide/):
+  setup, implementing models, testing, and documentation maintenance.
+
+If you use [How to FortiManager API](https://how-to-fortimanager-api.readthedocs.io/en/latest/),
+start with the API concepts page. That guide provides broad API context; pyfortinet's user guide
+shows workflows using the models implemented by this library.

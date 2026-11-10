@@ -1,102 +1,40 @@
-# Advanced usage / extension of the handler
+# Advanced usage
 
-It is possible to extend the FMG handler capabilities with custom methods. If the existing methods are not enough or
-seem too atomic, custom methods and behaviour can be attached to the handler.
+## Compose reusable workflows
 
-Here is an example why and how it can be done:
+Wrap high-level operations in application functions when a workflow needs several steps.
+Keep connection ownership with the caller and let failures propagate so the caller can handle them.
+The following function creates a new address and group; both names must be unused.
 
-## Adding human-readable actions
-
-Let's say we want to add more complex tasks as method to the handler itself so our code can be clean and focused on its
-task.
-
-```python title="mypkg/mymodule/myfmg.py"
+```python
 from pyfortinet import FMG
-from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.dvmcmd import DeviceTask
-from pyfortinet.fmg_api.policy import PolicyPackage, PackageSettings, Policy
+from pyfortinet.fmg_api.firewall import Address, AddressGroup
 
 
-class MyFMG(FMG):
-    """Extra actions for FortiManager"""
-    def create_firewall(self, name: str, address: str, serial: str) -> bool:
-        """This method creates a device along with a default firewall policy
-
-        Firewall will be deleted if existed before!
-
-        Notes:
-            This method may leave garbage after itself if exception is raised anywhere!
-
-        Arguments:
-            name (str): The name of the device
-            address (str): The IP address of the device
-            serial (str): The serial number of the device
-
-        Returns:
-            (bool): True if the device was created successfully, False otherwise
-        """
-        # sanity check
-        name = name.strip().upper()
-        try:
-            # create device
-            device: Device = Device(name=name, sn=serial, os_ver="7.0", mr=2, ip=address)
-            if existing_device:=self.get(device).first():
-                delete_job = DeviceTask(adom=self.adom, device=existing_device, action="del")
-                self.exec(delete_job)
-            job = DeviceTask(adom=self.adom, device=device)
-            result = self.exec(job)
-            status = result.wait_for_task()
-            if status != "done":
-                return False
-            fw: Device = self.get(Device(name=name)).first()
-            # create PolicyPackage
-            pp_settings = PackageSettings(fwpolicy_implicit_log="enable")
-            pp = self.get_obj(PolicyPackage, name=name, scope_member=[fw.get_vdom_scope("root")], package_settings=pp_settings)
-            pp.add()
-            pp.refresh()
-            default_policies = [
-                Policy(pkg=pp.name, name="Default explicit deny 1->2", srcaddr=["all"], dstaddr=["all"], srcintf=["port1"],
-                       dstintf=["port2"], action="deny", service=["ALL"], logtraffic="disable", schedule=["always"]),
-                Policy(pkg=pp.name, name="Default explicit deny 2->1", srcaddr=["all"], dstaddr=["all"], srcintf=["port2"],
-                       dstintf=["port1"], action="deny", service=["ALL"], logtraffic="disable", schedule=["always"])
-            ]
-            self.add(default_policies)
-            return True
-        except Exception:
-            return False
+def create_backend_group(fmg: FMG, name: str, subnet: str) -> AddressGroup:
+    address = Address(name=f"{name}-address", subnet=subnet)
+    fmg.add(address)
+    group = fmg.get_obj(AddressGroup, name=name, member=[address])
+    group.add()
+    return group
 ```
 
-Then your code is cleaner by simply calling the modified handler with custom method:
-
-```python title="mypkg/mymodule/app.py"
-from mymodule.myfmg import MyFMG
-import urllib3
-
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-conn_data = {
-    "base_url": "https://fmg",
-    "verify": False,
-    "username": "admin",
-    "password": "verysecret",
-    "adom": "root"
-}
-
-with MyFMG(**conn_data) as fmg:
-    fmg.create_firewall("mytestfw", "1.1.1.1", "FG100FTK22345678")
-```
+Call this function inside an open synchronous connection. These writes are separate operations:
+if group creation fails, the address may remain. Define cleanup or reconciliation for your
+application. Subclassing `FMG` is also possible, but custom synchronous methods are not converted
+to async methods by using an asynchronous context.
 
 ## Choosing sync or async context management
 
-`FMG` supports both connection context protocols:
+`FMG` supports both connection context protocols. Use the imports and `config` from the
+[quickstart](quickstart.md):
 
 ```python
-with FMG(**settings) as fmg:
+with FMG(**config) as fmg:
     addresses = fmg.get(Address).data
 
 async def read_addresses():
-    async with FMG(**settings) as fmg:
+    async with FMG(**config) as fmg:
         return (await fmg.get(Address)).data
 ```
 
@@ -133,27 +71,8 @@ if the last ADOM checked has workspace disabled.
 
 The Global Database does not use a workspace when global mode is `per-adom`, so automatic
 locking skips `global` in that mode. Under global `normal` and `workflow`, it requires locking.
-This behavior was verified on FMG 7.4.6 build 2588 by temporarily changing global mode and the
-`test` ADOM's workspace setting through all 12 combinations, reading both levels, and probing
-Global Database locks. All settings were restored, acquired locks released, and sessions logged out;
-no policy/object changes, configuration installs, or workspace commits were performed.
-
-| Global `workspace-mode` | Requested ADOM `workspace_mode` | Returned ADOM `workspace_mode` | Global lock result |
-|-------------------------|---------------------------------|--------------------------------|--------------------|
-| `disabled`              | 0, 1, or 2                      | 0                              | -9 (unavailable)   |
-| `normal`                | 0, 1, or 2                      | 1                              | 0 (success)        |
-| `workflow`              | 0, 1, or 2                      | 2                              | 0 (success)        |
-| `per-adom`              | 0, 1, or 2                      | Requested value                | -9 (unavailable)   |
-
-The ADOM metadata reports the effective mode, including global overrides. A lock-info record's
-`db_mode` is not a substitute: it reported 1 for a locked ADOM even under global `workflow`.
-Neither `/dvmdb/adom/global` nor `/dvmdb/adom/Global` returned metadata (status `-3`), and the
-ADOM inventory contained no Global Database entry. GET `/dvmdb/global/workspace/lockinfo`
-returned `-9` under `disabled` and `per-adom`, and succeeded under `normal` and `workflow`.
-The explicit Global Database rule comes from these controlled checks, not from treating arbitrary
-failed metadata reads as disabled workspace. Failed ordinary ADOM discovery still raises
-`FMGLockException`. Other firmware versions have not been verified against a device. See Fortinet's
-[workspace configuration guide](https://docs.fortinet.com/document/fortimanager/7.4.3/administration-guide/908521/enable-workspace-mode).
+See the [developer verification notes](../developer_guide/workspace_verification.md) for the
+recorded FMG 7.4.6 checks and firmware limitations.
 
 ## Selecting fields and scopes
 
@@ -198,6 +117,48 @@ failures until the polling timeout. Async callbacks may be functions or callable
 Failed task-creation responses and replies without task metadata are not polled; waiting returns `None`.
 When a status read returns a failed response, waiting also returns `None` without invoking the progress callback.
 
+During asynchronous polling, keep synchronous callbacks brief: long-running callbacks block the
+event loop and delay other coroutines. For callbacks that perform I/O, use an asynchronous
+function and await nonblocking operations.
+
+### Using callbacks while waiting
+
+To display the current completion percentage and latest log line:
+
+```python
+state = fmg.wait_for_task(task_id, callback=lambda percent, log: print(percent, log))
+```
+
+For a progress bar, install the optional Rich dependency with `pyfortinet[rich]` or
+`pyfortinet[all]`. This synchronous example uses the `config` from the [quickstart](quickstart.md)
+and installs device settings onto the selected firewall. Review pending configuration before
+running it, and replace `branch-fw` with the intended device name.
+
+```python
+from rich.progress import Progress
+
+from pyfortinet import FMG
+from pyfortinet.fmg_api.common import Scope
+from pyfortinet.fmg_api.securityconsole import InstallDeviceTask
+
+firewall = "branch-fw"
+with FMG(**config) as fmg:
+    task = fmg.get_obj(
+        InstallDeviceTask,
+        adom=fmg.adom,
+        scope=[Scope(name=firewall, vdom="root")],
+        flags=["auto_lock_ws"],
+    )
+    result = task.exec()
+    with Progress() as progress:
+        prog_task = progress.add_task(f"Installing settings on {firewall}", total=100)
+        state = result.wait_for_task(
+            callback=lambda percent, log: progress.update(prog_task, completed=percent)
+        )
+    if state != "done":
+        raise RuntimeError(f"Installation did not complete successfully: {state}")
+```
+
 ## Connection cleanup
 
 Malformed login replies and missing session tokens raise `FMGTokenException` in both clients.
@@ -224,10 +185,210 @@ Malformed JSON-RPC replies, including empty result lists and missing status code
 `FMGUnhandledException`. With `raise_on_error=False`, calls return a failed response instead. Successful
 GET results may still contain absent or null data; the result envelope must include a valid status code.
 
-## Combining filters
+## Filtering with F
 
-Filter combinations preserve nested expressions when using `&`, `|`, and `+`. Only adjacent filter
-lists with the same operator are flattened, so explicit grouping is retained.
+`F` builds the filter argument for high-level `FMG.get()` and `AsyncFMG.get()` calls.
+The same expressions work with both clients; only the request needs awaiting. Import the
+resource class and use an open connection configured as in the [quickstart](quickstart.md):
+
+```python
+from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.firewall import Address
+
+filters = F(name__like="server%") & F(type="ipmask")
+addresses = fmg.get(Address, filters=filters).data
+```
+
+Filters are sent to FortiManager, which evaluates them against the selected table. Local
+construction checks the operator syntax; it does not validate field names or establish that a
+particular firmware supports an operator for that field.
+
+### One condition and comparison operators
+
+Use `F(field=value)` for equality or `F(field__operator=value)` for an explicit comparison.
+Each `F` accepts one condition. Combine separate instances for multiple conditions.
+
+| Suffix | API operator | Example |
+| --- | --- | --- |
+| omitted or `eq` | `==` | `F(name="server1")` |
+| `neq` | `!=` | `F(type__neq="fqdn")` |
+| `lt`, `le` | `<`, `<=` | `F(color__lt=10)` |
+| `gt`, `ge` | `>`, `>=` | `F(color__ge=2)` |
+| `in` | `in` | `F(name__in=["server1", "server2"])` |
+| `contain` | `contain` | `F(member__contain="server1")` |
+| `like`, `not_like` | `like`, `!like` | `F(name__like="server%")` |
+| `glob`, `not_glob` | `glob`, `!glob` | `F(name__glob="server*")` |
+| `or` | `&` (bitwise test) | `F(flags__or=[3, 1])` |
+
+`in` compares a field with several candidate values; `contain` searches a list-valued field
+for a member. Choose a resource that exposes the field: for example, `member` belongs to an
+address group rather than an address.
+
+The legacy suffix `__or` maps to the API's bitwise `&`, not logical OR. The implementation
+comments describe one integer target as testing `(source & target) == 0`, and two targets as
+testing `(source & mask) == expected`. Verify the field and semantics against your firmware
+reference before using it. Use `|` between conditions for logical OR.
+
+Unknown suffixes and multiple conditions in one `F` raise `ValueError`. Values retain their
+Python types; a list expands into separate API targets:
+
+```python
+assert F(name="server1").generate() == ["name", "==", "server1"]
+assert F(name__in=["server1", "server2"]).generate() == [
+    "name", "in", "server1", "server2"
+]
+assert F(color__ge=2).generate() == ["color", ">=", 2]
+```
+
+### API field names and separators
+
+`F` does not look up a model's aliases. Its default `_sep="_"` preserves underscores.
+For API fields with dashes, set `_sep="-"`; a leading underscore is preserved:
+
+```python
+assert F(allow_routing="enable").generate() == ["allow_routing", "==", "enable"]
+assert F(allow_routing="enable", _sep="-").generate() == ["allow-routing", "==", "enable"]
+assert F(_image_base64__like="data%", _sep="-").generate() == [
+    "_image-base64", "like", "data%"
+]
+```
+
+For fields containing spaces or other characters that cannot appear in Python keyword names,
+pass the exact API name through a dictionary:
+
+```python
+assert F(**{"scope member__in": ["branch-fw"]}).generate() == [
+    "scope member", "in", "branch-fw"
+]
+```
+
+Use the endpoint's actual API spelling. For example, device inventory fields such as
+`conn_status` retain underscores.
+
+### AND, OR, and implicit OR lists
+
+Use `&` for AND, `|` for explicit OR, and `+` for the API's implicit OR list.
+Python `and` and `or` do not build filter expressions.
+
+```python
+assert (F(name="server1") | F(name="server2")).generate() == [
+    ["name", "==", "server1"], "||", ["name", "==", "server2"]
+]
+assert (F(name="server1") + F(name="server2")).generate() == [
+    ["name", "==", "server1"], ["name", "==", "server2"]
+]
+
+filters = (F(name="server1") | F(name="server2")) & F(type="ipmask")
+assert filters.generate() == [
+    [["name", "==", "server1"], "||", ["name", "==", "server2"]],
+    "&&",
+    ["type", "==", "ipmask"],
+]
+```
+
+Parenthesize mixed expressions: Python evaluates `+` before `&`, and `&` before `|`.
+Parentheses around adjacent expressions with the same operator may disappear because the
+builder flattens those lists. Different operators retain their nested structure.
+
+A tricky case from the tests combines protocol conditions with a null-or-zero check:
+
+```python
+from pyfortinet.fmg_api.firewall import ServiceCustom
+
+filters = (F(protocol="ICMP") & F(icmptype="8")) & (F(icmpcode=None) + F(icmpcode=0))
+assert filters.generate() == [
+    [["protocol", "==", "ICMP"], "&&", ["icmptype", "==", "8"]],
+    "&&",
+    [["icmpcode", "==", None], ["icmpcode", "==", 0]],
+]
+services = fmg.get(ServiceCustom, filters).data
+```
+
+Here `None` remains an explicit filter target; it is not omitted like a null field in a write
+payload. FortiManager decides whether a null comparison is meaningful for the selected field.
+
+### Negation and reusable conditions
+
+`~F(...)` negates one condition and returns a copy. Inverting it again removes the negation:
+
+```python
+online = F(conn_status="up")
+offline = ~online
+assert online.generate() == ["conn_status", "==", "up"]
+assert offline.generate() == ["!", "conn_status", "==", "up"]
+assert (~offline).generate() == online.generate()
+```
+
+Negation is implemented for individual `F` instances, not combined filter groups. To express
+NOT (A OR B), negate both conditions and join them with AND:
+
+```python
+filters = ~F(name="server1") & ~F(name="server2")
+```
+
+Use `~`, not Python `not`, which produces a boolean. Composition preserves existing
+expressions, so you can reuse a base condition without altering it.
+
+### Build a filter dynamically
+
+An empty `F()` can seed a nonempty sequence on the left of `|`, `&`, or `+`.
+Handle an empty input explicitly rather than generating or sending the empty seed:
+
+```python
+hosts = ["server1", "server2"]
+if not hosts:
+    addresses = []  # No requested names means no lookup in this application.
+else:
+    filters = F()
+    for host in hosts:
+        filters |= F(name=host)
+    addresses = fmg.get(Address, filters).data
+```
+
+Do not use the truth value of `F()` to test whether any conditions were added. Track the input
+or accumulated conditions explicitly.
+
+### Text filters
+
+High-level GET also accepts a text expression. Use the suffix names from the operator table,
+such as `eq` and `like`, with lowercase `and`, `or`, or a comma for implicit OR.
+Use `text_to_filter()` to inspect the generated structure without a connection:
+
+```python
+from pyfortinet.fmg_api.common import text_to_filter
+
+expression = "(name eq server1 or name eq server2) and type eq ipmask"
+filters = text_to_filter(expression)
+assert filters.generate() == (
+    (F(name="server1") | F(name="server2")) & F(type="ipmask")
+).generate()
+addresses = fmg.get(Address, expression).data
+
+assert text_to_filter("~name like host_%").generate() == ["!", "name", "like", "host_%"]
+assert text_to_filter("name eq server1, name eq server2").generate() == [
+    ["name", "==", "server1"], ["name", "==", "server2"]
+]
+```
+
+The parser is deliberately small. Values are single non-whitespace tokens and remain strings;
+it does not implement quoted values with spaces, Python lists, or numeric conversion.
+Prefer `F(comment="Application server")`, `F(color__ge=2)`, and `F(name__in=[...])` for those cases.
+
+Mixed unparenthesized text is parsed recursively from the right, rather than following Python's
+operator precedence. For example, `name eq server1 and type eq ipmask or type eq fqdn`
+groups as `name eq server1 and (type eq ipmask or type eq fqdn)`. Always use explicit parentheses
+when mixing operators. Malformed expressions raise `ValueError`.
+
+### Patterns and inspection
+
+The operator comments describe SQL-style `like` patterns: `%` matches any sequence of characters
+and `_` matches a single character. Thus `host_%` does not mean a literal underscore.
+`glob` uses case-sensitive Unix-style patterns, such as `host-*`.
+Use equality for a literal name containing wildcard characters.
+
+Call `.generate()` to inspect grouping, field spelling, and value types. It only builds a local
+list and makes no request. The examples above follow the offline common/filter composition
+tests; endpoint-specific matching still requires a compatible FortiManager.
 
 ## Custom service port ranges
 

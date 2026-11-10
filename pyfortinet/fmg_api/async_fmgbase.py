@@ -242,14 +242,14 @@ class AsyncFMGLockContext:
         return result
 
     async def commit_changes(self, adoms: Optional[list] = None, aux: bool = False) -> list[AsyncFMGResponse]:
-        """Apply workspace changes in the DB
+        """Commit workspace changes in FortiManager's database.
 
         Args:
-            adoms: list of ADOMs to commit. If empty, commit ALL ADOMs.
-            aux:
+            adoms: ADOM names to commit. If omitted or empty, use the ADOMs locked by this client.
+            aux: Use the policy/object database workspace commit route.
 
         Returns:
-            (list[FMGResponse]): List of response of operations
+            list: Responses for the commit operations. This does not install configuration onto devices.
         """
         results = []
         if not adoms:
@@ -890,33 +890,23 @@ class AsyncFMGBase:
         timeout: int = 60,
         loop_interval: int = 2,
     ) -> Union[str, None]:
-        """Wait for task to finish
+        """Poll a FortiManager task until it reaches a terminal state.
 
         Args:
-            task_res: (int, AsyncFMGResponse): Task or task ID to check
-            callback: (Callable[[int, str], None]): function to call in each iteration.
-                                              It must accept 2 args which are the current percentage and latest log line
-            timeout: (int): timeout for waiting in seconds
-            loop_interval: (int): interval between task status updates in seconds
+            task_res: Task ID or a response containing task metadata.
+            callback: Optional callable receiving the completion percentage and latest log line.
+            timeout: Polling timeout in seconds.
+            loop_interval: Delay between status reads in seconds.
 
-        Example:
-            ```pycon
+        Returns:
+            str or None: Terminal task state, or None if no task can be polled or a status read fails.
+            Check for "done" before treating the task as completed successfully.
 
-            >>> import asyncio
-            >>> from pyfortinet.fmg_api.dvmcmd import DeviceTask
-            >>> from pyfortinet.fmg_api.dvmdb import Device
-            >>> from rich.progress import Progress
-            >>> settings = {...}
-            >>> test_device = Device(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
-            >>> async def add_device(device: Device):
-            ...     async with AsyncFMGBase(**settings) as fmg:
-            ...         task = DeviceTask(adom=fmg.adom, device=device)
-            ...         result = await fmg.exec(task)
-            ...         with Progress() as progress:
-            ...             prog_task = progress.add_task(f"Adding device {device.name}", total=100)
-            ...             update_progress = lambda percent, log: progress.update(prog_task, percent)
-            ...             await result.wait_for_task(callback=update_progress)
-            >>> asyncio.run(add_device(test_device))
+        Examples:
+            Inside an open connection, use a task ID returned by an earlier execution request:
+
+            ```python
+            state = await fmg.wait_for_task(task_id, callback=lambda percent, log: print(percent, log))
             ```
         """
         task_id = task_id_from_response(task_res)
