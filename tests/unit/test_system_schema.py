@@ -147,3 +147,33 @@ def test_admin_add_uses_password_alias_and_vdom_names(client, post):
     request = post.call_args.kwargs["request"]["params"][0]
     assert request["data"] == {"name": "example", "old-password": ["test-only"], "vdom": ["root"]}
     assert "test-only" not in repr(obj)
+
+
+@pytest.mark.parametrize(
+    "query, expected_url",
+    [
+        (DeviceInterface(device="FG01"), "/pm/config/device/FG01/global/system/interface/returned"),
+        (SystemAdmin(device="FG01"), "/pm/config/device/FG01/global/system/admin/returned"),
+        (DeviceZone(device="FG01", vdom="custom"), "/pm/config/device/FG01/vdom/custom/system/zone/returned"),
+    ],
+)
+def test_returned_system_objects_retain_write_url_context(client, post, query, expected_url):
+    post.return_value = {"data": [{"name": "returned"}], "status": {"code": 0}}
+    obj = resolve(client.get(query)).first()
+    assert obj.device == "FG01"
+    assert obj.get_url(method="update") == expected_url
+    assert obj.model_dump(by_alias=True, exclude_none=True) == {"name": "returned"}
+    post.return_value = {"status": {"code": 0}}
+    assert resolve(obj.update()).success
+    outgoing = post.call_args.kwargs["request"]["params"][0]
+    assert outgoing == {"url": expected_url, "data": {"name": "returned"}}
+
+
+def test_get_does_not_copy_interface_selector_or_config_filters(client, post):
+    request = DeviceInterface(device="FG01", fmg_interface="selected", alias="filter")
+    post.return_value = {"data": [{"name": "returned"}], "status": {"code": 0}}
+    obj = resolve(client.get(request)).first()
+    assert obj.device == "FG01"
+    assert obj.fmg_interface is None
+    assert obj.alias is None
+    assert obj.get_url(method="update").endswith("/returned")

@@ -63,3 +63,17 @@ def prepare_refresh(obj):
         if name in obj.master_keys.values() or (definition.exclude and getattr(obj, name) is not None)
     }
     return type(obj)(**fields, fmg_scope=obj.fmg_scope)
+
+
+def response_url_fields(request):
+    """Carry URL-only parent parameters omitted by configuration GET replies."""
+    if not isinstance(request, FMGObject):
+        return {}
+    return {
+        name: getattr(request, name)
+        for name, definition in type(request).model_fields.items()
+        if definition.exclude
+        and f"{{{name}}}" in request._url
+        and not request._url.endswith(f"/{{{name}}}")
+        and getattr(request, name) is not None
+    }

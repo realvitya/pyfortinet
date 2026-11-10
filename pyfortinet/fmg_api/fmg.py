@@ -12,7 +12,7 @@ from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.fmg_api.fmgbase import FMGBase, FMGResponse, auth_required, error_handling
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
-from pyfortinet.fmg_api._requests import prepare_batch, prepare_get, prepare_refresh
+from pyfortinet.fmg_api._requests import prepare_batch, prepare_get, prepare_refresh, response_url_fields
 
 if TYPE_CHECKING:
     from pyfortinet.fmg_api.async_fmg import AsyncFMG
@@ -193,13 +193,14 @@ class FMG(FMGBase):
         # construct object list
         objects = []
         obj_class = type(request) if isinstance(request, FMGObject) else request
+        url_fields = response_url_fields(request)
         values = api_result.get("data")
         if values is None:
             values = []
         elif not isinstance(values, list):
             values = [values]
         for value in values:
-            objects.append(obj_class(**value, fmg_scope=object_scope, fmg=self))
+            objects.append(obj_class(**{**url_fields, **value}, fmg_scope=object_scope, fmg=self))
         result.data = objects
         result.success = True
         return result

@@ -175,6 +175,9 @@ inputs and does not mark attributes read-only. Fields therefore remain optional,
 defaults injected into writes; a partial GET response does not need every configuration attribute.
 `device` and `fmg_interface` locate the object and are excluded from its configuration payload.
 The interface's API identity is `name`; `interface` is a separate parent-interface reference.
+GET replies retain URL-only parent parameters from the request, including `device` and a zone's
+`vdom`, so returned objects can be updated or refreshed without supplying those parameters again.
+Request filters and terminal object selectors are not copied into returned configuration data.
 Platform-specific availability still depends on the managed FortiGate. The schema targets FortiOS
 7.4 on FMG 7.6.7; it is not evidence that every attribute exists on every 7.4 device or older FMG.
 
