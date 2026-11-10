@@ -27,3 +27,18 @@ fmg.add(address)
 ```
 
 The reference defines no proxy-address dynamic mapping; none is added by this client.
+
+## Proxy address groups
+
+`ProxyAddressGroup` uses `firewall/proxy-addrgrp`. Members can be names or named objects and
+serialize as name arrays. `type` accepts `src` or `dst`. An omitted member field leaves it out
+of a write; `member=[]` explicitly sends an empty array. Tagging rows are supported.
+
+```python
+from pyfortinet.fmg_api.firewall import ProxyAddressGroup
+
+group = ProxyAddressGroup(name="example-sites", type="dst", member=[address])
+fmg.add(group)
+```
+
+The reference defines no proxy-address-group dynamic mapping.

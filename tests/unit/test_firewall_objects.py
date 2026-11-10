@@ -6,11 +6,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from pyfortinet.fmg_api.firewall import Address, ProxyAddress
+from pyfortinet.fmg_api.firewall import Address, ProxyAddress, ProxyAddressGroup
 
 from .conftest import resolve
 
-CASES = [(ProxyAddress, "proxy_address", "proxy-address")]
+CASES = [
+    (ProxyAddress, "proxy_address", "proxy-address"),
+    (ProxyAddressGroup, "proxy_address_group", "proxy-addrgrp"),
+]
 
 
 def reference(filename):
@@ -102,3 +105,12 @@ def test_proxy_address_references_and_switches():
         ProxyAddress(host=Address())
     with pytest.raises(ValidationError):
         ProxyAddress(type="invalid")
+
+
+def test_proxy_group_members_are_name_arrays():
+    group = ProxyAddressGroup(member=[ProxyAddress(name="first"), "second"], type="dst")
+    assert group.model_dump(exclude_none=True) == {"member": ["first", "second"], "type": "dst"}
+    assert ProxyAddressGroup(member=[]).model_dump(exclude_none=True) == {"member": []}
+    assert ProxyAddressGroup(member=None).model_dump(exclude_none=True) == {}
+    assert "dynamic_mapping" not in ProxyAddressGroup.model_fields
+    assert "dynamic_mapping" not in ProxyAddress.model_fields
