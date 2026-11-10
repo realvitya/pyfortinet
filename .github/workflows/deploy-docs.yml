@@ -13,6 +13,7 @@ on:
       - "uv.lock"
       - "tasks.py"
       - "tests/unit/common/test_docs_generation.py"
+      - "tests/unit/common/test_docs_workflow.py"
       - ".github/workflows/deploy-docs.yml"
   pull_request:
     paths:
@@ -24,6 +25,7 @@ on:
       - "uv.lock"
       - "tasks.py"
       - "tests/unit/common/test_docs_generation.py"
+      - "tests/unit/common/test_docs_workflow.py"
       - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
 
@@ -32,7 +34,7 @@ permissions:
 
 concurrency:
   group: docs-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -48,28 +50,28 @@ jobs:
           enable-cache: false
       - name: Install locked dependencies
         run: uv sync --locked
-      - name: Test reference generation
-        run: uv run pytest tests/unit/common/test_docs_generation.py
+      - name: Test documentation tooling
+        run: uv run pytest tests/unit/common/test_docs_generation.py tests/unit/common/test_docs_workflow.py
       - name: Build documentation and API reference
         run: uv run invoke docs
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
+      # A deploy-key push triggers branch-based Pages publishing. GITHUB_TOKEN
+      # pushes do not trigger a Pages build, so do not substitute github_token here.
+      - name: Check publishing credentials
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        env:
+          DOCS_DEPLOY_KEY: ${{ secrets.DOCS_DEPLOY_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$DOCS_DEPLOY_KEY" ]; then
+            echo "::error::Configure the DOCS_DEPLOY_KEY repository secret before publishing."
+            exit 1
+          fi
+      - name: Publish generated site to gh-pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: site
-
-  deploy:
-    name: Deploy documentation
-    if: github.event_name != 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/configure-pages@v6
-      - name: Deploy Pages artifact
-        id: deployment
-        uses: actions/deploy-pages@v5
+          deploy_key: ${{ secrets.DOCS_DEPLOY_KEY }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          force_orphan: false
+          keep_files: false

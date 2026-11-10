@@ -73,20 +73,52 @@ uv run python docs/gen_ref_pages.py
 uv run zensical build --strict
 ```
 
-Keep `mkdocs.yml`: Zensical supports that configuration format. The `classic` theme variant
-preserves the Material appearance. Search, cross-references, section indexes, and literate
-navigation use Zensical's compatibility implementations; `gen-files` is no longer used.
+Keep `mkdocs.yml`: Zensical supports that configuration format. This project uses the `modern`
+theme variant. The `classic` variant is available for sites that prefer the previous Material
+appearance; it is not required for this project.
+
+Both variants share the same HTML structure. Changing the variant does not change page URLs,
+API identifiers, Python requirements, or the publishing workflow. The project's custom CSS
+still applies, but check desktop and mobile layouts after theme changes or upgrades because
+visual styling can differ. See the [Zensical theme variant guidance](https://zensical.org/docs/compatibility/mkdocs/migration/#theme-variant).
+
+Search, cross-references, section indexes, and literate navigation use Zensical's compatibility
+implementations; `gen-files` is no longer used.
 The old Invoke task names `mkdocs` and `mkdocs-serve` remain aliases. The old
 `--push-to-github` flag is removed; local documentation commands do not deploy.
 
 ### GitHub Pages
 
-The documentation workflow builds pull requests and uploads a site artifact. Pushes to `master`
-and manual workflow runs also deploy it using the official Pages actions. Changes to docstrings,
-Markdown, configuration, dependencies, and documentation tasks all trigger a build.
-Before the first deployment, configure the repository's **Settings ? Pages ? Source** to
-**GitHub Actions**. This migration does not change that remote setting automatically.
-See the [Zensical publishing guide](https://zensical.org/docs/publish-your-site/).
+The documentation workflow builds source on Python 3.11 and validates pull requests. Pushes to
+`master`, and manual runs selecting `master`, publish the generated `site/` contents to the
+`gh-pages` branch. Pull requests and manual runs on other branches only build and test; they
+cannot execute the credential or publication steps. Publication preserves the branch history
+while replacing obsolete generated files. The publishing action adds `.nojekyll` to bypass Jekyll.
+
+`gh-pages` remains generated output, not a source checkout. GitHub's branch-based Pages workflow
+publishes that branch. Keep the `github-pages` environment restricted to `gh-pages`; the source
+build job does not enter that environment or deploy an artifact directly from `master`.
+
+Configure the repository before publishing:
+
+1. In **Settings > Pages > Build and deployment**, select **Deploy from a branch**, then
+   **gh-pages** and **/(root)**. Do not select **GitHub Actions** for this branch-output workflow.
+2. In **Settings > Environments > github-pages**, keep the existing `gh-pages` deployment rule.
+3. Create a dedicated SSH deploy key following the
+   [publishing action's key setup instructions](https://github.com/peaceiris/actions-gh-pages#%EF%B8%8F-create-ssh-deploy-key).
+   Add its public key under **Settings > Deploy keys** with **Allow write access**. Store its
+   private key under **Settings > Secrets and variables > Actions > Repository secrets** as
+   `DOCS_DEPLOY_KEY`. Keep the key files outside the repository and never include the private key
+   in logs or commits. A deploy key grants write access to this repository, not just `gh-pages`;
+   repository rules must permit its publishing push.
+4. If Actions are restricted, allow `actions/checkout`, `astral-sh/setup-uv`, and
+   `peaceiris/actions-gh-pages`. No broader default `GITHUB_TOKEN` write permission is needed.
+
+A deploy key is used because GitHub documents that pushes made with `GITHUB_TOKEN` do not
+trigger a Pages build. This workflow makes a normal authenticated push, allowing GitHub's
+Pages publisher to deploy from the permitted branch. See
+[GitHub's publishing-source documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+Remote Pages settings and credentials are not changed by editing or locally testing this workflow.
 
 ### Documentation sources
 
