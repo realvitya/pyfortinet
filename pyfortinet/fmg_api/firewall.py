@@ -10,6 +10,9 @@ from more_itertools import first
 from pydantic import Field, field_validator, AliasChoices, BaseModel, field_serializer, model_validator
 
 from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddress as ProxyAddress
+from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressHeaderGroup as ProxyAddressHeaderGroup
+from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressTagging as ProxyAddressTagging
 from pyfortinet.fmg_api.common import Scope
 
 ADDRESS_GROUP_TYPE = Literal["default", "array", "folder"]
