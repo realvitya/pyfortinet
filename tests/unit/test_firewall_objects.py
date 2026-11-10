@@ -7,7 +7,15 @@ import pytest
 from pydantic import ValidationError
 
 from pyfortinet.exceptions import FMGWrongRequestException
-from pyfortinet.fmg_api.firewall import Address, InternetService, ProxyAddress, ProxyAddressGroup
+from pyfortinet.fmg_api.common import Scope
+from pyfortinet.fmg_api.firewall import (
+    VIP,
+    Address,
+    InternetService,
+    ProxyAddress,
+    ProxyAddressGroup,
+    VIPDynamicMapping,
+)
 
 from .conftest import resolve
 
@@ -15,7 +23,9 @@ CASES = [
     (ProxyAddress, "proxy_address", "proxy-address"),
     (ProxyAddressGroup, "proxy_address_group", "proxy-addrgrp"),
     (InternetService, "internet_service", "internet-service"),
+    (VIP, "vip", "vip"),
 ]
+MAPPING_CASES = [(VIPDynamicMapping, "vip", "vip.dynamic_mapping")]
 
 
 def reference(filename):
@@ -38,7 +48,7 @@ def sample(schema, definitions):
 
 
 def schema_fields():
-    for model, filename, api_name in CASES:
+    for model, filename, api_name in [*CASES, *MAPPING_CASES]:
         spec = reference(filename)
         for name, definition in spec["definitions"]["pm.config.firewall." + api_name]["properties"].items():
             yield pytest.param(model, name, definition, spec["definitions"], id=model.__name__ + ":" + name)
@@ -52,7 +62,7 @@ def test_schema_fields_round_trip(model, name, definition, definitions):
     for value in values:
         obj = model.model_validate({name: value})
         assert obj.model_dump(by_alias=True, exclude_none=True) == {name: value}
-        python_name = name.lstrip("_").replace("-", "_")
+        python_name = "mapping__scope" if name == "_scope" else name.lstrip("_").replace("-", "_")
         assert model(**{python_name: value}).model_dump(by_alias=True, exclude_none=True) == {name: value}
     assert model(**{name: None}).model_dump(by_alias=True, exclude_none=True) == {}
 
@@ -133,3 +143,42 @@ def test_internet_service_lookup_uses_id_filter(client, post):
     assert sent["filter"] == ["id", "==", service_id]
     assert service.id == service_id
     assert "dynamic_mapping" not in InternetService.model_fields
+
+
+def test_vip_mapping_keeps_mapping_specific_fields(client, post):
+    mapping = VIPDynamicMapping(
+        mapping__scope=Scope(name="FG01", vdom="root"),
+        extintf="wan2",
+        extip="203.0.113.2",
+        mappedip="192.0.2.2",
+        vip_id=7,
+        realservers=[{"id": 1, "ip": "192.0.2.3", "seq": 10}],
+    )
+    vip = VIP(name="web", extintf="wan1", dynamic_mapping=mapping)
+    payload = vip.model_dump(by_alias=True, exclude_none=True)
+    assert payload["extintf"] == ["wan1"]
+    expected_mapping = {
+        "_scope": [{"name": "FG01", "vdom": "root"}],
+        "extintf": "wan2",
+        "extip": ["203.0.113.2"],
+        "mappedip": ["192.0.2.2"],
+        "vip-id": 7,
+        "realservers": [{"id": 1, "ip": "192.0.2.3", "seq": 10}],
+    }
+    assert payload["dynamic_mapping"] == [expected_mapping]
+    post.return_value = {"status": {"code": 0}}
+    assert resolve(client.add(vip)).success
+    assert post.call_args.kwargs["request"]["params"][0]["data"]["dynamic_mapping"] == [expected_mapping]
+    assert VIP(dynamic_mapping=[]).model_dump(exclude_none=True) == {"dynamic_mapping": []}
+    assert VIP().model_dump(exclude_none=True) == {}
+    assert "mapping__scope" not in VIP.model_fields
+    assert "name" not in VIPDynamicMapping.model_fields
+
+
+def test_vip_metadata_variables_are_preserved():
+    vip = VIP(extip="$(public_ip)", mappedip="$(backend_ip)", mappedport="$(service_port)")
+    assert vip.model_dump(exclude_none=True) == {
+        "extip": ["$(public_ip)"],
+        "mappedip": ["$(backend_ip)"],
+        "mappedport": "$(service_port)",
+    }
