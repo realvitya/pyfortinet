@@ -1,6 +1,8 @@
 """Shared IDE configurations keep offline and lab targets separate."""
 
 import json
+import re
+import shlex
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -16,6 +18,7 @@ def test_run_configuration_targets_and_scope(path):
     options = {item.get("name"): item.get("value") for item in configuration.findall("option")}
     target = json.loads(options["_new_target"])
     arguments = json.loads(options["_new_additionalArguments"])
+    argument_tokens = shlex.split(arguments)
     assert options["WORKING_DIRECTORY"] == "$PROJECT_DIR$"
     assert json.loads(options["_new_targetType"]) == "PATH"
     relative_target = target.removeprefix("$PROJECT_DIR$/")
@@ -23,14 +26,27 @@ def test_run_configuration_targets_and_scope(path):
     assert options["IS_MODULE_SDK"] == "true"
     if relative_target.startswith("tests/lab"):
         assert "--lab_config private/lab-config.yml" in arguments
-        assert "--run-baseline-tests" not in arguments
+        if "--run-baseline-tests" in argument_tokens:
+            assert re.search(r"\bbaseline\b", configuration.get("name", ""), re.IGNORECASE), (
+                "Configurations enabling baseline tests must say baseline in their display name"
+            )
     else:
         assert relative_target.startswith(("tests/unit", "tests/transport"))
         assert "--lab_config" not in arguments
         assert "tests/lab" not in arguments
+        assert "--run-baseline-tests" not in argument_tokens
 
 
 def test_shared_configuration_set_is_present():
     assert CONFIGURATIONS
-    assert (ROOT / ".run/offline_all.run.xml").is_file()
-    assert (ROOT / ".run/lab_all.run.xml").is_file()
+    targets = []
+    for path in CONFIGURATIONS:
+        configuration = ElementTree.parse(path).getroot().find("configuration")
+        options = {item.get("name"): item.get("value") for item in configuration.findall("option")}
+        target = json.loads(options["_new_target"])
+        arguments = shlex.split(json.loads(options["_new_additionalArguments"]))
+        targets.append((target, arguments))
+    assert any(target == "$PROJECT_DIR$/tests/unit" for target, _ in targets)
+    assert any(
+        target == "$PROJECT_DIR$/tests/lab" and "--run-baseline-tests" not in arguments for target, arguments in targets
+    )

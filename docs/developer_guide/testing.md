@@ -40,8 +40,10 @@ PyCharm loads shared configurations from `.run/`. The **Offline tests**, **Unit 
 **Firewall modules** folders provide combined, module-level, per-file, and per-firewall-family runs.
 The **Lab tests**, **Lab tests - sync**, and **Lab tests - async** folders target only the live tree.
 Configurations use the module's interpreter (the project's `.venv`) and the repository root as the
-working directory. Lab configurations pass `--lab_config private/lab-config.yml`; no configuration
-automatically enables the baseline installation tests. Reopen the project if the IDE has not yet
+working directory. Lab configurations pass `--lab_config private/lab-config.yml`. Regular lab
+configurations omit the baseline option; **Lab - all - with baseline** explicitly enables
+`--run-baseline-tests` for an authorized baseline/installation run. Configuration checks use
+targets and display names, so filenames can be renamed. Reopen the project if the IDE has not yet
 refreshed the shared configuration list.
 
 The previous `.idea` state and test files were backed up locally under
