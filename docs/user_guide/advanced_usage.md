@@ -178,6 +178,12 @@ The interface's API identity is `name`; `interface` is a separate parent-interfa
 Platform-specific availability still depends on the managed FortiGate. The schema targets FortiOS
 7.4 on FMG 7.6.7; it is not evidence that every attribute exists on every 7.4 device or older FMG.
 
+`SystemAdmin` also covers the reference's `old-password` input (`old_password` in Python).
+Administrator VDOM references serialize as name arrays. `DeviceZone.tagging` accepts structured
+category/name/tag rows, while its response metadata `oid` is excluded from writes because it is
+not a configuration attribute in the reference. Existing attributes for older firmware remain
+available even when they are absent from this particular schema.
+
 ## Waiting for tasks
 
 Task polling works with `FMGBase` and `AsyncFMGBase` as well as the high-level clients.

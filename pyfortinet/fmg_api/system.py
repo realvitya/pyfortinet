@@ -2,7 +2,7 @@
 from ipaddress import IPv4Interface
 from typing import Literal, Optional, List, Union
 
-from pydantic import Field, field_validator, AliasChoices
+from pydantic import Field, field_serializer, field_validator, AliasChoices
 
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api import _system_interface
@@ -260,8 +260,8 @@ class DeviceZone(FMGObject):
     device: Optional[Union[str, Device]] = Field(None, exclude=True)
     vdom: Optional[Union[str, VDOM]] = Field("root", exclude=True)
     # API fields
-    oid: Optional[int] = None
-    tagging: Optional[Union[str, List[str]]] = None
+    oid: Optional[int] = Field(None, exclude=True)
+    tagging: Optional[Union[str, list[str], list[_system_interface.InterfaceTagging]]] = None
     name: Optional[str] = None
     intrazone: Optional[PERMIT_DENY] = None
     interface: Optional[List[Union[str, DeviceInterface]]] = None
@@ -274,6 +274,8 @@ class DeviceZone(FMGObject):
 
     @field_validator("interface", mode="before")
     def validate_interface(cls, v) -> List[str]:
+        if v is None:
+            return None
         if isinstance(v, str):
             return [v]
         if isinstance(v, DeviceInterface):
@@ -488,6 +490,13 @@ class SystemAdmin(FMGObject):
         serialization_alias="ip6-trusthost10",
     )
     name: Optional[str] = None
+    old_password: Optional[Union[str, list[str]]] = Field(
+        None,
+        validation_alias=AliasChoices("old-password", "old_password"),
+        serialization_alias="old-password",
+        repr=False,
+        description="Admin user old password.",
+    )
     password: Optional[Union[str, List[str]]] = None
     password_expire: Optional[Union[str, List[str]]] = Field(
         None,
@@ -587,6 +596,12 @@ class SystemAdmin(FMGObject):
         serialization_alias="vdom-override",
     )
     wildcard: Optional[ENABLE_DISABLE] = None
+
+    @field_serializer("vdom", when_used="unless-none")
+    def serialize_vdom(self, value: Union[str, VDOM, list[Union[str, VDOM]]]) -> list[str]:
+        """Serialize the schema's VDOM name array, including object-reference inputs."""
+        values = value if isinstance(value, list) else [value]
+        return [item.name if isinstance(item, VDOM) else item for item in values]
 
     def get_url(self, method = "get"):
         if not self.device:

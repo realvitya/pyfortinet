@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from pyfortinet.fmg_api.system import DeviceInterface
+from pyfortinet.fmg_api.dvmdb import VDOM
+from pyfortinet.fmg_api.system import DeviceInterface, DeviceZone, SystemAdmin
 
 from .conftest import resolve
 
@@ -106,3 +107,43 @@ def test_add_serializes_new_fields_and_nested_rows(client, post):
         "client-options": [{"id": 1, "code": 12, "type": "string", "value": "example"}],
         "vrrp": [{"vrid": 1, "vrip": "192.0.2.1"}],
     }
+
+
+@pytest.mark.parametrize("model, key", [(SystemAdmin, "admin"), (DeviceZone, "zone")])
+def test_other_system_models_match_schema(model, key):
+    properties = DEFINITIONS["pm.config.system." + key]["properties"]
+    for api_name, schema in properties.items():
+        value = example(schema)
+        obj = model.model_validate({api_name: value})
+        payload = obj.model_dump(by_alias=True, exclude_none=True)
+        assert payload == {api_name: value}, api_name
+        python_name = api_name.replace("-", "_")
+        assert model(**{python_name: value}).model_dump(by_alias=True, exclude_none=True) == payload
+        assert model(**{api_name: None}).model_dump(by_alias=True, exclude_none=True) == {}
+
+
+@pytest.mark.parametrize("model", [SystemAdmin, DeviceZone])
+def test_admin_and_zone_partial_get(client, post, model):
+    request = model(device="FG01")
+    post.return_value = {"data": {"name": "example"}, "status": {"code": 0}}
+    obj = resolve(client.get(request)).first()
+    assert obj.name == "example"
+    assert obj.model_dump(by_alias=True, exclude_none=True) == {"name": "example"}
+
+
+def test_zone_add_uses_structured_tags_and_excludes_metadata(client, post):
+    post.return_value = {"status": {"code": 0}}
+    tags = [{"name": "example", "category": ["example"], "tags": ["tag1"]}]
+    obj = DeviceZone(device="FG01", name="zone1", oid=42, tagging=tags)
+    assert resolve(client.add(obj)).success
+    request = post.call_args.kwargs["request"]["params"][0]
+    assert request["data"] == {"name": "zone1", "tagging": tags}
+
+
+def test_admin_add_uses_password_alias_and_vdom_names(client, post):
+    post.return_value = {"status": {"code": 0}}
+    obj = SystemAdmin(device="FG01", name="example", old_password=["test-only"], vdom=VDOM(name="root"))
+    assert resolve(client.add(obj)).success
+    request = post.call_args.kwargs["request"]["params"][0]
+    assert request["data"] == {"name": "example", "old-password": ["test-only"], "vdom": ["root"]}
+    assert "test-only" not in repr(obj)
