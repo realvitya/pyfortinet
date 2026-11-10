@@ -13,6 +13,7 @@ from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api._firewall_internet_service import InternetService as InternetService
 from pyfortinet.fmg_api._firewall_ippool import IPPool as IPPool
 from pyfortinet.fmg_api._firewall_ippool import IPPoolDynamicMapping as IPPoolDynamicMapping
+from pyfortinet.fmg_api._firewall_ippool_group import IPPoolGroup as IPPoolGroup
 from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddress as ProxyAddress
 from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressHeaderGroup as ProxyAddressHeaderGroup
 from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressTagging as ProxyAddressTagging

@@ -112,3 +112,17 @@ pool = IPPool(
 )
 fmg.add(pool)
 ```
+
+## IP pool groups
+
+`IPPoolGroup` uses the schema's `firewall/ippool_grp` route, with an underscore. Members can be
+pool names or `IPPool` objects and serialize as names. The reference requires member pools to
+have the same attributes except their public/client ranges; FMG enforces that relationship.
+The group itself has no dynamic mapping in this reference; mappings belong to its member pools.
+
+```python
+from pyfortinet.fmg_api.firewall import IPPoolGroup
+
+group = IPPoolGroup(name="outbound-pools", member=[pool, "another-pool"])
+fmg.add(group)
+```

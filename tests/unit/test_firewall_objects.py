@@ -14,6 +14,7 @@ from pyfortinet.fmg_api.firewall import (
     InternetService,
     IPPool,
     IPPoolDynamicMapping,
+    IPPoolGroup,
     ProxyAddress,
     ProxyAddressGroup,
     VIPDynamicMapping,
@@ -27,6 +28,7 @@ CASES = [
     (InternetService, "internet_service", "internet-service"),
     (VIP, "vip", "vip"),
     (IPPool, "ippool", "ippool"),
+    (IPPoolGroup, "ippool_group", "ippool_grp"),
 ]
 MAPPING_CASES = [
     (VIPDynamicMapping, "vip", "vip.dynamic_mapping"),
@@ -223,3 +225,17 @@ def test_ippool_mapping_and_empty_array_payloads(client, post):
     assert IPPool(dynamic_mapping=None).model_dump(exclude_none=True) == {}
     assert "client_prefix_length" not in IPPool.model_fields
     assert "name" not in IPPoolDynamicMapping.model_fields
+
+
+def test_ippool_group_members_use_pool_names(client, post):
+    group = IPPoolGroup(name="pools", member=[IPPool(name="first"), "second"])
+    assert group.member == ["first", "second"]
+    assert "dynamic_mapping" not in IPPoolGroup.model_fields
+    post.return_value = {"status": {"code": 0}}
+    assert resolve(client.add(group)).success
+    assert post.call_args.kwargs["request"]["params"][0] == {
+        "url": "/pm/config/adom/root/obj/firewall/ippool_grp",
+        "data": {"name": "pools", "member": ["first", "second"]},
+    }
+    assert IPPoolGroup(member=[]).model_dump(exclude_none=True) == {"member": []}
+    assert IPPoolGroup(member=None).model_dump(exclude_none=True) == {}
