@@ -12,6 +12,8 @@ from pyfortinet.fmg_api.firewall import (
     VIP,
     Address,
     InternetService,
+    IPPool,
+    IPPoolDynamicMapping,
     ProxyAddress,
     ProxyAddressGroup,
     VIPDynamicMapping,
@@ -24,8 +26,12 @@ CASES = [
     (ProxyAddressGroup, "proxy_address_group", "proxy-addrgrp"),
     (InternetService, "internet_service", "internet-service"),
     (VIP, "vip", "vip"),
+    (IPPool, "ippool", "ippool"),
 ]
-MAPPING_CASES = [(VIPDynamicMapping, "vip", "vip.dynamic_mapping")]
+MAPPING_CASES = [
+    (VIPDynamicMapping, "vip", "vip.dynamic_mapping"),
+    (IPPoolDynamicMapping, "ippool", "ippool.dynamic_mapping"),
+]
 
 
 def reference(filename):
@@ -182,3 +188,38 @@ def test_vip_metadata_variables_are_preserved():
         "mappedip": ["$(backend_ip)"],
         "mappedport": "$(service_port)",
     }
+
+
+def test_ippool_mapping_and_empty_array_payloads(client, post):
+    mapping = IPPoolDynamicMapping(
+        mapping__scope={"name": "FG01", "vdom": "root"},
+        startip="203.0.113.20",
+        endip="203.0.113.30",
+        client_prefix_length=64,
+        source_prefix6="2001:db8::/64",
+        privileged_port_use_pba=1,
+    )
+    pool = IPPool(name="snat", type="overload", startip="$(public_start)", dynamic_mapping=mapping)
+    expected = {
+        "name": "snat",
+        "type": "overload",
+        "startip": "$(public_start)",
+        "dynamic_mapping": [
+            {
+                "_scope": [{"name": "FG01", "vdom": "root"}],
+                "startip": "203.0.113.20",
+                "endip": "203.0.113.30",
+                "client-prefix-length": 64,
+                "source-prefix6": "2001:db8::/64",
+                "privileged-port-use-pba": "enable",
+            }
+        ],
+    }
+    assert pool.model_dump(by_alias=True, exclude_none=True) == expected
+    post.return_value = {"status": {"code": 0}}
+    assert resolve(client.update(pool)).success
+    assert post.call_args.kwargs["request"]["params"][0]["data"] == expected
+    assert IPPool(dynamic_mapping=[]).model_dump(exclude_none=True) == {"dynamic_mapping": []}
+    assert IPPool(dynamic_mapping=None).model_dump(exclude_none=True) == {}
+    assert "client_prefix_length" not in IPPool.model_fields
+    assert "name" not in IPPoolDynamicMapping.model_fields

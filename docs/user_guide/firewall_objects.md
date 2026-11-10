@@ -89,3 +89,26 @@ fmg.add(vip)
 Mappings are embedded in parent writes, as with existing address mappings. GET returns typed
 mapping rows. Use `dynamic_mapping=[]` in an update to send an empty mapping array; leaving it
 `None` omits the field. Separate mapping-endpoint CRUD wrappers are not provided.
+
+## IP pools
+
+`IPPool` uses `firewall/ippool`. It supports the reference's overload, one-to-one,
+fixed-port-range, port-block-allocation, and CGN resource-allocation types. IP values and metadata
+variables remain strings; array inputs such as `exclude_ip` preserve the API's list shape.
+
+Use `IPPoolDynamicMapping` for mapping-specific fields, including IPv6 source prefixes, client
+prefix length, session quotas, and privileged-port PBA settings. Scope and mapping-array handling
+match `VIPDynamicMapping`; mapping-only fields are not sent on the parent object.
+
+```python
+from pyfortinet.fmg_api.firewall import IPPool, IPPoolDynamicMapping
+
+pool = IPPool(
+    name="outbound", type="overload", startip="203.0.113.10", endip="203.0.113.19",
+    dynamic_mapping=IPPoolDynamicMapping(
+        mapping__scope=Scope(name="FG01", vdom="root"),
+        startip="203.0.113.20", endip="203.0.113.29",
+    ),
+)
+fmg.add(pool)
+```
