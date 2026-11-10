@@ -10,17 +10,17 @@ from more_itertools import first
 from pydantic import Field, field_validator, AliasChoices, BaseModel, field_serializer, model_validator
 
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api._firewall_internet_service import InternetService as InternetService
-from pyfortinet.fmg_api._firewall_ippool import IPPool as IPPool
-from pyfortinet.fmg_api._firewall_ippool import IPPoolDynamicMapping as IPPoolDynamicMapping
-from pyfortinet.fmg_api._firewall_ippool_group import IPPoolGroup as IPPoolGroup
-from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddress as ProxyAddress
-from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressHeaderGroup as ProxyAddressHeaderGroup
-from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressTagging as ProxyAddressTagging
-from pyfortinet.fmg_api._firewall_proxy_address_group import ProxyAddressGroup as ProxyAddressGroup
-from pyfortinet.fmg_api._firewall_proxy_address_group import ProxyAddressGroupTagging as ProxyAddressGroupTagging
-from pyfortinet.fmg_api._firewall_vip import VIP as VIP
-from pyfortinet.fmg_api._firewall_vip import VIPDynamicMapping as VIPDynamicMapping
+from pyfortinet.fmg_api._firewall_internet_service import InternetService  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_ippool import IPPool  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_ippool import IPPoolDynamicMapping  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_ippool_group import IPPoolGroup  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddress  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressHeaderGroup  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_proxy_address import ProxyAddressTagging  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_proxy_address_group import ProxyAddressGroup  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_proxy_address_group import ProxyAddressGroupTagging  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_vip import VIP  # noqa: F401 - public API
+from pyfortinet.fmg_api._firewall_vip import VIPDynamicMapping  # noqa: F401 - public API
 from pyfortinet.fmg_api.common import Scope
 
 ADDRESS_GROUP_TYPE = Literal["default", "array", "folder"]
