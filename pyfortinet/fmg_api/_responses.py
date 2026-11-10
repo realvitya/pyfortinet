@@ -42,12 +42,28 @@ def login_token(payload):
     return SecretStr(token)
 
 
-def workspace_enabled(response):
-    """Read workspace mode only from a successful and complete discovery reply."""
+def workspace_mode(response, field="workspace-mode"):
+    """Read a known workspace mode from a successful discovery reply."""
     if not response.success or not isinstance(response.data, list) or not response.data:
         raise FMGLockException("Unable to determine workspace mode")
     result = response.data[0]
     data = result.get("data") if isinstance(result, dict) else None
-    if not isinstance(data, dict) or data.get("workspace-mode") is None:
+    if not isinstance(data, dict):
         raise FMGLockException("Unable to determine workspace mode")
-    return data["workspace-mode"] not in (0, "0", "disabled")
+    mode = data.get(field)
+    modes = {0: "disabled", 1: "normal", 2: "workflow", 3: "per-adom"}
+    if isinstance(mode, str) and mode.isdigit():
+        mode = int(mode)
+    if isinstance(mode, int):
+        mode = modes.get(mode)
+    if mode not in modes.values():
+        raise FMGLockException("Unable to determine workspace mode")
+    return mode
+
+
+def workspace_enabled(response, field="workspace-mode"):
+    """Read an effective mode; per-ADOM requires further discovery."""
+    mode = workspace_mode(response, field)
+    if mode == "per-adom":
+        raise FMGLockException("Unable to determine workspace mode without an ADOM setting")
+    return mode != "disabled"

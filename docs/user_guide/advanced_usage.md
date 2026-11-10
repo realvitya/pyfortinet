@@ -123,6 +123,38 @@ preserves a newly acquired lock. Unlocking a selected ADOM leaves other ADOM loc
 succeed, and their data includes a result for each ADOM. Workspace mode discovery raises
 `FMGLockException` when its reply is unsuccessful or incomplete and leaves the cached mode unset.
 
+Discovery uses the global workspace setting unless it is `per-adom`. In that case it reads
+`workspace_mode` from `/dvmdb/adom/{adom}` for the requested ADOM. Each explicit locking context
+refreshes discovery, so switching ADOMs cannot reuse another ADOM's setting. Calling `fmg.lock()`
+without arguments uses the selected ADOM (or `root` when none is selected); with multiple ADOMs,
+only those with workspace enabled are locked. Normal and workflow modes both require locking;
+this does not create workflow sessions. Closing the client still cleans up retained locks even
+if the last ADOM checked has workspace disabled.
+
+The Global Database does not use a workspace when global mode is `per-adom`, so automatic
+locking skips `global` in that mode. Under global `normal` and `workflow`, it requires locking.
+This behavior was verified on FMG 7.4.6 build 2588 by temporarily changing global mode and the
+`test` ADOM's workspace setting through all 12 combinations, reading both levels, and probing
+Global Database locks. All settings were restored, acquired locks released, and sessions logged out;
+no policy/object changes, configuration installs, or workspace commits were performed.
+
+| Global `workspace-mode` | Requested ADOM `workspace_mode` | Returned ADOM `workspace_mode` | Global lock result |
+|-------------------------|---------------------------------|--------------------------------|--------------------|
+| `disabled`              | 0, 1, or 2                      | 0                              | -9 (unavailable)   |
+| `normal`                | 0, 1, or 2                      | 1                              | 0 (success)        |
+| `workflow`              | 0, 1, or 2                      | 2                              | 0 (success)        |
+| `per-adom`              | 0, 1, or 2                      | Requested value                | -9 (unavailable)   |
+
+The ADOM metadata reports the effective mode, including global overrides. A lock-info record's
+`db_mode` is not a substitute: it reported 1 for a locked ADOM even under global `workflow`.
+Neither `/dvmdb/adom/global` nor `/dvmdb/adom/Global` returned metadata (status `-3`), and the
+ADOM inventory contained no Global Database entry. GET `/dvmdb/global/workspace/lockinfo`
+returned `-9` under `disabled` and `per-adom`, and succeeded under `normal` and `workflow`.
+The explicit Global Database rule comes from these controlled checks, not from treating arbitrary
+failed metadata reads as disabled workspace. Failed ordinary ADOM discovery still raises
+`FMGLockException`. Other firmware versions have not been verified against a device. See Fortinet's
+[workspace configuration guide](https://docs.fortinet.com/document/fortimanager/7.4.3/administration-guide/908521/enable-workspace-mode).
+
 ## Selecting fields and scopes
 
 High-level `get` calls accept `fields=["name", ...]` to request selected fields. Returned objects retain

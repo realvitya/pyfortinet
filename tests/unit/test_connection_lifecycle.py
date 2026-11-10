@@ -140,3 +140,15 @@ def test_close_discard_policy_is_not_sticky(client, session, configured_discard,
     resolve(client.close())
     expected_commits = int(not configured_discard and not discard_changes) + int(not configured_discard)
     assert client.lock.commit_changes.call_count == expected_commits
+
+
+def test_close_cleans_locks_after_discovering_disabled_adom(client, session):
+    resolve(client.open())
+    client.lock.locked_adoms.add("other")
+    client.lock._uses_workspace = False
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    client.lock.commit_changes = mock_type()
+    client.lock.unlock_adoms = mock_type()
+    resolve(client.close())
+    client.lock.commit_changes.assert_called_once_with()
+    client.lock.unlock_adoms.assert_called_once_with()

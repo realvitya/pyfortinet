@@ -32,7 +32,7 @@ from pyfortinet.exceptions import (
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api._requests import prepare_batch
 from pyfortinet.fmg_api._resilience import async_request_json, timeout_seconds
-from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled
+from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled, workspace_mode
 from pyfortinet.fmg_api.task import Task
 from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_from_response, task_id_from_response
 from pyfortinet.settings import FMGSettings
@@ -171,17 +171,30 @@ class AsyncFMGLockContext:
         return self._locked_adoms
 
     async def __call__(self, *adoms: str):
-        await self.check_mode()
-        if self._uses_workspace:
-            await self.lock_adoms(*adoms)
+        enabled_adoms = []
+        for adom in adoms or (self._fmg.adom or "root",):
+            await self.check_mode(adom)
+            if self._uses_workspace:
+                enabled_adoms.append(adom)
+        if enabled_adoms:
+            await self.lock_adoms(*enabled_adoms)
         return self
 
-    async def check_mode(self):
-        """Get workspace-mode from config"""
-        url = "/cli/global/system/global"
-        result = await self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = workspace_enabled(result)
-        # self.uses_adoms = (result.data["data"].get("adom-status") in (1, "1", "enable")
+    async def check_mode(self, adom: Optional[str] = None) -> None:
+        """Discover the effective workspace mode for the requested or selected ADOM."""
+        self._uses_workspace = None
+        result = await self._fmg.get({"url": "/cli/global/system/global", "fields": ["workspace-mode"]})
+        if workspace_mode(result) == "per-adom":
+            adom = adom or self._fmg.adom or "root"
+            if adom.lower() == "global":
+                # FMG 7.4.6 exposes no global ADOM metadata and disables its workspace in per-ADOM mode.
+                enabled = False
+            else:
+                result = await self._fmg.get({"url": f"/dvmdb/adom/{adom}", "fields": ["workspace_mode"]})
+                enabled = workspace_enabled(result, "workspace_mode")
+        else:
+            enabled = workspace_enabled(result)
+        self._uses_workspace = enabled
 
     async def lock_adoms(self, *adoms: str) -> AsyncFMGResponse:
         """Lock adom list
@@ -381,8 +394,7 @@ class AsyncFMGBase:
             adom = self.adom
         if not adom:
             raise ValueError("ADOM must be specified!")
-        if self.lock.uses_workspace is None:
-            await self.lock.check_mode()
+        await self.lock.check_mode(adom)
         did_lock = False
         if self.lock.uses_workspace and adom not in self.lock.locked_adoms:
             await self.lock.lock_adoms(adom)
@@ -421,7 +433,7 @@ class AsyncFMGBase:
                 "session": self._token.get_secret_value(),
             }
             try:
-                if self.lock.uses_workspace:
+                if self.lock.locked_adoms or self.lock.uses_workspace:
                     if not (self.discard_on_close or discard_changes):
                         await self.lock.commit_changes()
                     await self.lock.unlock_adoms()

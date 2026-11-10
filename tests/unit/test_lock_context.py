@@ -17,6 +17,7 @@ def test_lock_context(client, already_locked, keep_locked, fail):
     if already_locked:
         lock._locked_adoms.add("root")
     mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    lock.check_mode = mock_type()
     lock.lock_adoms = mock_type()
     lock.unlock_adoms = mock_type()
 
