@@ -1,10 +1,11 @@
 """Invoke task file"""
 
 import shutil
+import sys
 from pathlib import Path
 from typing import Literal
 
-from invoke import task
+from invoke import Context, Exit, task
 
 
 @task()
@@ -31,16 +32,18 @@ def build(cmd):
     cmd.run("flit build")
 
 
-@task(
-    help={
-        "push_to_github": "Push to GitHub pages after building the docs",
-    }
-)
-def mkdocs(cmd, push_to_github=False):
-    """Compile docs"""
-    cmd.run("mkdocs build")
-    if push_to_github:
-        cmd.run("mkdocs gh-deploy")
+def _generate_docs(cmd: Context) -> None:
+    """Generate reference pages using the same interpreter as Invoke."""
+    if sys.version_info < (3, 11):
+        raise Exit("Documentation builds require Python 3.11 or later; library usage supports Python 3.9.")
+    cmd.run(f'"{sys.executable}" docs/gen_ref_pages.py')
+
+
+@task(aliases=["mkdocs"])
+def docs(cmd: Context) -> None:
+    """Generate API pages and build the documentation with Zensical."""
+    _generate_docs(cmd)
+    cmd.run("zensical build --strict")
 
 
 MODULES = Literal["unit", "transport", "all"]
@@ -82,10 +85,11 @@ def lab_test(cmd, module: LAB_MODULES = "all", verbose=False, baseline=False):
     )
 
 
-@task()
-def mkdocs_serve(cmd):
-    """Run built-in webserver for docs"""
-    cmd.run("mkdocs serve")
+@task(aliases=["mkdocs-serve"])
+def docs_serve(cmd: Context) -> None:
+    """Generate API pages and preview the documentation with Zensical."""
+    _generate_docs(cmd)
+    cmd.run("zensical serve")
 
 
 LinterType = Literal[

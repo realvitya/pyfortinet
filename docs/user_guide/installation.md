@@ -52,10 +52,12 @@ For this repository, use its checked-in dependency resolution instead of creatin
 git clone https://github.com/realvitya/pyfortinet.git
 cd pyfortinet
 uv sync --locked
-uv run mkdocs serve
+uv run invoke docs-serve
 ```
 
-The default development group includes documentation tools and optional client dependencies.
+The default development group includes optional client dependencies and, on Python 3.11+,
+the Zensical documentation tools. Building or previewing docs requires Python 3.11+;
+using the library still requires only Python 3.9+.
 For a runtime-only source environment, use `uv sync --locked --no-dev`, adding
 `--extra async`, `--extra rich`, or `--extra all` as needed.
 See the [developer guide](../developer_guide/index.md) for contribution checks.

@@ -1,27 +1,75 @@
 name: Publish docs via GitHub Pages
+
 on:
   push:
     branches:
       - master
     paths:
-      - docs
+      - "docs/**"
+      - "pyfortinet/**"
+      - "README.md"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "tasks.py"
+      - "tests/unit/common/test_docs_generation.py"
+      - ".github/workflows/deploy-docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "pyfortinet/**"
+      - "README.md"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "tasks.py"
+      - "tests/unit/common/test_docs_generation.py"
+      - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: Deploy docs
+    name: Build documentation
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout master
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v7
+      - name: Install uv and Python
+        uses: astral-sh/setup-uv@v9
+        with:
+          version: "0.9.8"
+          python-version: "3.11"
+          enable-cache: false
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Test reference generation
+        run: uv run pytest tests/unit/common/test_docs_generation.py
+      - name: Build documentation and API reference
+        run: uv run invoke docs
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
 
-      - name: Deploy docs
-        uses: mhausenblas/mkdocs-deploy-gh-pages@master
-        # Or use mhausenblas/mkdocs-deploy-gh-pages@nomaterial to build without the mkdocs-material theme
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          #CUSTOM_DOMAIN: optionaldomain.com
-          CONFIG_FILE: mkdocs.yml
-          EXTRA_PACKAGES: build-base
-          # GITHUB_DOMAIN: github.myenterprise.com
-          REQUIREMENTS: docs/requirements.txt
+  deploy:
+    name: Deploy documentation
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v6
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v5

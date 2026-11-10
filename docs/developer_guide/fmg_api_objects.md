@@ -112,6 +112,6 @@ Use Google-style class and method docstrings with concise, valid examples. Expla
 URL-only fields, supported operations, and relevant serialization behavior. Add user-facing
 workflows to the user guide and schema or firmware verification details to the developer guide.
 
-Run the focused tests, Ruff checks for changed Python files, and `uv run mkdocs build`.
+Run the focused tests, Ruff checks for changed Python files, and `uv run invoke docs` (Python 3.11+).
 Document unavailable firmware references or device verification explicitly. Do not claim runtime
 support merely because a schema-backed model validates locally.

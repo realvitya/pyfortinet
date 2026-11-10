@@ -11,3 +11,7 @@ site/
 .ruff_cache
 
 .venv/
+
+# Documentation build output and generated API Markdown
+/docs/reference/
+/.cache/
