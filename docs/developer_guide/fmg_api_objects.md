@@ -10,7 +10,8 @@ Place a model in the module matching its API domain. Firewall models live in
 `pyfortinet/fmg_api/firewall/`; export public classes through its explicit `__all__` in
 `__init__.py`. Keep shared normalization in `_values.py` and literal choices in `types.py`.
 Import literal choices from `firewall.types` and `PORT_RANGE_TYPE` from `firewall.service`;
-the firewall package root exports classes.
+the firewall package root also supports explicit imports of these aliases for compatibility,
+such as `from pyfortinet.fmg_api.firewall import PROTOCOL`. Its `__all__` exposes classes only.
 
 Use `FMGObject` for configuration resources and `FMGExecObject` for execution operations.
 The base classes provide client binding and operation delegation. Keep transport handling in
