@@ -100,7 +100,7 @@ class Address(FMGObject):
     allow_routing: Optional[ENABLE_DISABLE] = Field(
         None, validation_alias=AliasChoices("allow-routing", "allow_routing"), serialization_alias="allow-routing"
     )
-    associated_interface: Optional[Union[str, list[str]]] = Field(
+    associated_interface: Optional[Union[str, builtins.list[str]]] = Field(
         None,
         validation_alias=AliasChoices("associated-interface", "associated_interface"),
         serialization_alias="associated-interface",

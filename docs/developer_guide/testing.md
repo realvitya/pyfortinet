@@ -86,6 +86,17 @@ Run `uv run pytest tests/unit` (or `pytest tests/unit` in an activated environme
 and async behavior without a lab configuration or network access.
 These tests mock the transport and exercise the public client methods.
 
+### Python 3.14+ compatibility
+
+Python 3.14 introduced deferred annotation evaluation. Models with fields named after builtins must
+qualify those builtins in annotations, including annotations that appear before the field.
+For example, `Address.list` requires `builtins.list[str]` in `associated_interface`'s annotation;
+bare `list[str]` can resolve to the field's `None` default and fail during import.
+
+`tests/unit/common/test_model_annotations.py` discovers all package models, including nested
+models, and rebuilds validation and serialization schemas. Run it on each supported Python
+version to catch annotation resolution errors across model fields and recursive references.
+
 ## Async test event loops
 
 The development dependencies require pytest-asyncio 0.24 or newer. Pytest uses auto mode and defaults async

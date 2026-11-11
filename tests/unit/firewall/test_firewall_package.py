@@ -50,7 +50,16 @@ def test_package_exports_only_classes_and_port_ranges_still_normalize():
     assert service.model_dump(by_alias=True, exclude_none=True) == {"tcp-portrange": ["443"]}
 
 
-def test_address_list_field_does_not_shadow_generic_annotations():
-    address = firewall.Address(list=[{"ip": "192.0.2.1"}], macaddr=["00:11:22:33:44:55"])
+@pytest.mark.parametrize("associated_interface", ["port1", ["port1"]])
+def test_address_list_field_does_not_shadow_generic_annotations(associated_interface):
+    address = firewall.Address(
+        associated_interface=associated_interface,
+        list=[{"ip": "192.0.2.1"}],
+        macaddr=["00:11:22:33:44:55"],
+    )
     assert isinstance(address.list[0], firewall.Address.AddressList)
-    assert address.model_dump(exclude_none=True) == {"list": [{"ip": "192.0.2.1"}], "macaddr": ["00:11:22:33:44:55"]}
+    assert address.model_dump(by_alias=True, exclude_none=True) == {
+        "associated-interface": "port1",
+        "list": [{"ip": "192.0.2.1"}],
+        "macaddr": ["00:11:22:33:44:55"],
+    }
