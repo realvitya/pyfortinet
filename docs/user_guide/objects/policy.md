@@ -105,6 +105,17 @@ fmg.update(Policy(pkg="branch-policy", policyid=10, comments="Reviewed branch ru
 Address and service references accept names or supported named firewall models. Supplying
 a referenced model does not create it.
 
+Policy profile references, including `diameter_filter_profile`, `av_profile`, `ips_sensor`,
+`application_list`, and `profile_group`, are lists of profile names, matching the FMG schema.
+Single strings are accepted and normalized to one-item lists. `None` omits a profile field
+from write payloads; an explicit `[]` is sent as an empty array. `profile_type` remains the
+`"single"` / `"group"` selector.
+
+```python
+rule = Policy(pkg="branch-policy", policyid=10, diameter_filter_profile=["example-diameter"])
+assert rule.model_dump(by_alias=True, exclude_none=True)["diameter-filter-profile"] == ["example-diameter"]
+```
+
 The following constructs a local rule for inspection. It does not write the rule:
 
 ```python

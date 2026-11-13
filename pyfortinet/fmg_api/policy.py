@@ -196,7 +196,7 @@ class Policy(FMGObject):
         anti_replay (ENABLE_DISABLE):
             Enable/disable anti-replay check.
 
-        application_list:
+        application_list (list[str]):
             Name of an existing Application list.
 
         auth_cert:
@@ -207,15 +207,15 @@ class Policy(FMGObject):
 
         auth_redirect_addr (str):
             HTTP-to-HTTPS redirect address for firewall authentication.
-        av_profile (str): Name of an existing Antivirus profile.
+        av_profile (list[str]): Name of an existing Antivirus profile.
         block_notification (str): Enable/disable block notification.
         captive_portal_exempt (str): Enable to exempt some users from the captive portal.
-        casb_profile (str): Name of an existing CASB profile.
+        casb_profile (list[str]): Name of an existing CASB profile.
         comments (str): Comment.
         custom_log_fields (List[str]): Custom fields to append to log messages for this policy.
         decrypted_traffic_mirror (str): Decrypted traffic mirror.
         delay_tcp_npu_session (str): Enable TCP NPU session delay to guarantee packet order of 3-way handshake.
-        diameter_filter_profile (str): Name of an existing Diameter filter profile.
+        diameter_filter_profile (list[str]): Name of an existing Diameter filter profile.
         diffserv_copy (str):
             Enable to copy packet's DiffServ values from session's original direction to its reply direction.
         diffserv_forward (str): Enable to change packet's DiffServ values to the specified diffservcode-forward value.
@@ -224,8 +224,8 @@ class Policy(FMGObject):
         diffservcode_forward (str): Change packet's DiffServ to this value.
         diffservcode_rev (str): Change packet's reverse (reply) DiffServ to this value.
         disclaimer (str): Enable/disable user authentication disclaimer.
-        dlp_profile (str): Name of an existing DLP profile.
-        dnsfilter_profile (str): Name of an existing DNS filter profile.
+        dlp_profile (list[str]): Name of an existing DLP profile.
+        dnsfilter_profile (list[str]): Name of an existing DNS filter profile.
         dsri (str): Enable DSRI to ignore HTTP server responses.
         dstaddr (List[str]): Destination IPv4 address and address group names.
         dstaddr_negate (str): When enabled dstaddr specifies what the destination address must NOT be.
@@ -234,9 +234,9 @@ class Policy(FMGObject):
         dstintf (List[str]): Outgoing (egress) interface.
         dynamic_shaping (str): Enable/disable dynamic RADIUS defined traffic shaping.
         email_collect (str): Enable/disable email collection.
-        emailfilter_profile (str): Name of an existing email filter profile.
+        emailfilter_profile (list[str]): Name of an existing email filter profile.
         fec (str): Enable/disable Forward Error Correction on traffic matching this policy on a FEC device.
-        file_filter_profile (str): Name of an existing file-filter profile.
+        file_filter_profile (list[str]): Name of an existing file-filter profile.
         firewall_session_dirty (str): How to handle sessions if the configuration of this firewall policy changes.
         fixedport (str): Enable to prevent source NAT from changing a session's source port.
         fsso_agent_for_ntlm (str): FSSO agent to use for NTLM authentication.
@@ -246,7 +246,7 @@ class Policy(FMGObject):
         global_label (str): Label for the policy that appears when the GUI is in Global View mode.
         groups (List[str]): Names of user groups that can authenticate with this policy.
         http_policy_redirect (str): Redirect HTTP(S) traffic to matching transparent web proxy policy.
-        icap_profile (str): Name of an existing ICAP profile.
+        icap_profile (list[str]): Name of an existing ICAP profile.
         identity_based_route (str): Name of identity-based routing rule.
         inbound (str): Policy-based IPsec VPN: only traffic from the remote network can initiate a VPN.
         inspection_mode (str): Policy inspection mode (Flow/proxy). Default is Flow mode.
@@ -283,8 +283,8 @@ class Policy(FMGObject):
         internet_service6_src_negate (str): When enabled internet-service6-src specifies what the service must NOT be.
         ip_version_type (str): IP version of the policy.
         ippool (str): Enable to use IP Pools for source NAT.
-        ips_sensor (str): Name of an existing IPS sensor.
-        ips_voip_filter (str): Name of an existing VoIP (ips) profile.
+        ips_sensor (list[str]): Name of an existing IPS sensor.
+        ips_voip_filter (list[str]): Name of an existing VoIP (ips) profile.
         label (str): Label for the policy that appears when the GUI is in Section View mode.
         logtraffic (str): Enable or disable logging. Log all sessions or security profile sessions.
         logtraffic_start (str): Record logs when a session starts.
@@ -319,8 +319,8 @@ class Policy(FMGObject):
         policyid (int): Policy ID (0 - 4294967294).
         poolname (List[str]): IP Pool names.
         poolname6 (List[str]): IPv6 pool names.
-        profile_group (str): Name of profile group.
-        profile_protocol_options (str): Name of an existing Protocol options profile.
+        profile_group (list[str]): Name of profile group.
+        profile_protocol_options (list[str]): Name of an existing Protocol options profile.
         profile_type (str):
             Determine whether the firewall policy allows security profile groups or single profiles only.
         radius_mac_auth_bypass (str):
@@ -337,7 +337,7 @@ class Policy(FMGObject):
         schedule_timeout (str):
             Enable to force current sessions to end when the schedule object times out.
             Disable allows them to end from inactivity.
-        sctp_filter_profile (str): Name of an existing SCTP filter profile.
+        sctp_filter_profile (list[str]): Name of an existing SCTP filter profile.
         send_deny_packet (str): Enable to send a reply to a blocked connection attempt.
         service (List[str]): Service names and service group names.
         service_negate (str): When enabled service specifies what the service must NOT be.
@@ -346,8 +346,17 @@ class Policy(FMGObject):
         sgt (List[int]): Security group tags.
         sgt_check (ENABLE_DISABLE): Enable/disable security group tags (SGT) check.
         src_vendor_mac (List[str]): Vendor MAC source ID.
-
-
+        gtp_profile (list[str]): GTP profile.
+        pfcp_profile (list[str]): PFCP profile.
+        ssh_filter_profile (list[str]): Name of an existing SSH filter profile.
+        ssl_ssh_profile (list[str]): Name of an existing SSL SSH profile.
+        videofilter_profile (list[str]): Name of an existing VideoFilter profile.
+        virtual_patch_profile (list[str]): Name of an existing virtual-patch profile.
+        voip_profile (list[str]): Name of an existing VoIP (voipd) profile.
+        waf_profile (list[str]): Name of an existing Web application firewall profile.
+        wanopt_profile (list[str]): WAN optimization profile.
+        webfilter_profile (list[str]): Name of an existing Web filter profile.
+        webproxy_profile (list[str]): Webproxy profile name.
     """
 
     _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy/{policy}"
@@ -367,7 +376,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("anti-replay", "anti_replay"),
         serialization_alias="anti-replay",
     )
-    application_list: Optional[Union[str, list]] = Field(  # TODO: add ApplicationList later when implemented
+    application_list: Optional[list[str]] = Field(  # TODO: add ApplicationList later when implemented
         None,
         validation_alias=AliasChoices("application-list", "application_list"),
         serialization_alias="application-list",
@@ -387,7 +396,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("auth-redirect-addr", "auth_redirect_addr"),
         serialization_alias="auth-redirect-addr",
     )
-    av_profile: Optional[Union[str, list]] = Field(  # TODO: add AVProfile later when implemented
+    av_profile: Optional[list[str]] = Field(  # TODO: add AVProfile later when implemented
         None,
         validation_alias=AliasChoices("av-profile", "av_profile"),
         serialization_alias="av-profile",
@@ -407,7 +416,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("capture-packet", "capture_packet"),
         serialization_alias="capture-packet",
     )
-    casb_profile: Optional[str] = Field(  # TODO: add CASBProfile later when implemented
+    casb_profile: Optional[list[str]] = Field(  # TODO: add CASBProfile later when implemented
         None,
         validation_alias=AliasChoices("casb-profile", "casb_profile"),
         serialization_alias="casb-profile",
@@ -429,7 +438,7 @@ class Policy(FMGObject):
         serialization_alias="delay-tcp-npu-session",
     )
 
-    diameter_filter_profile: Optional[str] = Field(  # TODO: add DiameterFilterProfile later when implemented
+    diameter_filter_profile: Optional[list[str]] = Field(  # TODO: add DiameterFilterProfile later when implemented
         None,
         validation_alias=AliasChoices("diameter-filter-profile", "diameter_filter_profile"),
         serialization_alias="diameter-filter-profile",
@@ -460,12 +469,12 @@ class Policy(FMGObject):
         serialization_alias="diffservcode-rev",
     )
     disclaimer: Optional[POLICY_DISCLAIMER] = None
-    dlp_profile: Optional[Union[str, list]] = Field(  # TODO: add DLPProfile later when implemented
+    dlp_profile: Optional[list[str]] = Field(  # TODO: add DLPProfile later when implemented
         None,
         validation_alias=AliasChoices("dlp-profile", "dlp_profile"),
         serialization_alias="dlp-profile",
     )
-    dnsfilter_profile: Optional[Union[str, list]] = Field(  # TODO: add DNSProfile later when implemented
+    dnsfilter_profile: Optional[list[str]] = Field(  # TODO: add DNSProfile later when implemented
         None,
         validation_alias=AliasChoices("dnsfilter-profile", "dnsfilter_profile"),
         serialization_alias="dnsfilter-profile",
@@ -494,7 +503,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("email-collect", "email_collect"),
         serialization_alias="email-collect",
     )
-    emailfilter_profile: Optional[Union[str, list]] = Field(  # TODO: add EmailFilterProfile later when implemented
+    emailfilter_profile: Optional[list[str]] = Field(  # TODO: add EmailFilterProfile later when implemented
         None,
         validation_alias=AliasChoices("emailfilter-profile", "emailfilter_profile"),
         serialization_alias="emailfilter-profile",
@@ -504,7 +513,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("fec", "fec"),
         serialization_alias="fec",
     )
-    file_filter_profile: Optional[List[str]] = Field(  # TODO: add FileFilterProfile later when implemented
+    file_filter_profile: Optional[list[str]] = Field(  # TODO: add FileFilterProfile later when implemented
         None,
         validation_alias=AliasChoices("file-filter-profile", "file_filter_profile"),
         serialization_alias="file-filter-profile",
@@ -541,12 +550,17 @@ class Policy(FMGObject):
         serialization_alias="global-label",
     )
     groups: Optional[List[str]] = None  # TODO: add UserGroup later when implemented
+    gtp_profile: Optional[list[str]] = Field(
+        None,
+        validation_alias=AliasChoices("gtp-profile", "gtp_profile"),
+        serialization_alias="gtp-profile",
+    )
     http_policy_redirect: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("http-policy-redirect", "http_policy_redirect"),
         serialization_alias="http-policy-redirect",
     )
-    icap_profile: Optional[str] = Field(  # TODO: add ICAPProfile later when implemented
+    icap_profile: Optional[list[str]] = Field(  # TODO: add ICAPProfile later when implemented
         None,
         validation_alias=AliasChoices("icap-profile", "icap_profile"),
         serialization_alias="icap-profile",
@@ -704,12 +718,12 @@ class Policy(FMGObject):
         serialization_alias="ip-version-type",
     )
     ippool: Optional[ENABLE_DISABLE] = None
-    ips_sensor: Optional[Union[str, list]] = Field(  # TODO: Define the IPSSensor class and use it here instead of str
+    ips_sensor: Optional[list[str]] = Field(  # TODO: Define the IPSSensor class and use it here instead of str
         None,
         validation_alias=AliasChoices("ips-sensor", "ips_sensor"),
         serialization_alias="ips-sensor",
     )
-    ips_voip_filter: Optional[List[str]] = Field(  # TODO: Define the VoIPProfile class and use it here instead of str
+    ips_voip_filter: Optional[list[str]] = Field(  # TODO: Define the VoIPProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("ips-voip-filter", "ips_voip_filter"),
         serialization_alias="ips-voip-filter",
@@ -797,6 +811,11 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("policy-behaviour-type", "policy_behaviour_type"),
         serialization_alias="policy-behaviour-type",
     )
+    pfcp_profile: Optional[list[str]] = Field(
+        None,
+        validation_alias=AliasChoices("pfcp-profile", "pfcp_profile"),
+        serialization_alias="pfcp-profile",
+    )
     policy_expiry: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("policy-expiry", "policy_expiry"),
@@ -815,13 +834,13 @@ class Policy(FMGObject):
     policyid: Optional[int] = None
     poolname: Optional[List[str]] = None  # TODO: Define the PoolName class and use it here instead of List[str]
     poolname6: Optional[List[str]] = None  # TODO: Define the PoolName6 class and use it here instead of List[str]
-    profile_group: Optional[Union[str, List[str]]] = Field(
+    profile_group: Optional[list[str]] = Field(
         # TODO: Define the ProfileGroup class and use it here instead of str
         None,
         validation_alias=AliasChoices("profile-group", "profile_group"),
         serialization_alias="profile-group",
     )
-    profile_protocol_options: Optional[List[str]] = Field(
+    profile_protocol_options: Optional[list[str]] = Field(
         # TODO: Define the ProtocolOptionsProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("profile-protocol-options", "profile_protocol_options"),
@@ -885,7 +904,7 @@ class Policy(FMGObject):
         serialization_alias="schedule-timeout",
     )
     # TODO: Define SctpFilterProfile class and use it here instead of str
-    sctp_filter_profile: Optional[List[str]] = Field(
+    sctp_filter_profile: Optional[list[str]] = Field(
         None,
         validation_alias=AliasChoices("sctp-filter-profile", "sctp_filter_profile"),
         serialization_alias="sctp-filter-profile",
@@ -927,7 +946,7 @@ class Policy(FMGObject):
         serialization_alias="srcaddr6-negate",
     )
     srcintf: Optional[List[str]] = None  # TODO: Define the SrcIntf class and use it here instead of List[str]
-    ssh_filter_profile: Optional[str] = Field(
+    ssh_filter_profile: Optional[list[str]] = Field(
         # TODO: Define the SSHFilterProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("ssh-filter-profile", "ssh_filter_profile"),
@@ -938,7 +957,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("ssh-policy-redirect", "ssh_policy_redirect"),
         serialization_alias="ssh-policy-redirect",
     )
-    ssl_ssh_profile: Optional[List[str]] = Field(
+    ssl_ssh_profile: Optional[list[str]] = Field(
         # TODO: Define the SSLSSHProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("ssl-ssh-profile", "ssl_ssh_profile"),
@@ -995,13 +1014,13 @@ class Policy(FMGObject):
         serialization_alias="utm-status",
     )
     uuid: Optional[str] = None
-    videofilter_profile: Optional[List[str]] = Field(
+    videofilter_profile: Optional[list[str]] = Field(
         # TODO: Define the VideoFilterProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("videofilter-profile", "videofilter_profile"),
         serialization_alias="videofilter-profile",
     )
-    virtual_patch_profile: Optional[str] = Field(
+    virtual_patch_profile: Optional[list[str]] = Field(
         # TODO: Define the VirtualPatchProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("virtual-patch-profile", "virtual_patch_profile"),
@@ -1022,21 +1041,26 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("vlan-filter", "vlan_filter"),
         serialization_alias="vlan-filter",
     )
-    voip_profile: Optional[Union[str, list]] = Field(
+    voip_profile: Optional[list[str]] = Field(
         # TODO: Define the VoipProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("voip-profile", "voip_profile"),
         serialization_alias="voip-profile",
     )
     vpntunnel: Optional[str] = None  # TODO: Define the VpnTunnel class and use it here instead of str
-    waf_profile: Optional[str] = Field(
+    waf_profile: Optional[list[str]] = Field(
         # TODO: Define the WafProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("waf-profile", "waf_profile"),
         serialization_alias="waf-profile",
     )
+    wanopt_profile: Optional[list[str]] = Field(
+        None,
+        validation_alias=AliasChoices("wanopt-profile", "wanopt_profile"),
+        serialization_alias="wanopt-profile",
+    )
     wccp: Optional[ENABLE_DISABLE] = None
-    webfilter_profile: Optional[List[str]] = Field(
+    webfilter_profile: Optional[list[str]] = Field(
         # TODO: Define the WebFilterProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("webfilter-profile", "webfilter_profile"),
@@ -1048,7 +1072,7 @@ class Policy(FMGObject):
         validation_alias=AliasChoices("webproxy-forward-server", "webproxy_forward_server"),
         serialization_alias="webproxy-forward-server",
     )
-    webproxy_profile: Optional[str] = Field(
+    webproxy_profile: Optional[list[str]] = Field(
         # TODO: Define the WebProxyProfile class and use it here instead of str
         None,
         validation_alias=AliasChoices("webproxy-profile", "webproxy_profile"),
@@ -1165,6 +1189,38 @@ class Policy(FMGObject):
     )
     def standardize_enabled_disabled(cls, v):
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
+
+    @field_validator(
+        "application_list",
+        "av_profile",
+        "casb_profile",
+        "diameter_filter_profile",
+        "dlp_profile",
+        "dnsfilter_profile",
+        "emailfilter_profile",
+        "file_filter_profile",
+        "gtp_profile",
+        "icap_profile",
+        "ips_sensor",
+        "ips_voip_filter",
+        "pfcp_profile",
+        "profile_group",
+        "profile_protocol_options",
+        "sctp_filter_profile",
+        "ssh_filter_profile",
+        "ssl_ssh_profile",
+        "videofilter_profile",
+        "virtual_patch_profile",
+        "voip_profile",
+        "waf_profile",
+        "wanopt_profile",
+        "webfilter_profile",
+        "webproxy_profile",
+        mode="before",
+    )
+    def standardize_profile_references(cls, value):
+        """Accept a profile name for convenience and use the API's string arrays."""
+        return [value] if isinstance(value, str) else value
 
     @field_serializer("srcaddr", "dstaddr", "service", when_used="unless-none")
     def member_names_only(
