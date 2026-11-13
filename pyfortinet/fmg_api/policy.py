@@ -54,7 +54,7 @@ class PackageSettings(BaseModel):
         serialization_alias="fwpolicy6-implicit-log",
     )
     inspection_mode: Optional[INSPECTION_MODE] = Field(
-        None, validation_alias=AliasChoices("inspection-mode", "inspection_mode"), serialization_alias="inspection_mode"
+        None, validation_alias=AliasChoices("inspection-mode", "inspection_mode"), serialization_alias="inspection-mode"
     )
     ngfw_mode: Optional[NGFW_MODE] = Field(
         None, validation_alias=AliasChoices("ngfw-mode", "ngfw_mode"), serialization_alias="ngfw-mode"
@@ -110,15 +110,13 @@ class PolicyPackage(FMGObject):
     _master_keys = {"fmg_name": "name"}
     name: Optional[str] = None
     obj_ver: Optional[int] = Field(
-        None,
-        validation_alias=AliasChoices("obj ver", "obj_ver"),
-        serialization_alias="obj ver"
+        None, validation_alias=AliasChoices("obj ver", "obj_ver"), serialization_alias="obj ver"
     )
     oid: Optional[int] = None
     package_settings: Optional[PackageSettings] = Field(
         None,
         validation_alias=AliasChoices("package settings", "package_settings"),
-        serialization_alias="package settings"
+        serialization_alias="package settings",
     )
     scope_member: Optional[List[Scope]] = None
     subobj: Optional[List[Any]] = None  # TODO: this is for folder type. Needs testing!
@@ -300,6 +298,7 @@ class Policy(FMGObject):
 
 
     """
+
     _url = "/pm/config/adom/{adom}/pkg/{pkg}/firewall/policy/{policy}"
     _master_keys = {"policy": "policyid", "pkg": "pkg", "adom": "adom"}
     # URL fields
@@ -1117,7 +1116,9 @@ class Policy(FMGObject):
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
     @field_serializer("srcaddr", "dstaddr", "service", when_used="unless-none")
-    def member_names_only(self, members: List[Union[str, Address, AddressGroup, ServiceCustom, ServiceGroup]]) -> List[str]:
+    def member_names_only(
+        self, members: List[Union[str, Address, AddressGroup, ServiceCustom, ServiceGroup]]
+    ) -> List[str]:
         """Ensure member names are passed to API as it is expected"""
         serialized = []
         for member in members:

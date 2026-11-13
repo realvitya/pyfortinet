@@ -4,6 +4,7 @@ import pytest
 
 from pyfortinet import AsyncFMGResponse, FMGResponse
 from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api.dynamic import DynamicMapping
 from pyfortinet.fmg_api.firewall import Address
 
 
@@ -42,6 +43,13 @@ def test_object_lookup_retains_default_master_key(response_type):
     obj = Address(name="example")
     response = response_type(data=[obj], success=True)
     assert response["example"] is obj
+    assert response["missing"] is None
+
+
+def test_dynamic_mapping_lookup_uses_mapping_master_keys(response_type):
+    obj = DynamicMapping(interface="inside", oid=7)
+    response = response_type(data=[obj], success=True)
+    assert response[0] is obj
     assert response["missing"] is None
 
 

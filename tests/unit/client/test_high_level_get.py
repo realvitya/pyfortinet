@@ -37,6 +37,14 @@ def test_instance_scope_takes_precedence(client, post):
     assert post.call_args.kwargs["request"]["params"][0]["filter"]
 
 
+def test_mapping_scope_filter_uses_model_field_not_internal_scope(client, post):
+    post.return_value = {"data": []}
+    scope = {"name": "FGT1", "vdom": "root"}
+    resolve(client.get(Address(mapping__scope=scope)))
+    parameters = post.call_args.kwargs["request"]["params"][0]
+    assert parameters["filter"] == ["_scope", "==", scope]
+
+
 @pytest.mark.parametrize("payload", [{"data": None}, {}, {"data": []}, {"data": {"name": "example"}}])
 def test_get_handles_optional_data_without_mutating_response(client, post, payload):
     """Successful empty replies yield no objects; single objects are wrapped."""

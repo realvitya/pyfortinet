@@ -26,6 +26,7 @@ This documentation update does not establish a complete enrollment recipe for ev
 ## DeviceTask
 
 A `DeviceTask` takes an explicit ADOM and a `Device` or `DeviceCommand` instance.
+Deletion also accepts a device name string; adding requires the configuration in a device model.
 The action selects the add or delete command. Build an add request locally:
 
 ```python
@@ -65,6 +66,6 @@ remove_task = DeviceTask(
 ```
 
 This snippet only constructs the removal request. Executing it removes the device from
-FortiManager and can have consequences beyond object cleanup. The current constructor expects
-a device model even for deletion; it converts that model to its name in the request payload.
+FortiManager and can have consequences beyond object cleanup. For deletion, a device model is
+converted to its name in the request payload; `device="retired-example-fw"` produces the same payload.
 Workspace discard does not provide a general undo for device lifecycle operations.

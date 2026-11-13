@@ -1,4 +1,5 @@
 """System objects"""
+
 from ipaddress import IPv4Interface
 from typing import Literal, Optional, List, Union
 
@@ -9,17 +10,81 @@ from pyfortinet.fmg_api import _system_interface
 from pyfortinet.fmg_api.dvmdb import VDOM, Device
 
 ALLOW_ACCESS_TYPE = Literal[
-    "https", "ping", "ssh", "snmp", "http", "telnet", "fgfm", "auto-ipsec", "radius-acct",
-    "probe-response", "capwap", "dnp", "ftm", "fabric", "speed-test", "icond",
+    "https",
+    "ping",
+    "ssh",
+    "snmp",
+    "http",
+    "telnet",
+    "fgfm",
+    "auto-ipsec",
+    "radius-acct",
+    "probe-response",
+    "capwap",
+    "dnp",
+    "ftm",
+    "fabric",
+    "speed-test",
+    "icond",
 ]
 ENABLE_DISABLE = Literal["disable", "enable"]
 INTERFACE_BFD_TYPE = Literal["global", "enable", "disable"]
 INTERFACE_MODE_TYPE = Literal["static", "dhcp", "pppoe", "pppoa", "ipoa", "eoa"]
-INTERFACE_SPEED_TYPE = Literal["auto", "10full", "10half", "100full", "100half", "1000full", "1000half", "10000full", "1000auto", "10000auto", "40000full", "100Gfull", "25000full", "50000full", "40000auto", "25000auto", "100Gauto", "2500auto", "400Gfull", "400Gauto", "5000auto", "50000auto", "200Gfull", "200Gauto", "100auto"]
+INTERFACE_SPEED_TYPE = Literal[
+    "auto",
+    "10full",
+    "10half",
+    "100full",
+    "100half",
+    "1000full",
+    "1000half",
+    "10000full",
+    "1000auto",
+    "10000auto",
+    "40000full",
+    "100Gfull",
+    "25000full",
+    "50000full",
+    "40000auto",
+    "25000auto",
+    "100Gauto",
+    "2500auto",
+    "400Gfull",
+    "400Gauto",
+    "5000auto",
+    "50000auto",
+    "200Gfull",
+    "200Gauto",
+    "100auto",
+]
 INTERFACE_STATUS_TYPE = Literal["down", "up"]
 INTERFACE_STPFORWARD_MODE_TYPE = Literal["rpl-all-ext-id", "rpl-bridge-ext-id", "rpl-nothing"]
 INTERFACE_ROLE_TYPE = Literal["lan", "wan", "dmz", "undefined"]
-INTERFACE_TYPE_TYPE = Literal["physical", "vlan", "aggregate", "redundant", "tunnel", "wireless", "vdom-link", "loopback", "switch", "hard-switch", "hdlc", "vap-switch", "wl-mesh", "fortilink", "switch-vlan", "fctrl-trunk", "tdm", "fext-wan", "vxlan", "emac-vlan", "geneve", "ssl", "lan-extension"]
+INTERFACE_TYPE_TYPE = Literal[
+    "physical",
+    "vlan",
+    "aggregate",
+    "redundant",
+    "tunnel",
+    "wireless",
+    "vdom-link",
+    "loopback",
+    "switch",
+    "hard-switch",
+    "hdlc",
+    "vap-switch",
+    "wl-mesh",
+    "fortilink",
+    "switch-vlan",
+    "fctrl-trunk",
+    "tdm",
+    "fext-wan",
+    "vxlan",
+    "emac-vlan",
+    "geneve",
+    "ssl",
+    "lan-extension",
+]
 INTERFACE_VLAN_PROTO_TYPE = Literal["8021q", "8021ad"]
 LACP_MODE_TYPE = Literal["static", "passive", "active"]
 LACP_SPEED_TYPE = Literal["slow", "fast"]
@@ -61,6 +126,7 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
         interface: Specify interface for operation (URL var)
         color:
     """
+
     _url = "/pm/config/device/{device}/global/system/interface/{fmg_interface}"
     _master_keys = {"fmg_interface": "name"}
     # URL fields
@@ -74,7 +140,7 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
     broadcast_forward: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("broadcast-forward", "broadcast_forward"),
-        serialization_alias="broadcast-forward"
+        serialization_alias="broadcast-forward",
     )
     description: Optional[str] = None
     devindex: Optional[int] = None
@@ -82,12 +148,12 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
     icmp_accept_redirect: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("icmp-accept-redirect", "icmp_accept_redirect"),
-        serialization_alias="icmp-accept-redirect"
+        serialization_alias="icmp-accept-redirect",
     )
     icmp_send_redirect: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("icmp-send-redirect", "icmp_send_redirect"),
-        serialization_alias="icmp-send-redirect"
+        serialization_alias="icmp-send-redirect",
     )
 
     interface: Optional[Union["DeviceInterface", List["DeviceInterface"], Union[str, List[str]]]] = None
@@ -96,60 +162,46 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
     lacp_ha_secondary: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("lacp-ha-secondary", "lacp_ha_secondary"),
-        serialization_alias="lacp-ha-secondary"
+        serialization_alias="lacp-ha-secondary",
     )
     lacp_mode: Optional[LACP_MODE_TYPE] = Field(
-        None,
-        validation_alias=AliasChoices("lacp-mode", "lacp_mode"),
-        serialization_alias="lacp-mode"
+        None, validation_alias=AliasChoices("lacp-mode", "lacp_mode"), serialization_alias="lacp-mode"
     )
     lacp_speed: Optional[LACP_SPEED_TYPE] = Field(
-        None,
-        validation_alias=AliasChoices("lacp-speed", "lacp_speed"),
-        serialization_alias="lacp-speed"
+        None, validation_alias=AliasChoices("lacp-speed", "lacp_speed"), serialization_alias="lacp-speed"
     )
     lldp_network_policy: Optional[Union[str, List[str]]] = Field(
         None,
         validation_alias=AliasChoices("lldp-network-policy", "lldp_network_policy"),
-        serialization_alias="lldp-network-policy"
+        serialization_alias="lldp-network-policy",
     )
     lldp_reception: Optional[LLDP_MODE_TYPE] = Field(
-        None,
-        validation_alias=AliasChoices("lldp-reception", "lldp_reception"),
-        serialization_alias="lldp-reception"
+        None, validation_alias=AliasChoices("lldp-reception", "lldp_reception"), serialization_alias="lldp-reception"
     )
     lldp_transmission: Optional[LLDP_MODE_TYPE] = Field(
         None,
         validation_alias=AliasChoices("lldp-transmission", "lldp_transmission"),
-        serialization_alias="lldp-transmission"
+        serialization_alias="lldp-transmission",
     )
     macaddr: Optional[str] = None
     management_ip: Optional[Union[str, list]] = Field(
-        None,
-        validation_alias=AliasChoices("management-ip", "management_ip"),
-        serialization_alias="management-ip"
+        None, validation_alias=AliasChoices("management-ip", "management_ip"), serialization_alias="management-ip"
     )
     member: Optional[List[str]] = None
     mode: Optional[INTERFACE_MODE_TYPE] = None
     mtu: Optional[int] = None
     mtu_override: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("mtu-override", "mtu_override"),
-        serialization_alias="mtu-override"
+        None, validation_alias=AliasChoices("mtu-override", "mtu_override"), serialization_alias="mtu-override"
     )
     name: Optional[str] = None
     role: Optional[INTERFACE_ROLE_TYPE] = None
     secondary_IP: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("secondary-IP", "secondary_IP"),
-        serialization_alias="secondary-IP"
+        None, validation_alias=AliasChoices("secondary-IP", "secondary_IP"), serialization_alias="secondary-IP"
     )
     secondaryip: Optional[Union[str, list[str], list[_system_interface.InterfaceSecondaryip]]] = None
     speed: Optional[INTERFACE_SPEED_TYPE] = None
     src_check: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("src-check", "src_check"),
-        serialization_alias="src-check"
+        None, validation_alias=AliasChoices("src-check", "src_check"), serialization_alias="src-check"
     )
     status: Optional[INTERFACE_STATUS_TYPE] = None
     stpforward: Optional[ENABLE_DISABLE] = None
@@ -159,9 +211,7 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
         serialization_alias="stpforward-mode",
     )
     tcp_mss: Optional[int] = Field(
-        None,
-        validation_alias=AliasChoices("tcp-mss", "tcp_mss"),
-        serialization_alias="tcp-mss"
+        None, validation_alias=AliasChoices("tcp-mss", "tcp_mss"), serialization_alias="tcp-mss"
     )
     type: Optional[INTERFACE_TYPE_TYPE] = None
     vdom: Optional[Union[Union[str, VDOM], List[Union[str, VDOM]]]] = None
@@ -177,19 +227,29 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
     vrrp_virtual_mac: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("vrrp-virtual-mac", "vrrp_virtual_mac"),
-        serialization_alias="vrrp-virtual-mac"
+        serialization_alias="vrrp-virtual-mac",
     )
     weight: Optional[int] = None
 
-    def get_url(self, method = "get") -> str:
+    def get_url(self, method="get") -> str:
         if self.device is None:
             raise ValueError("Device parameter must be set!")
         return super().get_url(method)
 
-
-    @field_validator("arpforward", "broadcast_forward", "icmp_accept_redirect", "icmp_send_redirect", "ipmac",
-                     "lacp_ha_secondary", "mtu_override", "secondary_IP", "src_check", "stpforward", "vrrp_virtual_mac",
-                     mode="before")
+    @field_validator(
+        "arpforward",
+        "broadcast_forward",
+        "icmp_accept_redirect",
+        "icmp_send_redirect",
+        "ipmac",
+        "lacp_ha_secondary",
+        "mtu_override",
+        "secondary_IP",
+        "src_check",
+        "stpforward",
+        "vrrp_virtual_mac",
+        mode="before",
+    )
     def validate_allow_routing(cls, v) -> ENABLE_DISABLE:
         return ENABLE_DISABLE.__dict__.get("__args__")[v] if isinstance(v, int) else v
 
@@ -251,9 +311,8 @@ class DeviceInterface(_system_interface.InterfaceFields, FMGObject):
 
 
 class DeviceZone(FMGObject):
-    """Device zone
+    """Device zone"""
 
-    """
     _url = "/pm/config/device/{device}/vdom/{vdom}/system/zone/{zone}"
     _master_keys = {"zone": "name"}
     # URL fields
@@ -267,10 +326,16 @@ class DeviceZone(FMGObject):
     interface: Optional[List[Union[str, DeviceInterface]]] = None
     description: Optional[str] = None
 
-    def get_url(self, method = "get") -> str:
+    def get_url(self, method="get") -> str:
         if not self.device:
             raise ValueError("Device parameter must be set!")
-        return super().get_url(method)
+        target = self.model_copy(
+            update={
+                "device": self.device.name if isinstance(self.device, Device) else self.device,
+                "vdom": self.vdom.name if isinstance(self.vdom, VDOM) else self.vdom,
+            }
+        )
+        return FMGObject.get_url(target, method)
 
     @field_validator("interface", mode="before")
     def validate_interface(cls, v) -> List[str]:
@@ -377,6 +442,7 @@ class SystemAdmin(FMGObject):
                        VDOMs that this administrator can access.
         wildcard: Enable/disable wildcard RADIUS authentication.
     """
+
     _url = "/pm/config/device/{device}/global/system/admin/{admin}"
     _master_keys = {"admin": "name", "device": "device"}
     # URL fields
@@ -407,7 +473,7 @@ class SystemAdmin(FMGObject):
         serialization_alias="force-password-change",
     )
     fortitoken: Optional[Union[str, List[str]]] = None  # TODO: implement FORTITOKEN model
-    guest_auth:Optional[ENABLE_DISABLE] = Field(
+    guest_auth: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("guest-auth", "guest_auth"),
         serialization_alias="guest-auth",
@@ -589,7 +655,7 @@ class SystemAdmin(FMGObject):
         validation_alias=AliasChoices("two-factor-notification", "two_factor_notification"),
         serialization_alias="two-factor-notification",
     )
-    vdom: Optional[Union[str, VDOM, List[Union[str,VDOM]]]] = None
+    vdom: Optional[Union[str, VDOM, List[Union[str, VDOM]]]] = None
     vdom_override: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("vdom-override", "vdom_override"),
@@ -603,7 +669,7 @@ class SystemAdmin(FMGObject):
         values = value if isinstance(value, list) else [value]
         return [item.name if isinstance(item, VDOM) else item for item in values]
 
-    def get_url(self, method = "get"):
+    def get_url(self, method="get"):
         if not self.device:
             raise ValueError("Please specify `device` field or assign object to FMG!")
         return super().get_url(method)

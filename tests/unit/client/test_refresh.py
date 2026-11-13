@@ -4,6 +4,7 @@ import pytest
 
 from pyfortinet.exceptions import FMGObjectNotExistException, FMGUnhandledException, FMGWrongRequestException
 from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api.dynamic import DynamicMapping
 from pyfortinet.fmg_api.firewall import Address
 from pyfortinet.fmg_api.policy import Policy
 from tests.unit.conftest import resolve
@@ -40,6 +41,17 @@ def test_refresh_ignores_extra_response_attributes(client, post):
     assert resolve(client.refresh(obj)) is obj
     assert obj.comment == "after"
     assert isinstance(obj, FMGObject)
+
+
+def test_refresh_dynamic_mapping_retains_parent_and_identity(client, post):
+    obj = DynamicMapping(interface="inside", oid=7, local_intf=["before"], fmg_scope="root")
+    post.return_value = {"data": [{"oid": 7, "local-intf": ["after"]}]}
+    assert resolve(client.refresh(obj)) is obj
+    parameters = post.call_args.kwargs["request"]["params"][0]
+    assert parameters["url"] == "/pm/config/adom/root/obj/dynamic/interface/inside/dynamic_mapping"
+    assert parameters["filter"] == ["oid", "==", 7]
+    assert obj.local_intf == ["after"]
+    assert obj.interface == "inside"
 
 
 @pytest.mark.parametrize("error", [FMGUnhandledException, FMGObjectNotExistException])

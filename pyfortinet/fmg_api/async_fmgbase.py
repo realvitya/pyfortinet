@@ -7,6 +7,7 @@ import logging
 import re
 import time
 from contextlib import asynccontextmanager, contextmanager
+from contextvars import ContextVar
 from copy import copy
 from random import randint
 from typing import Any, Callable, Optional, Union, List, Coroutine
@@ -69,6 +70,7 @@ def auth_required(func: Callable) -> Callable:
 
 def error_handling(func: Callable) -> Callable:
     """Decorator to provide error handling for the methods"""
+
     @functools.wraps(func)
     async def error_decorated(self: "AsyncFMGBase", *args, **kwargs):
         try:
@@ -80,6 +82,7 @@ def error_handling(func: Callable) -> Callable:
             return result
 
     return error_decorated
+
 
 def lock(func: Callable) -> Callable:
     """Decorator to provide ADOM locking if needed
@@ -331,6 +334,7 @@ class AsyncFMGBase:
         if not settings:
             settings = FMGSettings(**kwargs)
         self._settings = settings
+        self._timeout_override: ContextVar[Optional[float]] = ContextVar("fmg_timeout", default=None)
         self._token: Optional[SecretStr] = None
         self._session: Optional[aiohttp.ClientSession] = None
         self.lock = AsyncFMGLockContext(self)
@@ -339,12 +343,11 @@ class AsyncFMGBase:
 
     @contextmanager
     def timeout(self, timeout: float = 120.0):
-        original_timeout = self._settings.timeout
-        self._settings.timeout = timeout_seconds(timeout)
+        token = self._timeout_override.set(timeout_seconds(timeout))
         try:
             yield
         finally:
-            self._settings.timeout = original_timeout
+            self._timeout_override.reset(token)
 
     @property
     def adom(self) -> str:
@@ -423,6 +426,7 @@ class AsyncFMGBase:
     async def close(self, discard_changes: bool = False):
         """close connection"""
         session = self._session
+        workspace_error = None
         try:
             if session is None or self._token is None:
                 return
@@ -432,19 +436,30 @@ class AsyncFMGBase:
                 "params": [{"url": "/sys/logout"}],
                 "session": self._token.get_secret_value(),
             }
-            try:
-                if self.lock.locked_adoms or self.lock.uses_workspace:
-                    if not (self.discard_on_close or discard_changes):
-                        await self.lock.commit_changes()
+            if self.lock.locked_adoms or self.lock.uses_workspace:
+                if not (self.discard_on_close or discard_changes):
+                    try:
+                        responses = await self.lock.commit_changes()
+                        if any(not response.success for response in responses):
+                            raise FMGLockException("Failed to commit workspace changes")
+                    except FMGException as err:
+                        workspace_error = err
+                        logger.exception("Failed to commit workspace changes")
+                try:
                     await self.lock.unlock_adoms()
-            except FMGException:  # Ensure logout even when workspace cleanup fails.
-                pass
-            payload = await async_request_json(session, self._settings, request)
+                except FMGException as err:
+                    workspace_error = workspace_error or err
+                    logger.exception("Failed to unlock workspaces")
+            payload = await async_request_json(session, self._settings, request, timeout=self._timeout_override.get())
             status = payload.get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
         except aiohttp.ClientConnectionError:
             logger.warning("Logout failed!")
+        except (FMGException, aiohttp.ClientError, asyncio.TimeoutError):
+            if workspace_error is None:
+                raise
+            logger.exception("Logout failed after workspace cleanup failed")
         finally:
             try:
                 if session is not None:
@@ -456,6 +471,8 @@ class AsyncFMGBase:
                 self.lock._uses_workspace = None
                 self.lock._uses_adoms = None
             logger.debug("Closed session")
+        if workspace_error is not None:
+            raise workspace_error
 
     async def __aenter__(self):
         await self.open()
@@ -463,13 +480,16 @@ class AsyncFMGBase:
 
     async def __aexit__(self, exc_type, exc_value, exc_tb):
         if exc_type is not None:
-            await self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
+            try:
+                await self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
+            except Exception:
+                logger.exception("Connection cleanup failed while handling an exception")
             return
         await self.close(discard_changes=self.discard_on_close)
 
     async def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
-        payload = await async_request_json(self._session, self._settings, request)
+        payload = await async_request_json(self._session, self._settings, request, timeout=self._timeout_override.get())
         return rpc_result(payload)
 
     async def _get_token(self) -> SecretStr:

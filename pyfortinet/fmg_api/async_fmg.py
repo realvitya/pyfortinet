@@ -7,8 +7,12 @@ from typing import Optional, Union, Any, Type, List, Dict
 from more_itertools import first
 
 from pyfortinet.fmg_api.async_fmgbase import AsyncFMGBase, AsyncFMGResponse, auth_required, error_handling
-from pyfortinet.exceptions import FMGException, FMGWrongRequestException, FMGMissingMasterKeyException, \
-    FMGObjectNotExistException
+from pyfortinet.exceptions import (
+    FMGException,
+    FMGWrongRequestException,
+    FMGMissingMasterKeyException,
+    FMGObjectNotExistException,
+)
 from pyfortinet.fmg_api import FMGObject, FMGExecObject, AnyFMGObject, GetOption
 from pyfortinet.settings import FMGSettings
 from pyfortinet.fmg_api.common import FILTER_TYPE, F, text_to_filter, FilterList, ComplexFilter
@@ -76,7 +80,7 @@ class AsyncFMG(AsyncFMGBase):
         fields: Optional[List[str]] = None,
         loadsub: bool = True,
         options: Optional[List[GetOption]] = None,
-        **kwargs: Optional[Dict[str, str]]
+        **kwargs: Optional[Dict[str, str]],
     ) -> AsyncFMGResponse:
         """Read objects from FortiManager.
 
@@ -179,7 +183,9 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url(method="add"), "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append(
+                    {"url": req.get_url(method="add"), "data": req.model_dump(by_alias=True, exclude_none=True)}
+                )
             return await super().add(request=api_data)
 
     @error_handling
@@ -215,11 +221,6 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                # if not req.master_keys:
-                #     raise FMGMissingMasterKeyException(f"Need to specify a master key for {request}")
-                # master_key = first(req.master_keys)  # assume one master_key, like `name`
-                # master_value = getattr(req, master_key)
-                # api_data.append({"url": f"{req.get_url}/{master_value}"})
                 api_data.append({"url": req.get_url(method="delete")})
             return await super().delete(api_data)
 
@@ -256,7 +257,9 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url(method="update"), "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append(
+                    {"url": req.get_url(method="update"), "data": req.model_dump(by_alias=True, exclude_none=True)}
+                )
             return await super().update(request=api_data)
 
     @error_handling
@@ -292,7 +295,9 @@ class AsyncFMG(AsyncFMGBase):
             api_data = []
             for req in request:
                 req.fmg_scope = req.fmg_scope or self._settings.adom
-                api_data.append({"url": req.get_url(method="set"), "data": req.model_dump(by_alias=True, exclude_none=True)})
+                api_data.append(
+                    {"url": req.get_url(method="set"), "data": req.model_dump(by_alias=True, exclude_none=True)}
+                )
             return await super().set(request=api_data)
 
     async def exec(self, request: Union[dict[str, Any], FMGExecObject]) -> AsyncFMGResponse:
@@ -310,9 +315,7 @@ class AsyncFMG(AsyncFMGBase):
                 raise FMGWrongRequestException(result.data[0]["error"])
             return result
 
-    def get_obj(
-        self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Any
-    ) -> AnyFMGObject:
+    def get_obj(self, obj: Union[Type[FMGObject], Type[FMGExecObject], AnyFMGObject], **kwargs: Any) -> AnyFMGObject:
         """Construct or bind a local model to this client without an API request.
 
         Args:

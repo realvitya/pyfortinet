@@ -3,7 +3,6 @@
 import builtins
 from ipaddress import IPv4Address, IPv4Interface
 from typing import Optional, Union
-from uuid import UUID
 
 from more_itertools import first
 from pydantic import AliasChoices, BaseModel, Field, field_serializer, field_validator
@@ -11,6 +10,7 @@ from pydantic import AliasChoices, BaseModel, Field, field_serializer, field_val
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
 
+from ._values import uuid_string
 from .types import (
     ADDRESS_GROUP_CATEGORY,
     ADDRESS_GROUP_TYPE,
@@ -264,8 +264,7 @@ class Address(FMGObject):
 
     @field_validator("uuid", mode="before")
     def validate_uuid(cls, v) -> str:
-        assert UUID(v)
-        return str(v)
+        return uuid_string(v)
 
 
 class AddressGroup(FMGObject):
@@ -328,5 +327,4 @@ class AddressGroup(FMGObject):
 
     @field_validator("uuid", mode="before")
     def validate_uuid(cls, v) -> str:
-        assert UUID(v)
-        return str(v)
+        return uuid_string(v)

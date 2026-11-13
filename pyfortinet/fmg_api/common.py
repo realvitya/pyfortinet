@@ -32,7 +32,7 @@ Operator	# of target(s)	Descriptions
 "&"	        2               Bitwise AND, target can be integer value only, test if (source & target1) = target2
 "in"        1 or more       Test if source is one of the values in target
 "contain"   1               If source have a list of values, test if it contains target
-"like"      1               SQL pattern matching, where target is a string using % (any character) and _ (single 
+"like"      1               SQL pattern matching, where target is a string using % (any character) and _ (single
                             character) wildcard
 "!like"     1               Not like, inverse of "like" operation
 "glob"      1               Case-sensitive pattern matching with target string using UNIX wildcards
@@ -337,7 +337,7 @@ def text_to_filter(text: str) -> FILTER_TYPE:
     while text:
         # search F tokens
         f_match = re.match(
-            rf'(?P<negate>~)?\s*(?P<fname>[\w -]+?)\s+(?P<fop>{"|".join(OP.keys())})\s+(?P<fvalue>\S+)(?<![,|&])', text
+            rf"(?P<negate>~)?\s*(?P<fname>[\w -]+?)\s+(?P<fop>{'|'.join(OP.keys())})\s+(?P<fvalue>\S+)(?<![,|&])", text
         )
         if f_match:
             kwargs = {f"{f_match.group('fname')}__{f_match.group('fop')}": f_match.group("fvalue")}

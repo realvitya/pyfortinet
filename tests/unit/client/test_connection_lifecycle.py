@@ -4,10 +4,11 @@ import asyncio
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+import requests
 from pydantic import SecretStr
 
-from pyfortinet import AsyncFMG
-from pyfortinet.exceptions import FMGTokenException
+from pyfortinet import AsyncFMG, FMGResponse
+from pyfortinet.exceptions import FMGException, FMGLockException, FMGTokenException
 from tests.unit.conftest import resolve
 
 
@@ -92,7 +93,7 @@ def test_close_cleans_up_on_errors(client, session, failure):
     client.lock._uses_workspace = True
     client.lock.locked_adoms.add("other")
     mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
-    client.lock.commit_changes = mock_type()
+    client.lock.commit_changes = mock_type(return_value=[])
     client.lock.unlock_adoms = mock_type()
     targets = {
         "logout": session.post,
@@ -128,7 +129,7 @@ def test_close_discard_policy_is_not_sticky(client, session, configured_discard,
     """A per-close discard request must not change future connection behavior."""
     client.discard_on_close = configured_discard
     mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
-    client.lock.commit_changes = mock_type()
+    client.lock.commit_changes = mock_type(return_value=[])
     client.lock.unlock_adoms = mock_type()
     resolve(client.open())
     client.lock._uses_workspace = True
@@ -146,8 +147,86 @@ def test_close_cleans_locks_after_discovering_disabled_adom(client, session):
     client.lock.locked_adoms.add("other")
     client.lock._uses_workspace = False
     mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
-    client.lock.commit_changes = mock_type()
+    client.lock.commit_changes = mock_type(return_value=[])
     client.lock.unlock_adoms = mock_type()
     resolve(client.close())
     client.lock.commit_changes.assert_called_once_with()
     client.lock.unlock_adoms.assert_called_once_with()
+
+
+@pytest.mark.parametrize("failure", ["exception", "response", "unlock"])
+@pytest.mark.parametrize("raise_on_error", [False, True])
+def test_close_reports_workspace_failure_after_logout(client, session, caplog, failure, raise_on_error):
+    resolve(client.open())
+    client.raise_on_error = raise_on_error
+    client.lock._uses_workspace = True
+    client.lock.locked_adoms.add("root")
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    client.lock.commit_changes = mock_type(return_value=[])
+    client.lock.unlock_adoms = mock_type()
+    if failure == "response":
+        client.lock.commit_changes.return_value = [FMGResponse(success=False)]
+        error = FMGLockException
+    else:
+        target = client.lock.commit_changes if failure == "exception" else client.lock.unlock_adoms
+        target.side_effect = FMGException("workspace failed")
+        error = FMGException
+    with pytest.raises(error):
+        resolve(client.close())
+    client.lock.unlock_adoms.assert_called_once_with()
+    session.post.assert_called_once()
+    session.close.assert_called_once_with()
+    assert client._session is None
+    assert client._token is None
+    assert not client.lock.locked_adoms
+    assert "Failed to" in caplog.text
+
+
+@pytest.mark.parametrize("failure", ["http", "decode", "timeout", "workspace", "session_close"])
+def test_context_preserves_original_exception_when_cleanup_fails(client, session, caplog, failure):
+    asynchronous = isinstance(client, AsyncFMG)
+    mock_type = AsyncMock if asynchronous else Mock
+    if failure == "http":
+        session.post.return_value.status_code = session.post.return_value.status = 503
+    elif failure == "decode":
+        session.post.return_value.json.side_effect = ValueError("invalid JSON")
+    elif failure == "timeout":
+        session.post.side_effect = asyncio.TimeoutError() if asynchronous else requests.ReadTimeout()
+    elif failure == "workspace":
+        client._settings.discard_on_error = False
+        client.lock._uses_workspace = True
+        client.lock.commit_changes = mock_type(side_effect=FMGException("commit failed"))
+        client.lock.unlock_adoms = mock_type()
+    else:
+        session.close.side_effect = RuntimeError("session close failed")
+    original = ValueError("user block failed")
+
+    async def run_async():
+        async with client:
+            raise original
+
+    with pytest.raises(ValueError) as caught:
+        if asynchronous:
+            asyncio.run(run_async())
+        else:
+            with client:
+                raise original
+    assert caught.value is original
+    assert "Connection cleanup failed" in caplog.text
+    assert client._session is None
+    assert client._token is None
+    session.close.assert_called_once_with()
+
+
+def test_logout_failure_does_not_hide_commit_failure(client, session, caplog):
+    resolve(client.open())
+    client.lock._uses_workspace = True
+    mock_type = AsyncMock if isinstance(client, AsyncFMG) else Mock
+    original = FMGException("commit failed")
+    client.lock.commit_changes = mock_type(side_effect=original)
+    client.lock.unlock_adoms = mock_type()
+    session.post.return_value.status_code = session.post.return_value.status = 503
+    with pytest.raises(FMGException) as caught:
+        resolve(client.close())
+    assert caught.value is original
+    assert "Logout failed after workspace cleanup failed" in caplog.text

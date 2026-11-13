@@ -2,7 +2,7 @@
 
 from pyfortinet.fmg_api.task import Task
 
-TERMINAL_TASK_STATES = frozenset({"cancelled", "done", "error", "aborted", "to_continue", "unknown"})
+TERMINAL_TASK_STATES = frozenset({"cancelled", "done", "error", "aborted", "warning", "to_continue", "unknown"})
 
 
 def task_id_from_response(response):

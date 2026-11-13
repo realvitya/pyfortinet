@@ -2,7 +2,7 @@
 
 import asyncio
 import math
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import requests
 from pyresilience import RetryConfig, resilient
@@ -75,14 +75,16 @@ def request_json(session: requests.Session, settings: FMGSettings, request: dict
     return attempt()
 
 
-async def async_request_json(session: "aiohttp.ClientSession", settings: FMGSettings, request: dict[str, Any]) -> Any:
+async def async_request_json(
+    session: "aiohttp.ClientSession", settings: FMGSettings, request: dict[str, Any], *, timeout: Optional[float] = None
+) -> Any:
     """Send and decode an async request with the same native I/O timeout policy."""
     import aiohttp  # noqa: PLC0415 - optional async dependency
 
     retry = _retry_config(
         settings, request, (aiohttp.ClientConnectionError, asyncio.TimeoutError), (aiohttp.ClientSSLError,)
     )
-    seconds = timeout_seconds(settings.timeout)
+    seconds = timeout_seconds(settings.timeout if timeout is None else timeout)
     timeout = aiohttp.ClientTimeout(total=None, connect=seconds, sock_connect=seconds, sock_read=seconds)
 
     @resilient(retry=retry)

@@ -83,17 +83,20 @@ class DeviceTask(FMGExecObject):
 
     @field_validator("device", mode="before")
     def ensure_device_type(cls, device):
-        if isinstance(device, DeviceCommand):
+        if isinstance(device, (DeviceCommand, str)):
             return device
         elif isinstance(device, Device):
             device = DeviceCommand(**device.model_dump(by_alias=True))
             return device
-        raise TypeError("Device must be of type Device or DeviceCommand!")
+        raise ValueError("Device must be a name, Device or DeviceCommand!")
 
     @model_validator(mode="after")
     def validate_devicejob(self) -> "DeviceTask":
         """Validate device job"""
         self._url = self._url.replace("{action}", self.action)
         if self.action == "del":
-            self.device = self.device.name  # deleting a device requires device id or name
+            if not isinstance(self.device, str):
+                self.device = self.device.name  # deleting a device requires device id or name
+        elif isinstance(self.device, str):
+            raise ValueError("Adding a device requires a Device or DeviceCommand instance")
         return self

@@ -1,4 +1,5 @@
 """FMG API library"""
+
 import re
 from abc import ABC
 from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
@@ -131,9 +132,9 @@ class FMGObject(FMGBaseObject, ABC):
                 if hasattr(self, field) and getattr(self, field) is not None:
                     url = url.replace(f"{{{field}}}", str(getattr(self, field)))
                 elif (
-                        method in ("get", "set", "update", "delete", "clone")
-                        and field in self.master_keys
-                        and getattr(self, self.master_keys[field], None) is not None
+                    method in ("get", "set", "update", "delete", "clone")
+                    and field in self.master_keys
+                    and getattr(self, self.master_keys[field], None) is not None
                 ):  # certain methods require master key (like policyid)
                     url = url.replace(f"{{{field}}}", str(getattr(self, self.master_keys[field])))
                 # delete field from URL if no data found (can lead to errors)

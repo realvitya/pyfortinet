@@ -63,6 +63,7 @@ def auth_required(func: Callable) -> Callable:
 
 def error_handling(func: Callable) -> Callable:
     """Decorator to provide error handling for the methods"""
+
     @functools.wraps(func)
     def error_decorated(self: "FMGBase", *args, **kwargs):
         try:
@@ -455,6 +456,7 @@ class FMGBase:
     def close(self, discard_changes: bool = False):
         """close connection"""
         session = self._session
+        workspace_error = None
         try:
             if session is None or self._token is None:
                 return
@@ -464,19 +466,30 @@ class FMGBase:
                 "params": [{"url": "/sys/logout"}],
                 "session": self._token.get_secret_value(),
             }
-            try:
-                if self.lock.locked_adoms or self.lock.uses_workspace:
-                    if not (self.discard_on_close or discard_changes):
-                        self.lock.commit_changes()
+            if self.lock.locked_adoms or self.lock.uses_workspace:
+                if not (self.discard_on_close or discard_changes):
+                    try:
+                        responses = self.lock.commit_changes()
+                        if any(not response.success for response in responses):
+                            raise FMGLockException("Failed to commit workspace changes")
+                    except FMGException as err:
+                        workspace_error = err
+                        logger.exception("Failed to commit workspace changes")
+                try:
                     self.lock.unlock_adoms()
-            except FMGException:  # Ensure logout even when workspace cleanup fails.
-                pass
+                except FMGException as err:
+                    workspace_error = workspace_error or err
+                    logger.exception("Failed to unlock workspaces")
             payload = request_json(session, self._settings, request)
             status = payload.get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
         except requests.exceptions.ConnectionError:
             logger.warning("Logout failed!")
+        except (FMGException, requests.RequestException):
+            if workspace_error is None:
+                raise
+            logger.exception("Logout failed after workspace cleanup failed")
         finally:
             try:
                 if session is not None:
@@ -488,6 +501,8 @@ class FMGBase:
                 self.lock._uses_workspace = None
                 self.lock._uses_adoms = None
             logger.debug("Closed session")
+        if workspace_error is not None:
+            raise workspace_error
 
     def __enter__(self):
         self.open()
@@ -495,7 +510,10 @@ class FMGBase:
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         if exc_type is not None:
-            self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
+            try:
+                self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
+            except Exception:
+                logger.exception("Connection cleanup failed while handling an exception")
             return
         self.close(discard_changes=self.discard_on_close)
 

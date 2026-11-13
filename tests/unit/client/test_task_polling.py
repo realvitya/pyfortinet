@@ -32,6 +32,12 @@ def test_task_identifier_spellings(client, polling, key):
     assert polling.call_args.args[0]["filter"] == ["id", "==", 12]
 
 
+def test_warning_task_returns_without_polling_again(client, polling):
+    polling.return_value.data[0]["data"][0]["state"] = "warning"
+    assert resolve(client.wait_for_task(12)) == "warning"
+    polling.assert_called_once()
+
+
 @pytest.mark.parametrize("timeout", [60, -1])
 def test_task_connection_retry(client, polling, timeout):
     """Retry transient failures and report the requested ID on timeout."""

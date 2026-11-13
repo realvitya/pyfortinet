@@ -4,7 +4,7 @@ from typing import Literal, Optional, List, Dict, Union
 
 from pydantic import Field, field_validator, AliasChoices, BaseModel
 
-from pyfortinet.fmg_api import FMGObject
+from pyfortinet.fmg_api import FMGBaseObject, FMGObject
 from pyfortinet.fmg_api.common import Scope
 from pyfortinet.exceptions import FMGException
 
@@ -14,70 +14,63 @@ ENABLE_DISABLE = Literal["disable", "enable"]
 class PlatformMapping(FMGObject):
     _url = "/pm/config/{scope}/obj/dynamic/interface/{interface}/platform_mapping/{platform_mapping}"
     # URL fields
-    interface: Optional[str] = None
-    platform_mapping: Optional[str] = None
+    interface: Optional[str] = Field(None, exclude=True)
+    platform_mapping: Optional[str] = Field(None, exclude=True)
     # API fields
     egress_shaping_profile: Optional[List[str]] = Field(  # TODO: implement ShapingProfile
         None,
         validation_alias=AliasChoices("egress-shaping-profile", "egress_shaping_profile"),
-        serialization_alias="egress-shaping-profile"
+        serialization_alias="egress-shaping-profile",
     )
     intf_zone: Optional[str] = Field(  # zone to map
-        None,
-        validation_alias=AliasChoices("intf-zone", "intf_zone"),
-        serialization_alias="intf-zone"
+        None, validation_alias=AliasChoices("intf-zone", "intf_zone"), serialization_alias="intf-zone"
     )
     intrazone_deny: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("intrazone-deny", "intrazone_deny"),
-        serialization_alias="intrazone-deny"
+        None, validation_alias=AliasChoices("intrazone-deny", "intrazone_deny"), serialization_alias="intrazone-deny"
     )
     name: Optional[str] = None  # Platform name
     oid: Optional[int] = None
 
-    @property
-    def get_url(self) -> str:
+    def get_url(self, method="get") -> str:
         """Derive URL for object based on initial URL fields
 
         Returns:
             URL string to call
         """
-        url = super().get_url
+        url = FMGBaseObject.get_url(self, method)
         if self.interface is None:
             raise FMGException("interface field is required!")
         url = url.replace("{interface}", self.interface)
         if self.platform_mapping is None:
             url = url.replace("/{platform_mapping}", "")
+        else:
+            url = url.replace("{platform_mapping}", self.platform_mapping)
         return url
 
 
 class DynamicMapping(FMGObject):
     _url = "/pm/config/{scope}/obj/dynamic/interface/{interface}/dynamic_mapping/{dynamic_mapping_name}/{dynamic_mapping_vdom}"
-    _master_keys = ["oid"]
+    _master_keys = {"oid": "oid"}
     # URL fields
-    interface: Optional[str] = None
-    dynamic_mapping_name: Optional[str] = None
-    dynamic_mapping_vdom: Optional[str] = None
+    interface: Optional[str] = Field(None, exclude=True)
+    dynamic_mapping_name: Optional[str] = Field(None, exclude=True)
+    dynamic_mapping_vdom: Optional[str] = Field(None, exclude=True)
     # API fields
     egress_shaping_profile: Optional[List[str]] = Field(  # TODO: implement ShapingProfile
         None,
         validation_alias=AliasChoices("egress-shaping-profile", "egress_shaping_profile"),
-        serialization_alias="egress-shaping-profile"
+        serialization_alias="egress-shaping-profile",
     )
     ingress_shaping_profile: Optional[List[str]] = Field(  # TODO: implement ShapingProfile
         None,
         validation_alias=AliasChoices("ingress-shaping-profile", "ingress_shaping_profile"),
-        serialization_alias="ingress-shaping-profile"
+        serialization_alias="ingress-shaping-profile",
     )
     intrazone_deny: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("intrazone-deny", "intrazone_deny"),
-        serialization_alias="intrazone-deny"
+        None, validation_alias=AliasChoices("intrazone-deny", "intrazone_deny"), serialization_alias="intrazone-deny"
     )
     local_intf: Optional[List[str]] = Field(
-        None,
-        validation_alias=AliasChoices("local-intf", "local_intf"),
-        serialization_alias="local-intf"
+        None, validation_alias=AliasChoices("local-intf", "local_intf"), serialization_alias="local-intf"
     )
     oid: Optional[int] = None
     # Mapping fields
@@ -85,18 +78,17 @@ class DynamicMapping(FMGObject):
         None, validation_alias=AliasChoices("_scope", "mapping__scope"), serialization_alias="_scope"
     )
 
-    @property
-    def get_url(self) -> str:
+    def get_url(self, method="get") -> str:
         """Derive URL for object based on initial URL fields
 
         Returns:
             URL string to call
         """
-        url = super().get_url
+        url = FMGBaseObject.get_url(self, method)
         if self.interface is None:
             raise FMGException("interface field is required!")
         url = url.replace("{interface}", self.interface)
-        if self.dynamic_mapping_name is None:
+        if self.dynamic_mapping_name is None and self.dynamic_mapping_vdom is None:
             url = url.replace("/{dynamic_mapping_name}/{dynamic_mapping_vdom}", "")
         elif self.dynamic_mapping_name and self.dynamic_mapping_vdom:
             url = url.replace("{dynamic_mapping_name}", self.dynamic_mapping_name)
@@ -104,6 +96,7 @@ class DynamicMapping(FMGObject):
         else:
             raise FMGException("dynamic_mapping_name and dynamic_mapping_vdom both are required!")
         return url
+
 
 class NormalizedInterface(FMGObject):
     """Interface object
@@ -123,58 +116,59 @@ class NormalizedInterface(FMGObject):
         platform_mapping:
         single_intf:
         wildcard:
-        wildcard_intf_zone_only:
+        wildcard_intf:
+        zone_only:
         mapping__scope:
         local_intf:
     """
+
     _url = "/pm/config/{scope}/obj/dynamic/interface/{interface}"
     _master_keys = {"interface": "name"}
     # URL fields
     # API fields
     color: Optional[int] = None
     default_mapping: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("default-mapping", "default_mapping"),
-        serialization_alias="default-mapping"
+        None, validation_alias=AliasChoices("default-mapping", "default_mapping"), serialization_alias="default-mapping"
     )
     defmap_intf: Optional[str] = Field(
-        None,
-        validation_alias=AliasChoices("defmap-intf", "defmap_intf"),
-        serialization_alias="defmap-intf"
+        None, validation_alias=AliasChoices("defmap-intf", "defmap_intf"), serialization_alias="defmap-intf"
     )
     defmap_intrazone_deny: Optional[ENABLE_DISABLE] = Field(
         None,
         validation_alias=AliasChoices("defmap-intrazone-deny", "defmap_intrazone_deny"),
-        serialization_alias="defmap-intrazone-deny"
+        serialization_alias="defmap-intrazone-deny",
     )
     defmap_zonemember: Optional[List[str]] = Field(
         None,
         validation_alias=AliasChoices("defmap-zonemember", "defmap_zonemember"),
-        serialization_alias="defmap-zonemember"
+        serialization_alias="defmap-zonemember",
     )
     description: Optional[str] = None
     dynamic_mapping: Optional[Union[List[DynamicMapping], DynamicMapping]] = None
     egress_shaping_profile: Optional[List[str]] = Field(  # TODO: implement ShapingProfile
         None,
         validation_alias=AliasChoices("egress-shaping-profile", "egress_shaping_profile"),
-        serialization_alias="egress-shaping-profile"
+        serialization_alias="egress-shaping-profile",
     )
     ingress_shaping_profile: Optional[List[str]] = Field(  # TODO: implement ShapingProfile
         None,
         validation_alias=AliasChoices("ingress-shaping-profile", "ingress_shaping_profile"),
-        serialization_alias="ingress-shaping-profile"
+        serialization_alias="ingress-shaping-profile",
     )
     name: Optional[str] = None
     oid: Optional[int] = None
     platform_mapping: Optional[List[Union[str, PlatformMapping]]] = None
     single_intf: Optional[ENABLE_DISABLE] = Field(
-        None,
-        validation_alias=AliasChoices("single-intf", "single_intf"),
-        serialization_alias="single-intf"
+        None, validation_alias=AliasChoices("single-intf", "single_intf"), serialization_alias="single-intf"
     )
     wildcard: Optional[ENABLE_DISABLE] = None
-    wildcard_intf_zone_only: Optional[ENABLE_DISABLE] = Field(
+    wildcard_intf: Optional[str] = Field(
         None,
-        validation_alias=AliasChoices("only-wildcard-intf-zone", "wildcard_intf_zone_only"),
-        serialization_alias="wildcard-intf-zone-only"
+        validation_alias=AliasChoices("wildcard-intf", "wildcard_intf"),
+        serialization_alias="wildcard-intf",
+    )
+    zone_only: Optional[ENABLE_DISABLE] = Field(
+        None,
+        validation_alias=AliasChoices("zone-only", "zone_only"),
+        serialization_alias="zone-only",
     )

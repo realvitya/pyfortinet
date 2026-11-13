@@ -116,6 +116,7 @@ Both clients accept task responses containing either `taskid` or `task` and retr
 failures until the polling timeout. Async callbacks may be functions or callable objects returning an awaitable.
 Failed task-creation responses and replies without task metadata are not polled; waiting returns `None`.
 When a status read returns a failed response, waiting also returns `None` without invoking the progress callback.
+Tasks completed with warnings return `"warning"`; callers can distinguish this from `"done"` and `"error"`.
 
 During asynchronous polling, keep synchronous callbacks brief: long-running callbacks block the
 event loop and delay other coroutines. For callbacks that perform I/O, use an asynchronous
@@ -169,6 +170,13 @@ a new session, close the client first.
 `close()` is safe before opening a connection and after it has already been closed. Both clients release
 the HTTP session and clear authentication and cached workspace state even if logout fails. For async
 clients, await `close()`.
+
+Workspace commit and unlock failures are logged and raised after logout and session cleanup.
+A failed commit response raises `FMGLockException`, including when `raise_on_error=False`, because
+there is no response object returned from `close()` for the caller to inspect. Unlock is still
+attempted when a commit fails.
+If a `with` or `async with` block is already exiting with an exception, cleanup failures are logged
+and the original exception continues to propagate. On normal exit, cleanup errors are raised.
 
 `close(discard_changes=True)` applies only to that close operation. It leaves the configured
 `discard_on_close` setting unchanged when the client is opened again.
@@ -447,7 +455,9 @@ reading. Multiple attempts and backoff can increase total elapsed time. It is no
 wall-clock deadline. The async transport uses the corresponding `aiohttp.ClientTimeout` connection
 and socket limits rather than aiohttp's separate total-request timer.
 
-The existing override works with both clients and validates positive, finite timeout values:
+The override works with both clients and validates positive, finite timeout values. Async overrides
+are local to the current task's context, so overlapping tasks can use different values on the same
+client. Nested blocks restore the previous override on exit, including when an exception occurs:
 
 ```python
 with fmg.timeout(30):

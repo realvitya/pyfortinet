@@ -196,6 +196,48 @@ def test_timeout_override_is_applied_and_restored(client, transport):
     assert client._settings.timeout == original
 
 
+def test_overlapping_async_timeouts_are_isolated(client, transport):
+    if not isinstance(client, AsyncFMG):
+        return
+    client._session.post.return_value = transport()
+    original = client._settings.timeout
+
+    async def run():
+        first_entered, second_entered, first_exited = asyncio.Event(), asyncio.Event(), asyncio.Event()
+
+        async def first():
+            with client.timeout(10):
+                first_entered.set()
+                await second_entered.wait()
+                await client.get({"url": "/first"})
+            first_exited.set()
+
+        async def second():
+            await first_entered.wait()
+            with client.timeout(20):
+                second_entered.set()
+                await first_exited.wait()
+                await client.get({"url": "/second"})
+
+        await asyncio.gather(first(), second())
+        await client.get({"url": "/default"})
+
+    asyncio.run(run())
+    assert [call.kwargs["timeout"].sock_read for call in client._session.post.call_args_list] == [10, 20, original]
+    assert client._settings.timeout == original
+
+
+def test_nested_timeout_restores_outer_override_after_error(client, transport):
+    client._session.post.return_value = transport()
+    outer_timeout = 10
+    with client.timeout(outer_timeout):
+        with pytest.raises(RuntimeError), client.timeout(20):
+            raise RuntimeError("inner failed")
+        resolve(client.get({"url": "/outer"}))
+    timeout = client._session.post.call_args.kwargs["timeout"]
+    assert (timeout.sock_read if isinstance(client, AsyncFMG) else timeout) == outer_timeout
+
+
 @pytest.mark.parametrize("invalid", [0, -1, float("nan"), float("inf")])
 def test_invalid_timeout_override_does_not_change_settings(client, invalid):
     original = client._settings.timeout

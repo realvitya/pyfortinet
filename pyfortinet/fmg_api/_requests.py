@@ -33,8 +33,11 @@ def prepare_get(request, adom, *, filters=None, scope=None, fields=None, loadsub
         request.fmg_scope = request.fmg_scope or object_scope
         url = request.get_url()
         object_scope = getattr(request, "adom", None) or request.fmg_scope
+        field_names = {
+            definition.serialization_alias or name: name for name, definition in type(request).model_fields.items()
+        }
         for field in request.model_dump_for_filter():
-            value = getattr(request, field.replace(" ", "_").replace("-", "_"))
+            value = getattr(request, field_names.get(field, field))
             condition = F(**{field: value})
             filters = filters & condition if filters else condition
     elif isclass(request) and issubclass(request, FMGObject):
