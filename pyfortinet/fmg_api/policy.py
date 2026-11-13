@@ -1,9 +1,10 @@
 """Fortinet Policy object"""
 
-from typing import Literal, Union, Optional, List, Any
+from typing import List, Literal, Optional, Union
 
-from pydantic import BaseModel, AliasChoices, Field, field_validator, field_serializer
+from pydantic import AliasChoices, BaseModel, Field, TypeAdapter, field_serializer, field_validator
 
+from pyfortinet.exceptions import FMGInvalidURL, FMGNotAssignedException
 from pyfortinet.fmg_api import FMGObject
 from pyfortinet.fmg_api.common import Scope
 from pyfortinet.fmg_api.firewall import Address, AddressGroup, ServiceCustom, ServiceGroup
@@ -64,7 +65,16 @@ class PackageSettings(BaseModel):
         validation_alias=AliasChoices("policy-offload-level", "policy_offload_level"),
         serialization_alias="policy-offload-level",
     )
-    ssl_ssh_profile: Optional[str] = None  # TODO: implement SSLSSHProfile
+    ssl_ssh_profile: Optional[list[str]] = Field(
+        None,
+        validation_alias=AliasChoices("ssl-ssh-profile", "ssl_ssh_profile"),
+        serialization_alias="ssl-ssh-profile",
+    )
+
+    @field_validator("ssl_ssh_profile", mode="before")
+    def standardize_ssl_ssh_profile(cls, value):
+        """Keep accepting a single profile name while sending the API array."""
+        return [value] if isinstance(value, str) else value
 
     @field_validator(
         "central_nat",
@@ -102,7 +112,7 @@ class PolicyPackage(FMGObject):
         oid: Internal package ID
         package_settings: Package settings
         scope_member: Assigned VDOMs
-        subobj: Available if object type is folder, includes all policy packages and sub-folders under the folder object.
+        subobj: Packages and subfolders under a folder object.
         type: Package type. Default is pkg.
     """
 
@@ -118,9 +128,50 @@ class PolicyPackage(FMGObject):
         validation_alias=AliasChoices("package settings", "package_settings"),
         serialization_alias="package settings",
     )
-    scope_member: Optional[List[Scope]] = None
-    subobj: Optional[List[Any]] = None  # TODO: this is for folder type. Needs testing!
+    scope_member: Optional[list[Scope]] = Field(
+        None,
+        validation_alias=AliasChoices("scope member", "scope_member"),
+        serialization_alias="scope member",
+    )
+    subobj: Optional[list["PolicyPackage"]] = None
     type: Optional[POLICYPACKAGETYPE] = "pkg"
+
+    def _scope_member_request(self, method, members=None):
+        """Send a member-table operation through the assigned sync or async client."""
+        if self._fmg is None:
+            raise FMGNotAssignedException
+        if not self.name:
+            raise FMGInvalidURL("A package name or full path is required to manage scope members")
+        self.fmg_scope = self.fmg_scope or self._fmg.adom
+        # Members belong to an existing package; ADD on the package itself uses its parent URL.
+        request = {"url": f"{self.get_url(method='get')}/scope member"}
+        if method != "unset":
+            adapter = TypeAdapter(list[Scope])
+            request["data"] = adapter.dump_python(adapter.validate_python(members), exclude_none=True)
+        return getattr(self._fmg, method)(request)
+
+    def add_scope_members(self, members: list[Scope]):
+        """Add device/VDOM assignments. Await the result when using AsyncFMG.
+
+        Scope dictionaries are also accepted. Refresh the package to reload its members.
+        """
+        return self._scope_member_request("add", members)
+
+    def set_scope_members(self, members: list[Scope]):
+        """Replace assignments with the supplied list. Await with AsyncFMG."""
+        return self._scope_member_request("set", members)
+
+    def update_scope_members(self, members: list[Scope]):
+        """Submit an UPDATE to the member table. Await with AsyncFMG."""
+        return self._scope_member_request("update", members)
+
+    def delete_scope_members(self, members: list[Scope]):
+        """Remove only the supplied assignments. Await with AsyncFMG."""
+        return self._scope_member_request("delete", members)
+
+    def unset_scope_members(self):
+        """Clear all assignments with UNSET. Await with AsyncFMG."""
+        return self._scope_member_request("unset")
 
 
 # noinspection SpellCheckingInspection

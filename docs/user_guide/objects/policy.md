@@ -17,12 +17,52 @@ for item in packages:
 ```
 
 The model's `name` field identifies a package; `scope_member` describes its assigned devices
-and VDOMs. Folder handling is not fully tested, so these examples use a package without parent
-folders.
+and VDOMs. Both `scope_member` and the API spelling `"scope member"` are accepted as input;
+API payloads use `"scope member"`. An omitted member list remains absent, while `[]` is sent
+explicitly. Folder responses contain nested `PolicyPackage` instances in `subobj`.
+
+### Manage scope members
+
+Packages returned by `fmg.get` are bound to their connection and ADOM. Use their member
+methods to change assignments without writing the other package settings:
+
+```python
+from pyfortinet.fmg_api.common import Scope
+
+package = fmg.get(PolicyPackage(name="branch-policy")).first()
+members = [Scope(name="branch-fw", vdom="root")]
+package.add_scope_members(members)
+package.delete_scope_members(members)
+package.set_scope_members(members)
+package.update_scope_members(members)
+package.unset_scope_members()
+package.refresh()
+```
+
+These calls demonstrate separate operations: ADD adds members, DELETE removes the supplied
+members, SET replaces the member list, UPDATE sends a member-table update, and UNSET clears
+all assignments. Each call returns an operation response. Check its `success` value when
+`raise_on_error` is disabled. The local `scope_member` list is reloaded only by `refresh()`.
+Member dictionaries such as `{"name": "branch-fw", "vdom": "root"}` are also accepted.
+
+With `AsyncFMG`, await each call, including `get` and `refresh`:
+
+```python
+package = (await fmg.get(PolicyPackage(name="branch-policy"))).first()
+await package.add_scope_members([Scope(name="branch-fw", vdom="root")])
+await package.refresh()
+```
+
+For a locally constructed package, pass `fmg=fmg` and optionally `fmg_scope="my-adom"`.
+The member methods require a package name; use its full path (for example,
+`name="folder/branch-policy"`) when it is inside a folder. The connection's selected ADOM
+is used unless the package already has a scope. Global scope is also supported.
 
 ## PackageSettings
 
 `PackageSettings` is embedded in a policy package, not added independently.
+Its `ssl_ssh_profile` field is a list of profile names, serialized as `"ssl-ssh-profile"`;
+a single string is also accepted and converted to a one-item list.
 This example creates a new package assigned to an existing device and VDOM:
 
 ```python

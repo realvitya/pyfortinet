@@ -842,6 +842,7 @@ class FMGBase:
             "params": [
                 {
                     "url": req.get("url"),
+                    **({"data": req["data"]} if "data" in req else {}),
                 }
                 for req in request
             ],
@@ -854,6 +855,27 @@ class FMGBase:
         response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
+
+    @error_handling
+    @auth_required
+    @lock
+    def unset(self, request: Union[dict[str, Any], list[dict[str, Any]]]) -> FMGResponse:
+        """Unset the tables identified by low-level request dictionaries."""
+        request = prepare_batch(request)
+        body = {
+            "method": "unset",
+            "params": [{"url": req.get("url")} for req in request],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        return FMGResponse(
+            fmg=self,
+            success=all(result.get("status", {}).get("code") == 0 for result in api_result),
+            data=api_result,
+        )
 
     @error_handling
     @auth_required
