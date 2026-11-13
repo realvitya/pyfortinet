@@ -1,5 +1,6 @@
 """FMG API library"""
 
+import re
 from abc import ABC
 from typing import Optional, TYPE_CHECKING, TypeVar, Literal, Union
 
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
     from pyfortinet import FMG, AsyncFMG
 
     AnyFMG = Union[FMG, AsyncFMG]
-from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException
+from pyfortinet.exceptions import FMGMissingScopeException, FMGNotAssignedException, FMGInvalidURL
 
 GetOption = Literal[
     "extra info",  # returns more info (e.g. timestamps of changes)
@@ -57,8 +58,10 @@ class FMGBaseObject(BaseModel, ABC):
         self.fmg_scope = kwargs.get("fmg_scope")
         self._fmg: "AnyFMG" = kwargs.get("fmg")
 
-    @property
-    def get_url(self) -> str:
+    def __hash__(self):
+        return hash(self.model_dump_json(by_alias=True, exclude_none=True, exclude_unset=True, exclude_defaults=True))
+
+    def get_url(self, method: Literal["get", "add", "set", "update", "delete", "clone", "exec"] = "exec") -> str:
         """General API URL assembly
 
         To be overridden by more complex API URLs in different classes
@@ -91,11 +94,55 @@ class FMGObject(FMGBaseObject, ABC):
     In case of AsyncFMG, caller must ensure await-ing the request.
 
     Attributes:
-        scope (str): FMG selected scope (adom or global)
+        fmg_scope (str): FMG selected scope (adom or global)
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance
+        _master_keys (str): attributes which represents unique key in FMG DB for this API class
     """
+
+    _master_keys: Optional[dict[str, str]] = None
+
+    @property
+    def master_keys(self) -> dict[str, str]:
+        """Dict of fields where key is URL attribute and value is model field
+
+        Example of master_keys definition:
+        URL: /pm/config/{scope}/obj/firewall/addrgrp/{addrgrp}
+        master_keys = {"addrgrp": "name"}
+
+        Here "addrgrp" is the URL field to be replaced by the model field "name"
+        """
+        return self._master_keys
+
+    def get_url(self, method: Literal["get", "add", "set", "update", "delete", "clone", "exec"] = "get") -> str:
+        """General API URL assembly
+
+        To be overridden by more complex API URLs in different classes
+        """
+        variables = re.findall(r"{(.*?)}", self._url)
+        if not self.fmg_scope:
+            if "scope" in variables:
+                raise FMGMissingScopeException(f"Missing scope for {self}")
+        url = self._url
+        for field in variables:
+            if field == "scope":
+                url = url.replace(f"{{{field}}}", self.fmg_scope)
+            else:
+                if hasattr(self, field) and getattr(self, field) is not None:
+                    url = url.replace(f"{{{field}}}", str(getattr(self, field)))
+                elif (
+                    method in ("get", "set", "update", "delete", "clone")
+                    and field in self.master_keys
+                    and getattr(self, self.master_keys[field], None) is not None
+                ):  # certain methods require master key (like policyid)
+                    url = url.replace(f"{{{field}}}", str(getattr(self, self.master_keys[field])))
+                # delete field from URL if no data found (can lead to errors)
+                elif method in ("get", "add", "set", "update") and url.endswith(f"{{{field}}}"):
+                    url = url.replace(f"/{{{field}}}", "")
+                else:
+                    raise FMGInvalidURL(f"Missing field '{field}' for ({self._url})")
+        return url
 
     def add(self):
         """Add this object to FMG"""
@@ -121,12 +168,43 @@ class FMGObject(FMGBaseObject, ABC):
             return self._fmg.delete(self)
         raise FMGNotAssignedException
 
+    def clone(self, create_task: bool = False, **new: str):
+        """Clone this object to a new one"""
+        if self._fmg:
+            return self._fmg.clone(self, create_task=create_task, **new)
+        raise FMGNotAssignedException
+
+    def refresh(self):
+        """Re-load data from FMG"""
+        if self._fmg:
+            return self._fmg.refresh(self)
+        raise FMGNotAssignedException
+
+    def model_dump_for_filter(self) -> dict:
+        """Modified pydantic model dump for FMG API
+
+        This method will include otherwise excluded fields to use them in FMG.get method filtering.
+        Special attention is made for URL fields which must not be included in the filters as they are not part of the
+        payload.
+        """
+        # get the normal dump first
+        dump = self.model_dump(by_alias=True, exclude_none=True)
+        # include excluded not-none fields
+        excluded_fields = {}
+        for field_name, field_model in type(self).model_fields.items():
+            # check only excluded vars which are not None and are not URL attributes (cannot be used as filter)
+            if field_model.exclude and getattr(self, field_name) is not None and f"{{{field_name}}}" not in self._url:
+                excluded_fields[field_model.serialization_alias or field_name] = getattr(self, field_name)
+
+        dump.update(excluded_fields)
+        return dump
+
 
 class FMGExecObject(FMGBaseObject, ABC):
     """FMG execute job type
 
     Attributes:
-        scope (str): FMG selected scope (adom or global)
+        fmg_scope (str): FMG selected scope (adom or global)
         _version (str): Supported API version
         _url (str): template for API URL
         _fmg (FMG): FMG instance

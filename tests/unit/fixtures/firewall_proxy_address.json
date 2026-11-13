@@ -1,0 +1,227 @@
+{
+  "source": "FortiManager 7.6.7 Configuration Database v7.4 ADOM Level Objects pm_config_firewall.json",
+  "sha256": "7a993d68c5baee1725fad3b606ce4c0f9a401003b771b6a2ef9638b33e57575a",
+  "routes": [
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address (add)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address} (clone)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group (add)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group/{header-group} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group/{header-group} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group/{header-group} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group/{header-group} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/header-group/{header-group} (clone)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging (add)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging/{tagging} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging/{tagging} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging/{tagging} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging/{tagging} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-address/{proxy-address}/tagging/{tagging} (clone)"
+  ],
+  "definitions": {
+    "pm.config.firewall.proxy-address.header-group": {
+      "type": "object",
+      "properties": {
+        "case-sensitivity": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "header": {
+          "type": "string",
+          "format": "string"
+        },
+        "header-name": {
+          "type": "string",
+          "format": "string"
+        },
+        "id": {
+          "type": "integer",
+          "format": "sequence"
+        }
+      }
+    },
+    "pm.config.firewall.proxy-address.tagging": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        }
+      }
+    },
+    "pm.config.firewall.proxy-address": {
+      "type": "object",
+      "properties": {
+        "_image-base64": {
+          "type": "string",
+          "format": "string"
+        },
+        "application": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "case-sensitivity": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "category": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "color": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "comment": {
+          "type": "string",
+          "format": "string"
+        },
+        "header": {
+          "type": "string",
+          "format": "string"
+        },
+        "header-group": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.firewall.proxy-address.header-group"
+          }
+        },
+        "header-name": {
+          "type": "string",
+          "format": "string"
+        },
+        "host": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "host-regex": {
+          "type": "string",
+          "format": "string"
+        },
+        "method": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "delete",
+              "get",
+              "head",
+              "options",
+              "post",
+              "put",
+              "trace",
+              "connect"
+            ]
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "path": {
+          "type": "string",
+          "format": "string"
+        },
+        "query": {
+          "type": "string",
+          "format": "string"
+        },
+        "referrer": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "tagging": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.firewall.proxy-address.tagging"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "host-regex",
+            "url",
+            "category",
+            "method",
+            "ua",
+            "header",
+            "src-advanced",
+            "dst-advanced",
+            "saas"
+          ]
+        },
+        "ua": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "chrome",
+              "ms",
+              "firefox",
+              "safari",
+              "other",
+              "ie",
+              "edge"
+            ]
+          }
+        },
+        "ua-max-ver": {
+          "type": "string",
+          "format": "string"
+        },
+        "ua-min-ver": {
+          "type": "string",
+          "format": "string"
+        },
+        "uuid": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

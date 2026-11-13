@@ -1,0 +1,418 @@
+{
+  "source": "FortiManager 7.6.7 Configuration Database v7.4 ADOM Level Objects pm_config_firewall.json",
+  "sha256": "7a993d68c5baee1725fad3b606ce4c0f9a401003b771b6a2ef9638b33e57575a",
+  "routes": [
+    "/pm/config/adom/{adom}/obj/firewall/ippool (get)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool (add)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool (set)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool (update)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool} (clone)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping (get)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping (add)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping (set)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping (update)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping/{dynamic_mapping_name}/{dynamic_mapping_vdom} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping/{dynamic_mapping_name}/{dynamic_mapping_vdom} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping/{dynamic_mapping_name}/{dynamic_mapping_vdom} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping/{dynamic_mapping_name}/{dynamic_mapping_vdom} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool/{ippool}/dynamic_mapping/{dynamic_mapping_name}/{dynamic_mapping_vdom} (clone)"
+  ],
+  "definitions": {
+    "pm.config.firewall.ippool.dynamic_mapping": {
+      "type": "object",
+      "properties": {
+        "_scope": {
+          "$ref": "#/definitions/common.scope.object"
+        },
+        "add-nat64-route": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "arp-intf": {
+          "type": "string",
+          "format": "string"
+        },
+        "arp-reply": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "associated-interface": {
+          "type": "string",
+          "format": "string"
+        },
+        "block-size": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-block-size": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-client-endip": {
+          "type": "string",
+          "format": "string"
+        },
+        "cgn-client-ipv6shift": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-client-startip": {
+          "type": "string",
+          "format": "string"
+        },
+        "cgn-fixedalloc": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "cgn-overload": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "cgn-port-end": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-port-start": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-spa": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "client-prefix-length": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "comments": {
+          "type": "string",
+          "format": "string"
+        },
+        "endip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "endport": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "exclude-ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "icmp-session-quota": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "nat64": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "num-blocks-per-user": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pba-interim-log": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pba-timeout": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "permit-any-host": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "port-per-user": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "privileged-port-use-pba": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "source-endip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "source-prefix6": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "source-startip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "startip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "startport": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "subnet-broadcast-in-ippool": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "tcp-session-quota": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "overload",
+            "one-to-one",
+            "fixed-port-range",
+            "port-block-allocation",
+            "cgn-resource-allocation"
+          ]
+        },
+        "udp-session-quota": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "utilization-alarm-clear": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "utilization-alarm-raise": {
+          "type": "integer",
+          "format": "unsigned int32"
+        }
+      }
+    },
+    "pm.config.firewall.ippool": {
+      "type": "object",
+      "properties": {
+        "add-nat64-route": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "arp-intf": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "arp-reply": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "associated-interface": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "block-size": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-block-size": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-client-endip": {
+          "type": "string",
+          "format": "string"
+        },
+        "cgn-client-ipv6shift": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-client-startip": {
+          "type": "string",
+          "format": "string"
+        },
+        "cgn-fixedalloc": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "cgn-overload": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "cgn-port-end": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-port-start": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cgn-spa": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "comments": {
+          "type": "string",
+          "format": "string"
+        },
+        "dynamic_mapping": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.firewall.ippool.dynamic_mapping"
+          }
+        },
+        "endip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "endport": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "exclude-ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "nat64": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "num-blocks-per-user": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pba-interim-log": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pba-timeout": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "permit-any-host": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "port-per-user": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "source-endip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "source-startip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "startip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "startport": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "subnet-broadcast-in-ippool": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "overload",
+            "one-to-one",
+            "fixed-port-range",
+            "port-block-allocation",
+            "cgn-resource-allocation"
+          ]
+        },
+        "utilization-alarm-clear": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "utilization-alarm-raise": {
+          "type": "integer",
+          "format": "unsigned int32"
+        }
+      }
+    },
+    "common.scope.object": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "vdom": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

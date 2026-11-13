@@ -1,111 +1,88 @@
-# Quick Start Guide
+# Quickstart
 
-## Installation
+Use `FMG` to work with FortiManager objects in Python. This example reads firewall addresses;
+it does not change configuration. Python 3.9 or later is required.
 
-In most cases installation via pip is the simplest and best way to install pyfortinet.
-See [here](installation.md) for advanced installation details.
+## Install and configure
 
 ```shell
-pip install pyfortinet
+python -m pip install pyfortinet
 ```
 
-## A Simple Example (get object)
+Use a FortiManager account with JSON-RPC API access and permission to read the selected ADOM.
+Set `FMG_URL`, `FMG_USERNAME`, `FMG_PASSWORD`, and `FMG_ADOM` in your environment before running
+the example. These are example-specific variable names read explicitly by the code below.
 
 ```python
+import os
+
 from pyfortinet import FMG
-from pyfortinet.fmg_api.firewall import Address
 from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api.firewall import Address
 
 config = {
-    "base_url": "https://myfmg.com",
-    "username": "myuser",
-    "password": "verysecret",
-    "adom": "root",
-    "verify": False
+    "base_url": os.environ["FMG_URL"],
+    "username": os.environ["FMG_USERNAME"],
+    "password": os.environ["FMG_PASSWORD"],
+    "adom": os.environ["FMG_ADOM"],
 }
+
 with FMG(**config) as fmg:
-    # get exact address object from FMG
-    server2 = fmg.get(Address, F(name="server2")).first()
-    print(server2.name)
+    addresses = fmg.get(Address, F(name__like="server%"))
+    for address in addresses.data:
+        print(address.name, address.subnet)
+
+    server = fmg.get(Address(name="server1")).first()
+    if server is None:
+        print("server1 was not found")
+    else:
+        print(server.name, server.subnet)
 ```
 
-## Updating existing object
+The context opens an authenticated session and closes it on exit. High-level GET responses
+contain typed models in `.data`. `.first()` returns an object or `None` when nothing matches.
+Request failures raise exceptions by default. TLS certificate verification is enabled by default.
+
+## Update an address
+
+The following example uses the same `config` and changes an existing address in the selected ADOM:
 
 ```python
-from pyfortinet import FMG
-from pyfortinet.fmg_api.firewall import Address
-from pyfortinet.fmg_api.common import F
-
-config = {
-    "base_url": "https://myfmg.com",
-    "username": "myuser",
-    "password": "verysecret",
-    "adom": "root",
-    "verify": False
-}
 with FMG(**config) as fmg:
-    # get exact address object from FMG
-    server = fmg.get(Address, F(name="server1")).first()
-    server.subnet = "10.1.1.1/24"
-    server.update()
+    server = fmg.get(Address(name="server1")).first()
+    if server is None:
+        raise LookupError("Create server1 before running this example")
+    fmg.update(Address(name=server.name, subnet="192.0.2.0/24"))
 ```
 
-## Filtering
+A model containing only the fields to change avoids writing unrelated values from a previous GET.
+Fetched objects are also bound to their client, so `server.update()` is available after changing
+their fields. Keep object operations inside the connection context.
 
-`F` filter function can be used to compile complex search filters. More examples can be found in the respective testing
-functions:
+On normal exit, the client attempts to commit workspaces it has locked. This saves changes in
+FortiManager; installing configuration onto a FortiGate is a separate operation. Workspace
+discard is not a general rollback mechanism. See the [how-tos](howto.md).
 
-??? example "F filter examples"
+## Use the same API asynchronously
 
-    ```python
-    --8<-- "tests/fmg/test_common.py"
-    ```
-
-```python title="Short examples"
-from pyfortinet import FMG
-from pyfortinet.fmg_api.firewall import Address
-from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.common import F
-
-config = {
-    "base_url": "https://myfmg.com",
-    "username": "myuser",
-    "password": "verysecret",
-    "adom": "root",
-    "verify": False
-}
-with FMG(**config) as fmg:
-    # simple 'or'
-    server1_and_2 = fmg.get(Address, F(name="server1") + F(name="server2")).data
-    # list devices with name dc-fw-* which connection status is not up
-    firewalls = fmg.get(Device, F(name__like="dc-fw-%") & ~F(conn_status="up")).data
-```
-
-## Task run
-
-Exec objects are called Tasks. These have extra functionality like waiting. This is an example of running device
-settings installation on devices with modified config status:
+Install `pyfortinet[async]`, then use the same imports and `config` with an asynchronous context:
 
 ```python
-from pyfortinet import FMG
-from pyfortinet.fmg_api.common import Scope
-from pyfortinet.fmg_api.dvmdb import Device
-from pyfortinet.fmg_api.common import F
+import asyncio
 
-config = {
-    "base_url": "https://myfmg.com",
-    "username": "myuser",
-    "password": "verysecret",
-    "adom": "root",
-    "verify": False
-}
-with FMG(**config) as fmg:
-    devices: List[Device] = fmg.get(Device, conf_status="mod").data
-    # for simplicity, assume all device is single mode
-    task: InstallDeviceTask = fmg.get_obj(
-        InstallDeviceTask, adom=fmg.adom, scope=[Scope(name=test_device.name, vdom="root")], flags=["auto_lock_ws"]
-    )
-    result: FMGResponse = task.exec()
-    # block here until task is done. Print task percentage and log in the meanwhile
-    result.wait_for_task(callback=lambda percent, log: print(f"Task at {percent}%: {log}"))
+
+async def main():
+    async with FMG(**config) as fmg:
+        addresses = await fmg.get(Address)
+        for address in addresses.data:
+            print(address.name, address.subnet)
+
+
+asyncio.run(main())
 ```
+
+`async with FMG(...)` yields an `AsyncFMG` client. Await its requests and operations on bound
+objects. `get_obj(...)` only constructs or binds a local model and is not awaited. You can also
+import `AsyncFMG` directly for explicit asynchronous connection management.
+
+Continue with [API concepts](api_concepts.md) and the [task-oriented how-tos](howto.md).

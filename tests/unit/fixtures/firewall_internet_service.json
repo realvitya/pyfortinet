@@ -1,0 +1,71 @@
+{
+  "source": "FortiManager 7.6.7 Configuration Database v7.4 ADOM Level Objects pm_config_firewall.json",
+  "sha256": "7a993d68c5baee1725fad3b606ce4c0f9a401003b771b6a2ef9638b33e57575a",
+  "routes": [
+    "/pm/config/adom/{adom}/obj/firewall/internet-service (get)",
+    "/pm/config/adom/{adom}/obj/firewall/internet-service (set)",
+    "/pm/config/adom/{adom}/obj/firewall/internet-service (update)"
+  ],
+  "definitions": {
+    "pm.config.firewall.internet-service": {
+      "type": "object",
+      "properties": {
+        "database": {
+          "type": "string",
+          "enum": [
+            "isdb",
+            "irdb"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "src",
+            "dst",
+            "both"
+          ]
+        },
+        "extra-ip-range-number": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "extra-ip6-range-number": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "icon-id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip-number": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip-range-number": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-range-number": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "obsolete": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "singularity": {
+          "type": "integer",
+          "format": "unsigned int32"
+        }
+      }
+    }
+  }
+}

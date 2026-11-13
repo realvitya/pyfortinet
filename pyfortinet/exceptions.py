@@ -33,8 +33,16 @@ class FMGUnhandledException(FMGException):
     """Unhandled error"""
 
 
-class FMGEmptyResultException(FMGException):
-    """No result for a request"""
+class FMGHTTPException(FMGException):
+    """An HTTP error prevented FortiManager from returning a JSON-RPC result."""
+
+    def __init__(self, status_code: int):
+        self.status_code = status_code
+        super().__init__(f"FortiManager HTTP request failed with status {status_code}")
+
+
+class FMGObjectNotExistException(FMGException):
+    """Object does not exist"""
 
 
 class FMGInvalidDataException(FMGException):
@@ -55,3 +63,11 @@ class FMGInvalidURL(FMGException):
 
 class FMGNotAssignedException(FMGException):
     """FMG not assigned to object"""
+
+
+class FMGMissingMasterKeyException(FMGException):
+    """Master key is missing for this API class"""
+
+
+class FMGDataSrcDuplicateException(FMGException):
+    """Duplicate name found in data namespace"""
