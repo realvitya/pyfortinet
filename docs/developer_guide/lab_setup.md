@@ -1,16 +1,36 @@
 # Lab setup for testing
 
-In order to run all tests, you need a lab environment where you can freely create and delete objects. This guide is
-about to give you a guidance how to set up such a lab.
+Offline unit tests and loopback transport tests do not require a FortiManager lab. Live tests
+require an explicitly authorized, disposable environment and a reviewed set of operations.
+See the [testing guide](testing.md) for configuration and commands.
 
-## Virtual lab
+## Prepare a lab
 
-In case you have no real lab at your disposal, you can run test on virtual machines. On Windows, Hyper-V is a convenient
-solution. You have to make sure you can access the devices from your desktop and also that devices can access each
-other.
+Use dedicated FortiManager and FortiGate instances that can be restored to a known baseline.
+Virtual machines are suitable; on Windows, Hyper-V checkpoints can support restoration.
+Ensure the test machine can reach FortiManager and the lab devices can communicate as required.
 
-## FMG setup
+Record the expected firmware, ADOMs, device names, serial numbers, permitted operations, and
+baseline restore procedure before running live scenarios. A separate ADOM does not isolate
+administrator changes, device lifecycle operations, or configuration installations.
 
-It is advisable to have a separate testing ADOM with workspace mode enabled. This way - during development - no errors
-would leave garbage in the configuration. `Workspace` mode tests will discard changes done on FMG.
-All this is not a requirement, but makes development easy. `Workflow` mode is not tested and most probably won't work.
+## Configure FortiManager
+
+A dedicated test ADOM with normal workspace mode is recommended. Confirm that the test account
+has JSON-RPC API access and permissions for the selected operations. Workflow session creation
+and approval are not covered by the client locking helpers.
+
+Store credentials locally in the gitignored `private/lab-config.yml`, using the format in the
+[testing guide](testing.md#testing_config_file). Prefer certificate verification; disable it only
+when explicitly intended for the lab.
+
+## Plan cleanup and restoration
+
+Workspace discard is an additional safeguard for uncommitted database changes. It does not
+reverse every API operation or an installation onto a FortiGate. Live tests register owned
+resources and attempt compensating cleanup; interrupted execution or cleanup failures can still
+leave changes behind.
+
+Review the selected tests, run live sessions serially, and inspect cleanup failures. Installation
+tests require explicit baseline authorization and `--run-baseline-tests`. Restore the baseline
+only through the authorized procedure.

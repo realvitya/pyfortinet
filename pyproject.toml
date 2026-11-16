@@ -22,29 +22,25 @@ dependencies = [
     "pydantic>2,<3",
     "pydantic-settings",
     "typer",
-    "requests==2.31.0",
-    "ruamel.yaml==0.17.20",
+    "requests>=2.32.5,<2.33",  # 2.33 dropped py3.9
+    "ruamel.yaml~=0.18",
     "more-itertools",
+    "pyresilience>=0.4.1,<0.5",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest-cov",
     "pytest",
-    "pytest-async",
+    "pytest-asyncio>=0.24.0",
     "pytest-dependency",
     "flit",
     "invoke",
     "pre-commit",
     "ruff",
-    # mkdocs dependencies
-    "mkdocs",
-    "mkdocs-material",
-    "mkdocs-gen-files",
-    "mkdocs-literate-nav",
-    "mkdocs-section-index",
-    "mkdocstrings",
-    "mkdocstrings-python",
+    # Documentation builds require Python 3.11+; runtime and other dev tools support 3.9.
+    "zensical>=0.1.1,<0.2; python_version >= '3.11'",
+    "mkdocstrings-python; python_version >= '3.11'",
     # optional dependencies
     "rich",
     "aiohttp",
@@ -66,6 +62,26 @@ all = [
     "aiohttp"
 ]
 
+# Keep this group aligned with the published dev extra for pip users.
+# uv installs this group by default during sync and run.
+[dependency-groups]
+dev = [
+    "pytest-cov",
+    "pytest",
+    "pytest-asyncio>=0.24.0",
+    "pytest-dependency",
+    "flit",
+    "invoke",
+    "pre-commit",
+    "ruff",
+    # Documentation builds require Python 3.11+; runtime and other dev tools support 3.9.
+    "zensical>=0.1.1,<0.2; python_version >= '3.11'",
+    "mkdocstrings-python; python_version >= '3.11'",
+    # optional dependencies
+    "rich",
+    "aiohttp",
+]
+
 [tool.flit.module]
 name = "pyfortinet"
 
@@ -80,9 +96,11 @@ Documentation = "https://realvitya.github.io/pyfortinet/"
 minversion = "6.0"
 #addopts = "-ra -q --cov=fortimanager_template_sync --cov-report=term-missing"
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 testpaths = [
-    "tests"
+    "tests/unit",
+    "tests/transport",
 ]
 
 [tool.ruff]

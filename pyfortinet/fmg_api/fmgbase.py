@@ -4,12 +4,15 @@ import functools
 import logging
 import re
 import time
+from contextlib import contextmanager
 from copy import copy
 from dataclasses import dataclass, field
 from random import randint
-from typing import Any, Callable, Optional, Union, List
+from typing import Any, Callable, Optional, Union, List, Iterator, Type, Dict
 
 import requests
+from requests.exceptions import ConnectionError
+from more_itertools import first
 from pydantic import SecretStr
 
 from pyfortinet.exceptions import (
@@ -18,14 +21,14 @@ from pyfortinet.exceptions import (
     FMGLockException,
     FMGLockNeededException,
     FMGTokenException,
-    FMGUnhandledException,
-    FMGInvalidDataException,
-    FMGObjectAlreadyExistsException,
-    FMGInvalidURL,
+    FMGObjectNotExistException,
 )
 from pyfortinet.fmg_api import FMGObject
-from pyfortinet.fmg_api.common import F
+from pyfortinet.fmg_api._requests import prepare_batch
+from pyfortinet.fmg_api._resilience import request_json, timeout_seconds
+from pyfortinet.fmg_api._responses import login_token, rpc_result, workspace_enabled, workspace_mode
 from pyfortinet.fmg_api.task import Task
+from pyfortinet.fmg_api._tasks import TERMINAL_TASK_STATES, task_from_response, task_id_from_response
 from pyfortinet.settings import FMGSettings
 
 logger = logging.getLogger(__name__)
@@ -58,6 +61,22 @@ def auth_required(func: Callable) -> Callable:
     return auth_decorated
 
 
+def error_handling(func: Callable) -> Callable:
+    """Decorator to provide error handling for the methods"""
+
+    @functools.wraps(func)
+    def error_decorated(self: "FMGBase", *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except FMGException as err:
+            if self.raise_on_error:
+                raise
+            result = FMGResponse(data=[{"error": str(err)}], success=False)
+            return result
+
+    return error_decorated
+
+
 def lock(func: Callable) -> Callable:
     """Decorator to provide ADOM locking if needed
 
@@ -73,25 +92,34 @@ def lock(func: Callable) -> Callable:
         """method which needs locking"""
         try:
             return func(self, *args, **kwargs)
-        except FMGLockNeededException as err:
+        except (FMGLockNeededException, FMGAuthenticationException) as err:
             try:  # try again after locking
                 if not args:  # in case we got kwargs request
                     args = [kwargs.get("request")]
                     del kwargs["request"]
-                # args[0] is the request dict or obj
-                if isinstance(args[0], dict):
-                    url = args[0].get("url")
-                    adom_match = re.search(r"/(?P<adom>global|(?<=adom/)\w+)/", url)
-                    if adom_match:
-                        adom = adom_match.group("adom")
-                    else:
-                        raise FMGException(f"No ADOM found to lock in url '{url}'") from err
+                # ensure args[0] is a list of request dict or obj to support multiple request in one API call
+                if isinstance(args[0], list):
+                    args_to_check = args[0]
                 else:
-                    adom = args[0].fmg_scope
-                if adom not in self.lock.locked_adoms:
-                    self.lock(adom)
-                else:  # ADOM already locked, do not try to lock it again
-                    raise
+                    args_to_check = [args[0]]
+                for arg in args_to_check:
+                    if isinstance(arg, dict):
+                        url = arg.get("url")
+                        adom_match = re.search(r"^(?:/\w+){,3}/(?P<adom>global\b|(?<=adom/)[\w-]+)/?", url)
+                        if adom_match:
+                            adom = adom_match.group("adom")
+                        elif self.adom:
+                            adom = self.adom
+                        else:
+                            raise FMGException(f"No ADOM found to lock in url '{url}'") from err
+                    elif isinstance(arg, FMGObject):
+                        adom = arg.fmg_scope
+                    else:
+                        raise ValueError(f"Unknown request: {arg}")
+                    if adom not in self.lock.locked_adoms:
+                        self.lock(adom)
+                    # else:  # ADOM already locked, do not try to lock it again
+                    #     raise
                 return func(self, *args, **kwargs)
             except FMGException as err2:
                 raise err2 from err
@@ -105,17 +133,45 @@ class FMGResponse:
 
     Attributes:
         data (dict|List[FMGObject]): response data
-        status (int): status code
         success (bool): True on success
+        fmg (FMGBase): FMG object tied to this response
     """
 
-    data: Union[dict, List[FMGObject]] = field(default_factory=dict)  # data got from FMG
-    status: int = 0  # status code of the request
+    data: Union[Dict[str, str], List[dict], List[FMGObject]] = field(default_factory=dict)  # data got from FMG
     success: bool = False  # True on successful request
     fmg: "FMGBase" = None
 
     def __bool__(self) -> bool:
         return self.success
+
+    def __iter__(self) -> Iterator:
+        if isinstance(self.data, dict):
+            return iter([self.data])
+        return iter(self.data)
+
+    def __getitem__(self, key: Union[int, str, tuple]) -> Union[dict, FMGObject]:
+        """Look up a value; unknown model attributes raise AttributeError, unmatched values return None."""
+        items = [self.data] if isinstance(self.data, dict) else self.data
+        if isinstance(key, int):
+            return items[key]
+        master_key = ""
+        if isinstance(key, tuple):  # master_key is also passed as result["myhost", "hostname"]
+            if len(key) != 2 or not isinstance(key[1], str):  # noqa: PLR2004 - (value, field) pair
+                raise AttributeError(f"Invalid key: '{key}'")
+            key, master_key = key
+        if isinstance(key, str) and items:
+            if isinstance(items[0], dict) and master_key:
+                return next(
+                    (d for d in items if isinstance(d.get("data"), dict) and d["data"].get(master_key) == key), None
+                )
+            if isinstance(items[0], FMGObject):
+                field_name = master_key or first((items[0].master_keys or {}).values(), None)
+                if field_name:
+                    return next((d for d in items if getattr(d, field_name) == key), None)
+        raise AttributeError(f"Invalid key: '{key}'")
+
+    def __len__(self):
+        return len(self.data)
 
     def first(self) -> Optional[Union[FMGObject, dict]]:
         """Return first data or None if result is empty"""
@@ -131,7 +187,7 @@ class FMGResponse:
     def wait_for_task(self, callback: Callable[[int, str], None] = None, timeout: int = 60, loop_interval: int = 2):
         if not self.success or not self.fmg:
             return
-        self.fmg.wait_for_task(self, callback=callback, timeout=timeout, loop_interval=loop_interval)
+        return self.fmg.wait_for_task(self, callback=callback, timeout=timeout, loop_interval=loop_interval)
 
 
 class FMGLockContext:
@@ -140,8 +196,8 @@ class FMGLockContext:
     def __init__(self, fmg: "FMGBase"):
         self._fmg = fmg
         self._locked_adoms = set()
-        self._uses_workspace = False
-        self._uses_adoms = False
+        self._uses_workspace = None
+        self._uses_adoms = None
 
     @property
     def uses_workspace(self) -> bool:
@@ -154,17 +210,30 @@ class FMGLockContext:
         return self._locked_adoms
 
     def __call__(self, *adoms: str):
-        self.check_mode()
-        if self._uses_workspace:
-            self.lock_adoms(*adoms)
+        enabled_adoms = []
+        for adom in adoms or (self._fmg.adom or "root",):
+            self.check_mode(adom)
+            if self._uses_workspace:
+                enabled_adoms.append(adom)
+        if enabled_adoms:
+            self.lock_adoms(*enabled_adoms)
         return self
 
-    def check_mode(self):
-        """Get workspace-mode from config"""
-        url = "/cli/global/system/global"
-        result = self._fmg.get({"url": url, "fields": ["workspace-mode", "adom-status"]})
-        self._uses_workspace = result.data["data"].get("workspace-mode") != 0
-        # self.uses_adoms = result.data["data"].get("adom-status") == 1
+    def check_mode(self, adom: Optional[str] = None) -> None:
+        """Discover the effective workspace mode for the requested or selected ADOM."""
+        self._uses_workspace = None
+        result = self._fmg.get({"url": "/cli/global/system/global", "fields": ["workspace-mode"]})
+        if workspace_mode(result) == "per-adom":
+            adom = adom or self._fmg.adom or "root"
+            if adom.lower() == "global":
+                # FMG 7.4.6 exposes no global ADOM metadata and disables its workspace in per-ADOM mode.
+                enabled = False
+            else:
+                result = self._fmg.get({"url": f"/dvmdb/adom/{adom}", "fields": ["workspace_mode"]})
+                enabled = workspace_enabled(result, "workspace_mode")
+        else:
+            enabled = workspace_enabled(result)
+        self._uses_workspace = enabled
 
     def lock_adoms(self, *adoms: str) -> FMGResponse:
         """Lock adom list
@@ -177,44 +246,49 @@ class FMGLockContext:
         Returns:
             Response object
         """
-        result = FMGResponse(fmg=self._fmg)
+        result = FMGResponse(fmg=self._fmg, data=[], success=True)
         if not adoms:
             adoms = ["root"]
         for adom in adoms:
             url = "/dvmdb/global/workspace/lock/" if adom.lower() == "global" else f"/dvmdb/adom/{adom}/workspace/lock/"
-            result.data.update({adom: self._fmg.exec(request={"url": url})})
-            if result.data[adom].data.get("error"):
-                raise FMGLockException(result.data[adom].data)
+            operation = self._fmg.exec(request={"url": url})
+            result.data.append({adom: operation})
+            if not operation.success:
+                raise FMGLockException(operation.data)
             self._locked_adoms.add(adom)
         return result
 
     def unlock_adoms(self, *adoms) -> FMGResponse:
         """unlock ADOMs"""
-        result = FMGResponse(fmg=self._fmg)
+        result = FMGResponse(fmg=self._fmg, data=[], success=True)
         if not adoms:
             adoms = copy(self._locked_adoms)
+        failed_adoms = set()
         for adom in adoms:
             if adom.lower() == "global":
                 url = "/dvmdb/global/workspace/unlock/"
             else:
                 url = f"/dvmdb/adom/{adom}/workspace/unlock/"
-            result.data.update({adom: self._fmg.exec(request={"url": url})})
-            if not result.data[adom].data.get("error"):
-                self._locked_adoms.remove(adom)
+            operation = self._fmg.exec(request={"url": url})
+            result.data.append({adom: operation})
+            if operation.success:
+                self._locked_adoms.discard(adom)
+            else:
+                failed_adoms.add(adom)
 
-        if self._locked_adoms:
-            raise FMGException(f"Failed to unlock ADOMs: {self._locked_adoms}")
+        if failed_adoms:
+            raise FMGException(f"Failed to unlock ADOMs: {failed_adoms}")
         return result
 
     def commit_changes(self, adoms: Optional[list] = None, aux: bool = False) -> list[FMGResponse]:
-        """Apply workspace changes in the DB
+        """Commit workspace changes in FortiManager's database.
 
         Args:
-            adoms: list of ADOMs to commit. If empty, commit ALL ADOMs.
-            aux:
+            adoms: ADOM names to commit. If omitted or empty, use the ADOMs locked by this client.
+            aux: Use the policy/object database workspace commit route.
 
         Returns:
-            (list[FMGResponse]): List of response of operations
+            list: Responses for the commit operations. This does not install configuration onto devices.
         """
         results = []
         if not adoms:
@@ -275,12 +349,12 @@ class FMGBase:
             settings (Settings): FortiManager settings
 
         Keyword Args:
-            base_url (str): Base URL to access FMG (e.g.: https://myfmg/jsonrpc)
+            base_url (str): Base URL to access FMG (e.g.: https://myfmg)
             username (str): User to authenticate
             password (str): Password for authentication
             adom (str): ADOM to use for this connection
             verify (bool): Verify SSL certificate (REQUESTS_CA_BUNDLE can set accepted CA cert)
-            timeout (float): Connection timeout for requests in seconds
+            timeout (float): Connect/read inactivity timeout per transport attempt, in seconds
             raise_on_error (bool): Raise exception on error
             discard_on_close (bool): Discard changes after connection close (workspace mode)
             discard_on_error (bool): Discard changes when exception occurs (workspace mode)
@@ -293,6 +367,15 @@ class FMGBase:
         self.lock = FMGLockContext(self)
         self._raise_on_error: bool = settings.raise_on_error
         self._id: int = randint(1, 256)  # pick a random id for this session (check logs for a particular session)
+
+    @contextmanager
+    def timeout(self, timeout: float = 120.0):
+        original_timeout = self._settings.timeout
+        self._settings.timeout = timeout_seconds(timeout)
+        try:
+            yield
+        finally:
+            self._settings.timeout = original_timeout
 
     @property
     def adom(self) -> str:
@@ -321,45 +404,105 @@ class FMGBase:
     def raise_on_error(self, value: bool):
         self._raise_on_error = bool(value)
 
+    @contextmanager
+    def lock_adom(self, adom: Optional[str] = None, keep_locked: bool = False):
+        """Locks specified ADOM explicitly
+
+        The usual error based locking not always work. For example FMG replies authentication error while running
+        a job to create new Device in device database. This makes error handling unusable and therefore this
+        context manager can be used to lock ADOM for the job run duration.
+
+        If adom was already locked, this function won't lock it again and won't unlock it either.
+
+        Args:
+            adom: ADOM to be locked as string. If not specified, currently used ADOM will be used.
+            keep_locked: If True, the lock is not released after operation. (default: False)
+
+        Yields:
+            (str): adom name (not used normally)
+        """
+        if not adom:
+            adom = self.adom
+        if not adom:
+            raise ValueError("ADOM must be specified!")
+        self.lock.check_mode(adom)
+        did_lock = False
+        if self.lock.uses_workspace and adom not in self.lock.locked_adoms:
+            self.lock.lock_adoms(adom)
+            did_lock = True
+        try:
+            yield adom
+        finally:
+            if did_lock and not keep_locked:
+                self.lock.unlock_adoms(adom)
+
     def open(self) -> "FMGBase":
         """open connection"""
         # TODO: token and cloud auth
         # https://how-to-fortimanager-api.readthedocs.io/en/latest/001_fmg_json_api_introduction.html#token-based-authentication
+        if self._session is not None and self._token is not None:
+            return self
         logger.debug("Initializing connection to %s with id: %s", self._settings.base_url, self._id)
         self._session = requests.Session()
-        self._token = self._get_token()
+        try:
+            self._token = self._get_token()
+        except BaseException:
+            session, self._session = self._session, None
+            self._token = None
+            session.close()
+            raise
         return self
 
     def close(self, discard_changes: bool = False):
         """close connection"""
-        # Logout and expire token
-        request = {
-            "id": self._id,
-            "method": "exec",
-            "params": [{"url": "/sys/logout"}],
-            "session": self._token.get_secret_value(),
-        }
-        self._settings.discard_on_close = self._settings.discard_on_close or discard_changes
+        session = self._session
+        workspace_error = None
         try:
-            try:
-                if self.lock.uses_workspace:
-                    if not self.discard_on_close:
-                        self.lock.commit_changes()
+            if session is None or self._token is None:
+                return
+            request = {
+                "id": self._id,
+                "method": "exec",
+                "params": [{"url": "/sys/logout"}],
+                "session": self._token.get_secret_value(),
+            }
+            if self.lock.locked_adoms or self.lock.uses_workspace:
+                if not (self.discard_on_close or discard_changes):
+                    try:
+                        responses = self.lock.commit_changes()
+                        if any(not response.success for response in responses):
+                            raise FMGLockException("Failed to commit workspace changes")
+                    except FMGException as err:
+                        workspace_error = err
+                        logger.exception("Failed to commit workspace changes")
+                try:
                     self.lock.unlock_adoms()
-            except FMGException:  # go ahead and ensure logout regardless we could unlock
-                pass
-            req = self._session.post(
-                self._settings.base_url, json=request, verify=self._settings.verify, timeout=self._settings.timeout
-            )
-            status = req.json().get("result", [{}])[0].get("status", {})
+                except FMGException as err:
+                    workspace_error = workspace_error or err
+                    logger.exception("Failed to unlock workspaces")
+            payload = request_json(session, self._settings, request)
+            status = payload.get("result", [{}])[0].get("status", {})
             if status.get("code") != 0:
                 logger.warning("Logout failed!")
         except requests.exceptions.ConnectionError:
             logger.warning("Logout failed!")
-
-        self._session.close()
-        self._token = None
-        logger.debug("Closed session")
+        except (FMGException, requests.RequestException):
+            if workspace_error is None:
+                raise
+            logger.exception("Logout failed after workspace cleanup failed")
+        finally:
+            try:
+                if session is not None:
+                    session.close()
+            finally:
+                self._session = None
+                self._token = None
+                self.lock.locked_adoms.clear()
+                self.lock._uses_workspace = None
+                self.lock._uses_adoms = None
+            logger.debug("Closed session")
+        if workspace_error is not None:
+            raise workspace_error
 
     def __enter__(self):
         self.open()
@@ -367,34 +510,17 @@ class FMGBase:
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         if exc_type is not None:
-            self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
+            try:
+                self.close(discard_changes=self._settings.discard_on_error or self._settings.discard_on_close)
+            except Exception:
+                logger.exception("Connection cleanup failed while handling an exception")
             return
         self.close(discard_changes=self.discard_on_close)
 
     def _post(self, request: dict) -> Any:
         logger.debug("posting data: %s", request)
-        req = self._session.post(
-            self._settings.base_url, json=request, verify=self._settings.verify, timeout=self._settings.timeout
-        )
-        results = req.json().get("result", [])
-        for result in results:
-            status = result["status"]
-            if status["code"] == 0:
-                continue
-            if status["message"] == "No permission for the resource":
-                raise FMGAuthenticationException(status)
-            if re.search(r"no( write)? permission$", status["message"], flags=re.I):
-                raise FMGLockNeededException(status)
-            if status["message"] == "Workspace is locked by other user":
-                raise FMGLockException(status)
-            if status["message"] == "The data is invalid for selected url":
-                raise FMGInvalidDataException(status)
-            if status["message"] == "Object already exists":
-                raise FMGObjectAlreadyExistsException(f"{status}: {request.get('params')}")
-            if status["message"] == "Invalid url":
-                raise FMGInvalidURL(f"URL: {request['params'][0]['url']}")
-            raise FMGUnhandledException(status)
-        return results[0] if len(results) == 1 else results
+        payload = request_json(self._session, self._settings, request)
+        return rpc_result(payload)
 
     def _get_token(self) -> SecretStr:
         """Get authentication token
@@ -414,12 +540,8 @@ class FMGBase:
             ],
         }
         try:
-            req = self._session.post(self._settings.base_url, json=request, verify=self._settings.verify)
-            status = req.json().get("result", [{}])[0].get("status", {})
-            if status.get("code") != 0:
-                if "No permission for resource" in status.get("message"):
-                    raise FMGUnhandledException("No permission for resource, probably user does not have API access!")
-                raise FMGTokenException("Login failed, wrong credentials!")
+            payload = request_json(self._session, self._settings, request)
+            token = login_token(payload)
             logger.debug("Token obtained")
         except FMGTokenException as err:
             logger.error("Can't gather token: %s", err)
@@ -427,9 +549,9 @@ class FMGBase:
         except requests.exceptions.ConnectionError as err:
             logger.error("Can't gather token: %s", err)
             raise err
-        token = req.json().get("session", "")
-        return SecretStr(token)
+        return token
 
+    @error_handling
     @auth_required
     def get_version(self) -> str:
         """Gather FMG version"""
@@ -442,9 +564,14 @@ class FMGBase:
         req = self._post(request)
         return req["data"]["Version"]
 
+    @error_handling
     @auth_required
+    @lock
     def exec(self, request: dict[str, str]) -> FMGResponse:
-        """Execute on FMG"""
+        """Execute on FMG
+
+        This method currently does not support multiple requests in one call!
+        """
         logger.info("requesting exec with low-level op to %s", request.get("url"))
         body = {
             "method": "exec",
@@ -457,18 +584,19 @@ class FMGBase:
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-        except FMGException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in exec request: %s", api_result["error"])
-        result = FMGResponse(fmg=self, data=api_result, success=api_result.get("status", {}).get("code") == 0)
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        result = FMGResponse(fmg=self, data=api_result, success=api_result[0].get("status", {}).get("code") == 0)
         return result
 
     # noqa: PLR0912 - Too many branches
+    @error_handling
     @auth_required
     def get(self, request: dict[str, Any]) -> FMGResponse:  # noqa: PLR0912 - Too many branches
         """Get info from FMG
+
+        This method currently does not support multiple requests in one call!
 
         Args:
             request: Get operation's param structure
@@ -499,28 +627,34 @@ class FMGBase:
         result = FMGResponse(fmg=self)
         try:
             api_result = self._post(request=body)
-        except FMGException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
-            result.data = api_result
+        except FMGObjectNotExistException:
+            # handling when specific requested object doesn't exist
+            # we don't error out, but give an empty list
+            result.data = [{"data": [], "status": {"code": 0}}]
+            result.success = True
             return result
+
         # handling empty result list
-        if not api_result.get("data"):
-            result.data = {"data": []}
+        if not api_result:
+            result.data = [{"data": [], "status": {"code": 0}}]
+            result.success = True
             return result
+
         # processing result list
-        result.data = api_result
+        result.data = api_result if isinstance(api_result, list) else [api_result]
         result.success = True
-        result.status = api_result.get("status", {}).get("code", 400)
+        # result.status = api_result.get("status", {}).get("code", 400)
 
         return result
 
+    @error_handling
     @auth_required
     @lock
-    def add(self, request: dict[str, Any]) -> FMGResponse:
+    def add(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Add operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Add operation's data structure
@@ -547,33 +681,34 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        request = prepare_batch(request)
         body = {
             "method": "add",
             "params": [
                 {
-                    "data": request.get("data"),
-                    "url": request.get("url"),
+                    "data": req.get("data"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in add request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
-    def update(self, request: dict[str, Any]) -> FMGResponse:
+    def update(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Update operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Update operation's data structure
@@ -600,33 +735,34 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        request = prepare_batch(request)
         body = {
             "method": "update",
             "params": [
                 {
-                    "data": request.get("data"),
-                    "url": request.get("url"),
+                    "data": req.get("data"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in update request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
-    def set(self, request: dict[str, Any]) -> FMGResponse:
+    def set(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Set operation
+
+        Notes:
+            Multiple requests in one call is supported
 
         Args:
             request: Set operation's data structure
@@ -653,36 +789,37 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        request = prepare_batch(request)
         body = {
             "method": "set",
             "params": [
                 {
-                    "data": request.get("data"),
-                    "url": request.get("url"),
+                    "data": req.get("data"),
+                    "url": req.get("url"),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in update request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
+    @error_handling
     @auth_required
     @lock
-    def delete(self, request: dict[str, str]) -> FMGResponse:
+    def delete(self, request: Union[dict[str, Any], List[dict[str, Any]]]) -> FMGResponse:
         """Delete operation
 
+        Notes:
+            Multiple requests in one call is supported
+
         Args:
-            request: Update operation's data structure
+            request: Delete operation's data structure
 
         Examples:
             ```pycon
@@ -699,25 +836,102 @@ class FMGBase:
             (FMGResponse): Result of operation
         """
         response = FMGResponse(fmg=self)
+        request = prepare_batch(request)
         body = {
             "method": "delete",
             "params": [
                 {
-                    "url": request.get("url"),
+                    "url": req.get("url"),
+                    **({"data": req["data"]} if "data" in req else {}),
                 }
+                for req in request
             ],
             "session": self._token.get_secret_value(),
             "id": self._id,
         }
-        try:
-            api_result = self._post(request=body)
-            response.success = True
-            response.status = api_result.get("status")
-        except FMGUnhandledException as err:
-            api_result = {"error": str(err)}
-            logger.error("Error in get request: %s", api_result["error"])
-            if self._raise_on_error:
-                raise
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
+        response.data = api_result
+        return response
+
+    @error_handling
+    @auth_required
+    @lock
+    def unset(self, request: Union[dict[str, Any], list[dict[str, Any]]]) -> FMGResponse:
+        """Unset the tables identified by low-level request dictionaries."""
+        request = prepare_batch(request)
+        body = {
+            "method": "unset",
+            "params": [{"url": req.get("url")} for req in request],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        return FMGResponse(
+            fmg=self,
+            success=all(result.get("status", {}).get("code") == 0 for result in api_result),
+            data=api_result,
+        )
+
+    @error_handling
+    @auth_required
+    @lock
+    def clone(self, request: Union[dict[str, Any], List[dict[str, Any]]], create_task: bool = False) -> FMGResponse:
+        """Clone operation
+
+        Notes:
+            Multiple requests in one call is supported
+
+        Args:
+            request (dict): Clone operation's data structure
+            create_task (bool): Wheter to create task
+
+        Examples:
+            ```pycon
+
+            >>> settings = {...}
+            >>> clone_request = {
+            ...     "url": "/pm/config/global/obj/firewall/address/test-address",  # source object
+            ...     "data": {
+            ....         "name": "clone-address",  # destination object
+            ...     }
+            ... }
+            >>> with FMGBase(**settings) as fmg:
+            ...     fmg.clone(clone_request)
+            ```
+
+        Returns:
+            (FMGResponse): Result of operation
+        """
+        response = FMGResponse(fmg=self)
+        request = prepare_batch(request)
+        body = {
+            "method": "clone",
+            "params": [
+                {
+                    "url": req.get("url"),
+                    "data": req.get("data"),
+                }
+                for req in request
+            ],
+            "session": self._token.get_secret_value(),
+            "id": self._id,
+        }
+        adom = self.adom if self.adom != "global" else "root"
+        if create_task:
+            body["create_task"] = {
+                "adom": adom,
+                # name task after this request object
+                "name": f"cloning task of {', '.join(req.get('url').split('/')[-1] for req in request)}",
+            }
+        api_result = self._post(request=body)
+        if isinstance(api_result, dict):
+            api_result = [api_result]
+        response.success = all(result.get("status", {}).get("code") == 0 for result in api_result)
         response.data = api_result
         return response
 
@@ -728,49 +942,45 @@ class FMGBase:
         timeout: int = 60,
         loop_interval: int = 2,
     ) -> Union[str, None]:
-        """Wait for task to finish
+        """Poll a FortiManager task until it reaches a terminal state.
 
         Args:
-            task_res: (int, FMGResponse): Task or task ID to check
-            callback: (Callable[[int, str], None]): function to call in each iteration.
-                                              It must accept 2 args which are the current percentage and latest log line
-            timeout: (int): timeout for waiting
-            loop_interval: (int): interval between task status updates
+            task_res: Task ID or a response containing task metadata.
+            callback: Optional callable receiving the completion percentage and latest log line.
+            timeout: Polling timeout in seconds.
+            loop_interval: Delay between status reads in seconds.
 
-        Example:
-            ```pycon
+        Returns:
+            str or None: Terminal task state, or None if no task can be polled or a status read fails.
+            Check for "done" before treating the task as completed successfully.
 
-            >>> from pyfortinet.fmg_api.dvmcmd import DeviceTask
-            >>> from pyfortinet.fmg_api.dvmdb import RealDevice
-            >>> from rich.progress import Progress
-            >>> settings = {...}
-            >>> device = RealDevice(name="test", ip="1.1.1.1", adm_usr="test", adm_pass="<PASSWORD>")
-            >>> with FMGBase(**settings) as fmg:
-            ...     task = DeviceTask(adom=fmg.adom, device=device)
-            ...     result = fmg.exec(task)
-            ...     with Progress() as progress:
-            ...         prog_task = progress.add_task(f"Adding device {device.name}", total=100)
-            ...         update_progress = lambda percent, log: progress.update(prog_task, percent)
-            ...         result.wait_for_task(task, callback=update_progress)
+        Examples:
+            Inside an open connection, use a task ID returned by an earlier execution request:
+
+            ```python
+            state = fmg.wait_for_task(task_id, callback=lambda percent, log: print(percent, log))
             ```
         """
-        task_id = (
-            task_res
-            if isinstance(task_res, int)
-            else (task_res.data.get("data", {}).get("taskid") or task_res.data.get("data", {}).get("task"))
-        )
+        task_id = task_id_from_response(task_res)
         if task_id is None:
             return
-        start_time = time.time()
+        start_time = time.monotonic()
         while True:
-            task: Task = self.get(Task, F(id=task_id)).first()
+            try:
+                response = self.get({"url": Task._url.default, "filter": ["id", "==", task_id]})
+                task: Task = task_from_response(response)
+            except ConnectionError:  # avoid error out, let requests retry
+                time.sleep(loop_interval)
+                if time.monotonic() - start_time > timeout:
+                    raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task_id}!") from None
+                continue
             if not task:
                 return
-            if time.time() - start_time > timeout:
-                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task.id}!")
+            if time.monotonic() - start_time > timeout:
+                raise TimeoutError(f"Timed out waiting {timeout} seconds for the task {task_id}!")
             if callable(callback):
                 callback(task.percent, task.line[-1].detail if task.line else "")
             # exit on the following states
-            if task.state in ["cancelled", "done", "error", "aborted", "to_continue", "unknown"]:
+            if task.state in TERMINAL_TASK_STATES:
                 return task.state
             time.sleep(loop_interval)

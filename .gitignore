@@ -9,3 +9,9 @@ lab-config.yml
 site/
 .pytest_cache
 .ruff_cache
+
+.venv/
+
+# Documentation build output and generated API Markdown
+/docs/reference/
+/.cache/

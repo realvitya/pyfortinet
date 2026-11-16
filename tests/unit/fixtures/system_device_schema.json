@@ -1,0 +1,3224 @@
+{
+  "source": "FortiManager 7.6.7 Configuration Database v7.4 Device Level Config pm_config_system.json",
+  "sha256": "54764bd5fa791828072c3390b47e541cbda7a0f468cb144250b3f5e9a231e332",
+  "definitions": {
+    "pm.config.system.interface.client-options": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "id": {
+          "type": "integer",
+          "format": "sequence"
+        },
+        "ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "hex",
+            "string",
+            "ip",
+            "fqdn"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "pm.config.system.interface.dhcp-snooping-server-list": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "server-ip": {
+          "type": "string",
+          "format": "IPv4 address"
+        }
+      }
+    },
+    "pm.config.system.interface.egress-queues": {
+      "type": "object",
+      "properties": {
+        "cos0": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos1": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos2": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos3": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos4": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos5": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos6": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "cos7": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        }
+      }
+    },
+    "pm.config.system.interface.ipv6.dhcp6-iapd-list": {
+      "type": "object",
+      "properties": {
+        "iaid": {
+          "type": "integer",
+          "format": "sequence"
+        },
+        "prefix-hint": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "prefix-hint-plt": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "prefix-hint-vlt": {
+          "type": "integer",
+          "format": "unsigned int32"
+        }
+      }
+    },
+    "pm.config.system.interface.ipv6.ip6-delegated-prefix-list": {
+      "type": "object",
+      "properties": {
+        "autonomous-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "delegated-prefix-iaid": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "onlink-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "prefix-id": {
+          "type": "integer",
+          "format": "sequence"
+        },
+        "rdnss": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "rdnss-service": {
+          "type": "string",
+          "enum": [
+            "delegated",
+            "default",
+            "specify"
+          ]
+        },
+        "subnet": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "upstream-interface": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        }
+      }
+    },
+    "pm.config.system.interface.ipv6.ip6-extra-addr": {
+      "type": "object",
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        }
+      }
+    },
+    "pm.config.system.interface.ipv6.ip6-prefix-list": {
+      "type": "object",
+      "properties": {
+        "autonomous-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dnssl": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "onlink-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "preferred-life-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "prefix": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "rdnss": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "valid-life-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        }
+      }
+    },
+    "pm.config.system.interface.ipv6.vrrp6": {
+      "type": "object",
+      "properties": {
+        "accept-mode": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "adv-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ignore-default-route": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "preempt": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "start-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "vrdst6": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv6 address array"
+          }
+        },
+        "vrgrp": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrid": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrip6": {
+          "type": "string",
+          "format": "IPv6 address"
+        }
+      }
+    },
+    "pm.config.system.interface.ipv6": {
+      "type": "object",
+      "properties": {
+        "autoconf": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "cli-conn6-status": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "dhcp6-client-options": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "rapid",
+              "iapd",
+              "iana"
+            ]
+          }
+        },
+        "dhcp6-iapd-list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.ipv6.dhcp6-iapd-list"
+          }
+        },
+        "dhcp6-information-request": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp6-prefix-delegation": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp6-relay-interface-id": {
+          "type": "string",
+          "format": "string"
+        },
+        "dhcp6-relay-ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv6 address array"
+          }
+        },
+        "dhcp6-relay-service": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp6-relay-source-interface": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp6-relay-source-ip": {
+          "type": "string",
+          "format": "IPv6 address"
+        },
+        "dhcp6-relay-type": {
+          "type": "string",
+          "enum": [
+            "regular"
+          ]
+        },
+        "icmp6-send-redirect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "interface-identifier": {
+          "type": "string",
+          "format": "IPv6 address"
+        },
+        "ip6-address": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-allowaccess": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "https",
+              "ping",
+              "ssh",
+              "snmp",
+              "http",
+              "telnet",
+              "fgfm",
+              "fabric"
+            ]
+          }
+        },
+        "ip6-default-life": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-delegated-prefix-iaid": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-delegated-prefix-list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.ipv6.ip6-delegated-prefix-list"
+          }
+        },
+        "ip6-dns-server-override": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ip6-extra-addr": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.ipv6.ip6-extra-addr"
+          }
+        },
+        "ip6-hop-limit": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-link-mtu": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-manage-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ip6-max-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-min-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-mode": {
+          "type": "string",
+          "enum": [
+            "static",
+            "dhcp",
+            "pppoe",
+            "delegated"
+          ]
+        },
+        "ip6-other-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ip6-prefix-list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.ipv6.ip6-prefix-list"
+          }
+        },
+        "ip6-prefix-mode": {
+          "type": "string",
+          "enum": [
+            "dhcp6",
+            "ra"
+          ]
+        },
+        "ip6-reachable-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-retrans-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip6-send-adv": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ip6-subnet": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-upstream-interface": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "nd-cert": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "nd-cga-modifier": {
+          "type": "string",
+          "format": "string"
+        },
+        "nd-mode": {
+          "type": "string",
+          "enum": [
+            "basic",
+            "SEND-compatible"
+          ]
+        },
+        "nd-security-level": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "nd-timestamp-delta": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "nd-timestamp-fuzz": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ra-send-mtu": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "unique-autoconf-addr": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "vrip6_link_local": {
+          "type": "string",
+          "format": "IPv6 address"
+        },
+        "vrrp-virtual-mac6": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "vrrp6": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.ipv6.vrrp6"
+          }
+        }
+      }
+    },
+    "pm.config.system.interface.l2tp-client-settings": {
+      "type": "object",
+      "properties": {
+        "auth-type": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "pap",
+            "chap",
+            "mschapv1",
+            "mschapv2"
+          ]
+        },
+        "defaultgw": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "distance": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "hello-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "mtu": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "peer-host": {
+          "type": "string",
+          "format": "string"
+        },
+        "peer-mask": {
+          "type": "string",
+          "format": "IPv4 mask"
+        },
+        "peer-port": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "priority": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "user": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "pm.config.system.interface.mirroring-filter": {
+      "type": "object",
+      "properties": {
+        "dbg-dump": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "filter-dport": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "filter-dstip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "filter-protocol": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "filter-sport": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "filter-srcip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        }
+      }
+    },
+    "pm.config.system.interface.phy-setting": {
+      "type": "object",
+      "properties": {
+        "signal-ok-threshold-value": {
+          "type": "integer",
+          "format": "unsigned int32"
+        }
+      }
+    },
+    "pm.config.system.interface.secondaryip": {
+      "type": "object",
+      "properties": {
+        "allowaccess": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "https",
+              "ping",
+              "ssh",
+              "snmp",
+              "http",
+              "telnet",
+              "fgfm",
+              "radius-acct",
+              "probe-response",
+              "dnp",
+              "ftm",
+              "fabric",
+              "speed-test",
+              "icond"
+            ]
+          }
+        },
+        "id": {
+          "type": "integer",
+          "format": "sequence"
+        },
+        "ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "secip-relay-ip": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "pm.config.system.interface.tagging": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        }
+      }
+    },
+    "pm.config.system.interface.vrrp.proxy-arp": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "sequence"
+        },
+        "ip": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "pm.config.system.interface.vrrp": {
+      "type": "object",
+      "properties": {
+        "accept-mode": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "adv-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ignore-default-route": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "preempt": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "proxy-arp": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.vrrp.proxy-arp"
+          }
+        },
+        "start-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "enum": [
+            "2",
+            "3"
+          ]
+        },
+        "vrdst": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address array"
+          }
+        },
+        "vrdst-priority": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrgrp": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrid": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrip": {
+          "type": "string",
+          "format": "IPv4 address"
+        }
+      }
+    },
+    "pm.config.system.interface.wifi-networks": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "format": "sequence"
+        },
+        "obsolete-security-options": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wifi-ca-certificate": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "wifi-client-certificate": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "wifi-eap-type": {
+          "type": "string",
+          "enum": [
+            "tls",
+            "peap",
+            "both"
+          ]
+        },
+        "wifi-encrypt": {
+          "type": "string",
+          "enum": [
+            "TKIP",
+            "AES"
+          ]
+        },
+        "wifi-key": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "wifi-keyindex": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "wifi-passphrase": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "wifi-private-key": {
+          "type": "string",
+          "format": "string"
+        },
+        "wifi-private-key-password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "wifi-security": {
+          "type": "string",
+          "enum": [
+            "wep64",
+            "wep128",
+            "open",
+            "wpa-personal",
+            "wpa-enterprise",
+            "wpa-only-personal",
+            "wpa2-only-personal",
+            "owe",
+            "wpa3-sae"
+          ]
+        },
+        "wifi-ssid": {
+          "type": "string",
+          "format": "string"
+        },
+        "wifi-username": {
+          "type": "string",
+          "format": "string"
+        }
+      }
+    },
+    "pm.config.system.interface": {
+      "type": "object",
+      "properties": {
+        "ac-name": {
+          "type": "string",
+          "format": "string"
+        },
+        "aggregate": {
+          "type": "string",
+          "format": "string"
+        },
+        "aggregate-type": {
+          "type": "string",
+          "enum": [
+            "physical",
+            "vxlan"
+          ]
+        },
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "L2",
+            "L3",
+            "L4",
+            "Source-MAC"
+          ]
+        },
+        "alias": {
+          "type": "string",
+          "format": "string"
+        },
+        "allowaccess": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "https",
+              "ping",
+              "ssh",
+              "snmp",
+              "http",
+              "telnet",
+              "fgfm",
+              "radius-acct",
+              "probe-response",
+              "dnp",
+              "ftm",
+              "fabric",
+              "speed-test",
+              "icond"
+            ]
+          }
+        },
+        "annex": {
+          "type": "string",
+          "enum": [
+            "a",
+            "b",
+            "j",
+            "bjm",
+            "i",
+            "al",
+            "m",
+            "aijlm",
+            "bj"
+          ]
+        },
+        "ap-discover": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "arpforward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "atm-protocol": {
+          "type": "string",
+          "enum": [
+            "none",
+            "ipoa"
+          ]
+        },
+        "auth-cert": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "auth-portal-addr": {
+          "type": "string",
+          "format": "string"
+        },
+        "auth-type": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "pap",
+            "chap",
+            "mschapv1",
+            "mschapv2"
+          ]
+        },
+        "auto-auth-extension-device": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "bandwidth-measure-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "bfd": {
+          "type": "string",
+          "enum": [
+            "global",
+            "enable",
+            "disable"
+          ]
+        },
+        "bfd-desired-min-tx": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "bfd-detect-mult": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "bfd-required-min-rx": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "broadcast-forward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "captive-portal": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "cli-conn-status": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "client-options": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.client-options"
+          }
+        },
+        "color": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "dedicated-to": {
+          "type": "string",
+          "enum": [
+            "none",
+            "management"
+          ]
+        },
+        "default-purdue-level": {
+          "type": "string",
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "1.5",
+            "2.5",
+            "3.5",
+            "5.5"
+          ]
+        },
+        "defaultgw": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "detected-peer-mtu": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "device-identification": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "device-user-identification": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "devindex": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "dhcp-broadcast-flag": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-classless-route-addition": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-client-identifier": {
+          "type": "string",
+          "format": "string"
+        },
+        "dhcp-relay-agent-option": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-relay-allow-no-end-option": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-relay-circuit-id": {
+          "type": "string",
+          "format": "string"
+        },
+        "dhcp-relay-interface": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "dhcp-relay-interface-select-method": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "sdwan",
+            "specify"
+          ]
+        },
+        "dhcp-relay-ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address array"
+          }
+        },
+        "dhcp-relay-link-selection": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "dhcp-relay-request-all-server": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-relay-service": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-relay-source-ip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "dhcp-relay-type": {
+          "type": "string",
+          "enum": [
+            "regular",
+            "ipsec"
+          ]
+        },
+        "dhcp-renew-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "dhcp-smart-relay": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dhcp-snooping-server-list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.dhcp-snooping-server-list"
+          }
+        },
+        "disc-retry-timeout": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "distance": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "dns-server-override": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "dns-server-protocol": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "cleartext",
+              "dot",
+              "doh"
+            ]
+          }
+        },
+        "drop-fragment": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "drop-overlapped-fragment": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "eap-ca-cert": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "eap-identity": {
+          "type": "string",
+          "format": "string"
+        },
+        "eap-method": {
+          "type": "string",
+          "enum": [
+            "tls",
+            "peap"
+          ]
+        },
+        "eap-password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "eap-supplicant": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "eap-user-cert": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "egress-cos": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "cos0",
+            "cos1",
+            "cos2",
+            "cos3",
+            "cos4",
+            "cos5",
+            "cos6",
+            "cos7"
+          ]
+        },
+        "egress-queues": {
+          "$ref": "#/definitions/pm.config.system.interface.egress-queues"
+        },
+        "egress-shaping-profile": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "eip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "estimated-downstream-bandwidth": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "estimated-upstream-bandwidth": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "explicit-ftp-proxy": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "explicit-web-proxy": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "external": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "fail-action-on-extender": {
+          "type": "string",
+          "enum": [
+            "soft-restart",
+            "hard-restart",
+            "reboot"
+          ]
+        },
+        "fail-alert-interfaces": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "fail-alert-method": {
+          "type": "string",
+          "enum": [
+            "link-failed-signal",
+            "link-down"
+          ]
+        },
+        "fail-detect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "fail-detect-option": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "detectserver",
+              "link-down"
+            ]
+          }
+        },
+        "fortilink": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "fortilink-backup-link": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "fortilink-neighbor-detect": {
+          "type": "string",
+          "enum": [
+            "lldp",
+            "fortilink"
+          ]
+        },
+        "fortilink-split-interface": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "forward-domain": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "forward-error-correction": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable",
+            "rs-fec",
+            "base-r-fec",
+            "rs-544",
+            "none",
+            "cl91-rs-fec",
+            "cl74-fc-fec",
+            "auto",
+            "rs-fec544"
+          ]
+        },
+        "gateway-address": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "gi-gk": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "icmp-accept-redirect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "icmp-send-redirect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ident-accept": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "idle-timeout": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ike-saml-server": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "inbandwidth": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ingress-cos": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "cos0",
+            "cos1",
+            "cos2",
+            "cos3",
+            "cos4",
+            "cos5",
+            "cos6",
+            "cos7"
+          ]
+        },
+        "ingress-shaping-profile": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "ingress-spillover-threshold": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "interconnect-profile": {
+          "type": "string",
+          "enum": [
+            "default",
+            "profile1",
+            "profile2"
+          ]
+        },
+        "interface": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "internal": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "ip-managed-by-fortiipam": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable",
+            "inherit-global"
+          ]
+        },
+        "ipmac": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ips-sniffer-mode": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ipunnumbered": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "ipv6": {
+          "$ref": "#/definitions/pm.config.system.interface.ipv6"
+        },
+        "l2forward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "l2tp-client": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "l2tp-client-settings": {
+          "$ref": "#/definitions/pm.config.system.interface.l2tp-client-settings"
+        },
+        "lacp-ha-secondary": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "lacp-mode": {
+          "type": "string",
+          "enum": [
+            "static",
+            "passive",
+            "active"
+          ]
+        },
+        "lacp-speed": {
+          "type": "string",
+          "enum": [
+            "slow",
+            "fast"
+          ]
+        },
+        "lcp-echo-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "lcp-max-echo-fails": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "link-up-delay": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "lldp-network-policy": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "lldp-reception": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable",
+            "vdom"
+          ]
+        },
+        "lldp-transmission": {
+          "type": "string",
+          "enum": [
+            "enable",
+            "disable",
+            "vdom"
+          ]
+        },
+        "macaddr": {
+          "type": "string",
+          "format": "mac address"
+        },
+        "managed-subnetwork-size": {
+          "type": "string",
+          "enum": [
+            "32",
+            "64",
+            "128",
+            "256",
+            "512",
+            "1024",
+            "2048",
+            "4096",
+            "8192",
+            "16384",
+            "32768",
+            "65536"
+          ]
+        },
+        "management-ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "measured-downstream-bandwidth": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "measured-upstream-bandwidth": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "mediatype": {
+          "type": "string",
+          "enum": [
+            "serdes-sfp",
+            "sgmii-sfp",
+            "serdes-copper-sfp",
+            "sr",
+            "cr",
+            "lr",
+            "qsfp28-sr4",
+            "qsfp28-lr4",
+            "qsfp28-cr4",
+            "sr4",
+            "cr4",
+            "lr4",
+            "none",
+            "gmii",
+            "sgmii",
+            "sr2",
+            "lr2",
+            "cr2",
+            "sr8",
+            "lr8",
+            "cr8",
+            "sr-lr",
+            "kr"
+          ]
+        },
+        "member": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "min-links": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "min-links-down": {
+          "type": "string",
+          "enum": [
+            "operational",
+            "administrative"
+          ]
+        },
+        "mirroring-direction": {
+          "type": "string",
+          "enum": [
+            "rx",
+            "tx",
+            "both"
+          ]
+        },
+        "mirroring-filter": {
+          "$ref": "#/definitions/pm.config.system.interface.mirroring-filter"
+        },
+        "mirroring-port": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "static",
+            "dhcp",
+            "pppoe",
+            "pppoa"
+          ]
+        },
+        "monitor-bandwidth": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "mtu": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "mtu-override": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "mux-type": {
+          "type": "string",
+          "enum": [
+            "llc-encaps",
+            "vc-encaps"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "ndiscforward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "netbios-forward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "netflow-sampler": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "tx",
+            "rx",
+            "both"
+          ]
+        },
+        "np-qos-profile": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "outbandwidth": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "padt-retry-timeout": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "phy-mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "adsl",
+            "vdsl",
+            "adsl-auto",
+            "vdsl2",
+            "adsl2+",
+            "adsl2",
+            "g-dmt",
+            "t1-413",
+            "g-lite"
+          ]
+        },
+        "phy-setting": {
+          "$ref": "#/definitions/pm.config.system.interface.phy-setting"
+        },
+        "poe": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "polling-interval": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "port-mirroring": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "pppoe-egress-cos": {
+          "type": "string",
+          "enum": [
+            "cos0",
+            "cos1",
+            "cos2",
+            "cos3",
+            "cos4",
+            "cos5",
+            "cos6",
+            "cos7"
+          ]
+        },
+        "pppoe-unnumbered-negotiate": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "pptp-auth-type": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "pap",
+            "chap",
+            "mschapv1",
+            "mschapv2"
+          ]
+        },
+        "pptp-client": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "pptp-password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "pptp-server-ip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "pptp-timeout": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pptp-user": {
+          "type": "string",
+          "format": "string"
+        },
+        "preserve-session-route": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "priority": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "priority-override": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "profiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "8a",
+              "8b",
+              "8c",
+              "8d",
+              "12a",
+              "12b",
+              "17a",
+              "30a",
+              "35b"
+            ]
+          }
+        },
+        "proxy-captive-portal": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "pvc-atm-qos": {
+          "type": "string",
+          "enum": [
+            "cbr",
+            "rt-vbr",
+            "nrt-vbr",
+            "ubr"
+          ]
+        },
+        "pvc-chan": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-crc": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-pcr": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-scr": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-vlan-id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-vlan-rx-id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-vlan-rx-op": {
+          "type": "string",
+          "enum": [
+            "pass-through",
+            "replace",
+            "remove"
+          ]
+        },
+        "pvc-vlan-tx-id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "pvc-vlan-tx-op": {
+          "type": "string",
+          "enum": [
+            "pass-through",
+            "replace",
+            "remove"
+          ]
+        },
+        "reachable-time": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "redundant-interface": {
+          "type": "string",
+          "format": "string"
+        },
+        "remote-ip": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "replacemsg-override-group": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "retransmission": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "ring-rx": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "ring-tx": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "lan",
+            "wan",
+            "dmz",
+            "undefined"
+          ]
+        },
+        "sample-direction": {
+          "type": "string",
+          "enum": [
+            "rx",
+            "tx",
+            "both"
+          ]
+        },
+        "sample-rate": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "secondary-IP": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "secondaryip": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.secondaryip"
+          }
+        },
+        "security-8021x-dynamic-vlan-id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "security-8021x-master": {
+          "type": "string",
+          "format": "string"
+        },
+        "security-8021x-member-mode": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "switch"
+          ]
+        },
+        "security-8021x-mode": {
+          "type": "string",
+          "enum": [
+            "default",
+            "dynamic-vlan",
+            "fallback",
+            "slave"
+          ]
+        },
+        "security-exempt-list": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "security-external-logout": {
+          "type": "string",
+          "format": "string"
+        },
+        "security-external-web": {
+          "type": "string",
+          "format": "string"
+        },
+        "security-groups": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "security-mac-auth-bypass": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable",
+            "mac-auth-only"
+          ]
+        },
+        "security-mode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "captive-portal",
+            "802.1X"
+          ]
+        },
+        "security-redirect-url": {
+          "type": "string",
+          "format": "string"
+        },
+        "select-profile-30a-35b": {
+          "type": "string",
+          "enum": [
+            "30A",
+            "30a",
+            "35B",
+            "35b"
+          ]
+        },
+        "service-name": {
+          "type": "string",
+          "format": "string"
+        },
+        "sflow-sampler": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "sfp-dsl": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "sfp-dsl-adsl-fallback": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "sfp-dsl-autodetect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "sfp-dsl-mac": {
+          "type": "string",
+          "format": "mac address"
+        },
+        "snmp-index": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "speed": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "10full",
+            "10half",
+            "100full",
+            "100half",
+            "1000full",
+            "10000full",
+            "1000auto",
+            "10000auto",
+            "40000full",
+            "100Gfull",
+            "25000full",
+            "50000full",
+            "40000auto",
+            "25000auto",
+            "100Gauto",
+            "2500auto",
+            "400Gfull",
+            "400Gauto",
+            "5000auto",
+            "50000auto",
+            "200Gfull",
+            "200Gauto",
+            "100auto"
+          ]
+        },
+        "spillover-threshold": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "src-check": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "down",
+            "up"
+          ]
+        },
+        "stp": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "stp-edge": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "stp-ha-secondary": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable",
+            "priority-adjust"
+          ]
+        },
+        "stpforward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "stpforward-mode": {
+          "type": "string",
+          "enum": [
+            "rpl-all-ext-id",
+            "rpl-bridge-ext-id",
+            "rpl-nothing"
+          ]
+        },
+        "subst": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "substitute-dst-mac": {
+          "type": "string",
+          "format": "mac address"
+        },
+        "sw-algorithm": {
+          "type": "string",
+          "enum": [
+            "l2",
+            "l3",
+            "eh",
+            "default"
+          ]
+        },
+        "swc-first-create": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "swc-vlan": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "switch": {
+          "type": "string",
+          "format": "string"
+        },
+        "switch-controller-access-vlan": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-arp-inspection": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable",
+            "monitor"
+          ]
+        },
+        "switch-controller-dhcp-snooping": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-dhcp-snooping-option82": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-dhcp-snooping-verify-mac": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-dynamic": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "switch-controller-feature": {
+          "type": "string",
+          "enum": [
+            "none",
+            "default-vlan",
+            "quarantine",
+            "voice",
+            "rspan",
+            "video",
+            "nac",
+            "nac-segment"
+          ]
+        },
+        "switch-controller-igmp-snooping": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-igmp-snooping-fast-leave": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-igmp-snooping-proxy": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-iot-scanning": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-learning-limit": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "switch-controller-mgmt-vlan": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "switch-controller-nac": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "switch-controller-netflow-collect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-offload": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-offload-gw": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-offload-ip": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "switch-controller-rspan-mode": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "switch-controller-source-ip": {
+          "type": "string",
+          "enum": [
+            "outbound",
+            "fixed"
+          ]
+        },
+        "switch-controller-traffic-policy": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "system-id": {
+          "type": "string",
+          "format": "mac address"
+        },
+        "system-id-type": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "user"
+          ]
+        },
+        "tagging": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.tagging"
+          }
+        },
+        "tc-mode": {
+          "type": "string",
+          "enum": [
+            "ptm",
+            "atm"
+          ]
+        },
+        "tcp-mss": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "trunk": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "trust-ip-1": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trust-ip-2": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trust-ip-3": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trust-ip6-1": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "trust-ip6-2": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "trust-ip6-3": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "physical",
+            "vlan",
+            "aggregate",
+            "redundant",
+            "tunnel",
+            "wireless",
+            "vdom-link",
+            "loopback",
+            "switch",
+            "hard-switch",
+            "hdlc",
+            "vap-switch",
+            "wl-mesh",
+            "switch-vlan",
+            "fctrl-trunk",
+            "fext-wan",
+            "vxlan",
+            "emac-vlan",
+            "geneve",
+            "ssl",
+            "lan-extension"
+          ]
+        },
+        "username": {
+          "type": "string",
+          "format": "string"
+        },
+        "vci": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vdom": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "vectoring": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "vindex": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vlan-id": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vlan-op-mode": {
+          "type": "string",
+          "enum": [
+            "tag",
+            "untag",
+            "passthrough"
+          ]
+        },
+        "vlan-protocol": {
+          "type": "string",
+          "enum": [
+            "8021q",
+            "8021ad"
+          ]
+        },
+        "vlanforward": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "vlanid": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vpi": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrf": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "vrrp": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.vrrp"
+          }
+        },
+        "vrrp-virtual-mac": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wccp": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "weight": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "wifi-5g-threshold": {
+          "type": "string",
+          "format": "string"
+        },
+        "wifi-acl": {
+          "type": "string",
+          "enum": [
+            "deny",
+            "allow"
+          ]
+        },
+        "wifi-ap-band": {
+          "type": "string",
+          "enum": [
+            "any",
+            "5g-preferred",
+            "5g-only"
+          ]
+        },
+        "wifi-auth": {
+          "type": "string",
+          "enum": [
+            "PSK",
+            "radius",
+            "usergroup"
+          ]
+        },
+        "wifi-auto-connect": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wifi-auto-save": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wifi-broadcast-ssid": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wifi-dns-server1": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "wifi-dns-server2": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "wifi-encrypt": {
+          "type": "string",
+          "enum": [
+            "TKIP",
+            "AES"
+          ]
+        },
+        "wifi-fragment-threshold": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "wifi-gateway": {
+          "type": "string",
+          "format": "IPv4 address"
+        },
+        "wifi-key": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "wifi-keyindex": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "wifi-mac-filter": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wifi-networks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.interface.wifi-networks"
+          }
+        },
+        "wifi-passphrase": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "wifi-radius-server": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "wifi-rts-threshold": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "wifi-security": {
+          "type": "string",
+          "enum": [
+            "wep64",
+            "wep128",
+            "open",
+            "wpa-personal",
+            "wpa-enterprise",
+            "wpa-only-personal",
+            "wpa-only-enterprise",
+            "wpa2-only-personal",
+            "wpa2-only-enterprise"
+          ]
+        },
+        "wifi-ssid": {
+          "type": "string",
+          "format": "string"
+        },
+        "wifi-usergroup": {
+          "type": "string",
+          "format": "string"
+        },
+        "wins-ip": {
+          "type": "string",
+          "format": "IPv4 address"
+        }
+      }
+    },
+    "pm.config.system.admin": {
+      "type": "object",
+      "properties": {
+        "accprofile": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "accprofile-override": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "allow-remove-admin-session": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "comments": {
+          "type": "string",
+          "format": "string"
+        },
+        "email-to": {
+          "type": "string",
+          "format": "string"
+        },
+        "force-password-change": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "fortitoken": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "guest-auth": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "guest-lang": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "guest-usergroups": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "gui-default-dashboard-template": {
+          "type": "string",
+          "format": "string"
+        },
+        "gui-ignore-invalid-signature-version": {
+          "type": "string",
+          "format": "string"
+        },
+        "gui-ignore-release-overview-version": {
+          "type": "string",
+          "format": "string"
+        },
+        "history0": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "history1": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "ip6-trusthost1": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost10": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost2": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost3": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost4": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost5": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost6": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost7": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost8": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "ip6-trusthost9": {
+          "type": "string",
+          "format": "IPv6 prefix"
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "old-password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "password": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "password-expire": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        },
+        "peer-auth": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "peer-group": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "remote-auth": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "remote-group": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "schedule": {
+          "type": "string",
+          "format": "string"
+        },
+        "sms-custom-server": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "sms-phone": {
+          "type": "string",
+          "format": "string"
+        },
+        "sms-server": {
+          "type": "string",
+          "enum": [
+            "fortiguard",
+            "custom"
+          ]
+        },
+        "ssh-certificate": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "ssh-public-key1": {
+          "type": "string",
+          "format": "string"
+        },
+        "ssh-public-key2": {
+          "type": "string",
+          "format": "string"
+        },
+        "ssh-public-key3": {
+          "type": "string",
+          "format": "string"
+        },
+        "trusthost1": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost10": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost2": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost3": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost4": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost5": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost6": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost7": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost8": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "trusthost9": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "IPv4 address/mask"
+          }
+        },
+        "two-factor": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "fortitoken",
+            "email",
+            "sms",
+            "fortitoken-cloud"
+          ]
+        },
+        "two-factor-authentication": {
+          "type": "string",
+          "enum": [
+            "fortitoken",
+            "email",
+            "sms"
+          ]
+        },
+        "two-factor-notification": {
+          "type": "string",
+          "enum": [
+            "email",
+            "sms"
+          ]
+        },
+        "vdom": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "vdom-override": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        },
+        "wildcard": {
+          "type": "string",
+          "enum": [
+            "disable",
+            "enable"
+          ]
+        }
+      }
+    },
+    "pm.config.system.zone.tagging": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        }
+      }
+    },
+    "pm.config.system.zone": {
+      "type": "object",
+      "properties": {
+        "interface": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "intrazone": {
+          "type": "string",
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "tagging": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.system.zone.tagging"
+          }
+        }
+      }
+    }
+  }
+}

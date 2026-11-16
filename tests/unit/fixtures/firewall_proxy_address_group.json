@@ -1,0 +1,94 @@
+{
+  "source": "FortiManager 7.6.7 Configuration Database v7.4 ADOM Level Objects pm_config_firewall.json",
+  "sha256": "7a993d68c5baee1725fad3b606ce4c0f9a401003b771b6a2ef9638b33e57575a",
+  "routes": [
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp (add)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp} (clone)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging (add)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging/{tagging} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging/{tagging} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging/{tagging} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging/{tagging} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/proxy-addrgrp/{proxy-addrgrp}/tagging/{tagging} (clone)"
+  ],
+  "definitions": {
+    "pm.config.firewall.proxy-addrgrp.tagging": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "string array"
+          }
+        }
+      }
+    },
+    "pm.config.firewall.proxy-addrgrp": {
+      "type": "object",
+      "properties": {
+        "_image-base64": {
+          "type": "string",
+          "format": "string"
+        },
+        "color": {
+          "type": "integer",
+          "format": "unsigned int32"
+        },
+        "comment": {
+          "type": "string",
+          "format": "string"
+        },
+        "member": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "tagging": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pm.config.firewall.proxy-addrgrp.tagging"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "src",
+            "dst"
+          ]
+        },
+        "uuid": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

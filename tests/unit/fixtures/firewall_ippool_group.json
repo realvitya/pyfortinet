@@ -1,0 +1,41 @@
+{
+  "source": "FortiManager 7.6.7 Configuration Database v7.4 ADOM Level Objects pm_config_firewall.json",
+  "sha256": "7a993d68c5baee1725fad3b606ce4c0f9a401003b771b6a2ef9638b33e57575a",
+  "routes": [
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp (get)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp (add)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp (set)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp (update)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp/{ippool_grp} (get)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp/{ippool_grp} (set)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp/{ippool_grp} (update)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp/{ippool_grp} (delete)",
+    "/pm/config/adom/{adom}/obj/firewall/ippool_grp/{ippool_grp} (clone)"
+  ],
+  "definitions": {
+    "pm.config.firewall.ippool_grp": {
+      "type": "object",
+      "properties": {
+        "comments": {
+          "type": "string",
+          "format": "string"
+        },
+        "member": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "datasource"
+          }
+        },
+        "name": {
+          "type": "string",
+          "format": "string"
+        },
+        "uuid": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}
