@@ -1,8 +1,4 @@
-mkdocs-gen-files
-mkdocstrings
+# Documentation tooling only; requires Python 3.11 or later.
+# uv builds use the locked development group in pyproject.toml.
+zensical>=0.1.1,<0.2
 mkdocstrings-python
-mkdocs-section-index
-mkdocs-literate-nav
-mkdocs-autorefs
-mkdocs-material
-mkdocs-material-extensions
