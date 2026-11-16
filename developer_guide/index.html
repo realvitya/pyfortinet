@@ -2436,6 +2436,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Set up a development environment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#security_updates_and_python_39" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Security updates and Python 3.9
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2605,6 +2622,84 @@ Keep the published <code>dev</code> extra and development dependency group align
 </span></code></pre></div>
 <p>Preserve the project's Python 3.9 minimum version. Follow the existing module structure and keep
 synchronous and asynchronous behavior consistent.</p>
+<h3 id="security_updates_and_python_39">Security updates and Python 3.9<a class="headerlink" href="#security_updates_and_python_39" title="Permanent link">#</a></h3>
+<p>Runtime support for Python 3.9 does not imply that every dependency still receives security fixes
+for that interpreter. The November 2026 Dependabot review found 66 open alerts across nine packages.
+Requests now uses separate requirements: Python 3.9 retains 2.32.5, while Python 3.10+ requires
+at least 2.33.0 and currently locks 2.34.2. The lockfile also updates pip to 26.3 on Python 3.10+
+and filelock to 4.2.10 on Python 3.11+.</p>
+<p>The following vulnerable versions remain in the lockfile for Python 3.9. The patched releases
+listed here require Python 3.10+, except filelock 4.2.1, which requires Python 3.11+:</p>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Python 3.9 lock</th>
+<th>Patched release covering the reported alerts</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>aiohttp</td>
+<td>3.13.5</td>
+<td>3.14.4</td>
+</tr>
+<tr>
+<td>requests</td>
+<td>2.32.5</td>
+<td>2.33.0</td>
+</tr>
+<tr>
+<td>urllib3</td>
+<td>2.6.3</td>
+<td>2.8.0</td>
+</tr>
+<tr>
+<td>multidict</td>
+<td>6.7.1</td>
+<td>6.9.1</td>
+</tr>
+<tr>
+<td>python-dotenv</td>
+<td>1.2.1</td>
+<td>1.2.2</td>
+</tr>
+<tr>
+<td>pytest</td>
+<td>8.4.2</td>
+<td>9.0.3</td>
+</tr>
+<tr>
+<td>pip</td>
+<td>26.0.1</td>
+<td>26.2.0</td>
+</tr>
+<tr>
+<td>setuptools</td>
+<td>82.0.1</td>
+<td>84.1.0</td>
+</tr>
+<tr>
+<td>filelock</td>
+<td>3.19.1</td>
+<td>4.2.1</td>
+</tr>
+</tbody>
+</table>
+<p>Python 3.10 also retains filelock 4.1.0 with unresolved alerts. pip, setuptools, filelock, and pytest
+are development dependencies reached through the development tools, rather than library runtime
+requirements. Use Python 3.11+ for development to use patched versions of all nine packages in
+the lockfile. Python 3.9 remains installable, but these alerts cannot all be resolved by compatible
+upstream upgrades. Dependabot can continue reporting the older branches in the universal lockfile.
+Do not dismiss those alerts merely because newer interpreter branches are patched. Comparing the
+resolved versions against the 66 retrieved alert ranges finds 51 matching alerts on Python 3.9,
+17 on Python 3.10 (all filelock), and none on Python 3.11. These counts describe this review's
+alerts, not a guarantee against other vulnerabilities.</p>
+<p>Sources: <a href="https://github.com/realvitya/pyfortinet/security/dependabot">repository Dependabot alerts</a>,
+<a href="https://github.com/advisories/GHSA-gc5v-m9x4-r6x2">Requests advisory</a>, and the release-specific
+<code>requires_python</code> metadata from the <a href="https://docs.pypi.org/api/json/">PyPI JSON API</a>.
+The Requests advisory concerns direct calls to <code>extract_zipped_paths()</code>; pyfortinet does not call
+that utility. This does not remove the vulnerable dependency or address the other advisories.</p>
 <h2 id="verify_changes">Verify changes<a class="headerlink" href="#verify_changes" title="Permanent link">#</a></h2>
 <p>Run focused unit tests during development. For client behavior changes, run the unit suite;
 for HTTP timeout or transport changes, also run the loopback transport tests:</p>
