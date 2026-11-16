@@ -28,6 +28,45 @@ python -m pip install -e ".[dev]"
 Preserve the project's Python 3.9 minimum version. Follow the existing module structure and keep
 synchronous and asynchronous behavior consistent.
 
+### Security updates and Python 3.9
+
+Runtime support for Python 3.9 does not imply that every dependency still receives security fixes
+for that interpreter. The November 2026 Dependabot review found 66 open alerts across nine packages.
+Requests now uses separate requirements: Python 3.9 retains 2.32.5, while Python 3.10+ requires
+at least 2.33.0 and currently locks 2.34.2. The lockfile also updates pip to 26.3 on Python 3.10+
+and filelock to 4.2.10 on Python 3.11+.
+
+The following vulnerable versions remain in the lockfile for Python 3.9. The patched releases
+listed here require Python 3.10+, except filelock 4.2.1, which requires Python 3.11+:
+
+| Package | Python 3.9 lock | Patched release covering the reported alerts |
+|---------|-----------------|---------------------------------------------|
+| aiohttp | 3.13.5 | 3.14.4 |
+| requests | 2.32.5 | 2.33.0 |
+| urllib3 | 2.6.3 | 2.8.0 |
+| multidict | 6.7.1 | 6.9.1 |
+| python-dotenv | 1.2.1 | 1.2.2 |
+| pytest | 8.4.2 | 9.0.3 |
+| pip | 26.0.1 | 26.2.0 |
+| setuptools | 82.0.1 | 84.1.0 |
+| filelock | 3.19.1 | 4.2.1 |
+
+Python 3.10 also retains filelock 4.1.0 with unresolved alerts. pip, setuptools, filelock, and pytest
+are development dependencies reached through the development tools, rather than library runtime
+requirements. Use Python 3.11+ for development to use patched versions of all nine packages in
+the lockfile. Python 3.9 remains installable, but these alerts cannot all be resolved by compatible
+upstream upgrades. Dependabot can continue reporting the older branches in the universal lockfile.
+Do not dismiss those alerts merely because newer interpreter branches are patched. Comparing the
+resolved versions against the 66 retrieved alert ranges finds 51 matching alerts on Python 3.9,
+17 on Python 3.10 (all filelock), and none on Python 3.11. These counts describe this review's
+alerts, not a guarantee against other vulnerabilities.
+
+Sources: [repository Dependabot alerts](https://github.com/realvitya/pyfortinet/security/dependabot),
+[Requests advisory](https://github.com/advisories/GHSA-gc5v-m9x4-r6x2), and the release-specific
+`requires_python` metadata from the [PyPI JSON API](https://docs.pypi.org/api/json/).
+The Requests advisory concerns direct calls to `extract_zipped_paths()`; pyfortinet does not call
+that utility. This does not remove the vulnerable dependency or address the other advisories.
+
 ## Verify changes
 
 Run focused unit tests during development. For client behavior changes, run the unit suite;
